@@ -3,6 +3,7 @@ from datetime import datetime
 from typing import List
 import logging
 import traceback
+from configparser import ConfigParser
 import sqlite3
 from pytz import timezone
 from minette.user.user_repository import User
@@ -44,22 +45,31 @@ class Message:
         return message
 
 class MessageLogger:
-    def __init__(self, connection_str="minette.db", logger:logging.Logger=None):
-        self.logger = logger
-        self.timezone = None
+    def __init__(self, connection_str="minette.db", logger:logging.Logger=None, config:ConfigParser=None, tzone:timezone=None, prepare_database=True):
         self.connection_str = connection_str
-        conn, cur = self.__get_connection()
-        cur.execute("select * from sqlite_master where type='table' and name='messagelog'")
-        if cur.fetchone() is None:
-            cur.execute("create table messagelog(timestamp TEXT, unixtime INTEGER, channel TEXT, totaltick INTEGER, user_id TEXT, user_name TEXT, message_type TEXT, input_text TEXT, output_text TEXT)")
-            conn.commit()
-        conn.close()
+        self.logger = logger if logger else logging.getLogger(__name__)
+        self.config = config
+        self.timezone = tzone
+        if prepare_database:
+            self.prepare_database(self.connection_str)
 
     def __get_connection(self):
         conn = sqlite3.connect(self.connection_str)
         conn.row_factory = sqlite3.Row
         cur = conn.cursor()
         return (conn, cur)
+
+    def prepare_database(self, connection_str):
+        self.logger.warn("DB preparation for MessageLogger is ON. Turn off if this bot is runnning in production environment.")
+        try:
+            self.connection_str = connection_str
+            conn, cur = self.__get_connection()
+            cur.execute("select * from sqlite_master where type='table' and name='messagelog'")
+            if cur.fetchone() is None:
+                cur.execute("create table messagelog(timestamp TEXT, unixtime INTEGER, channel TEXT, totaltick INTEGER, user_id TEXT, user_name TEXT, message_type TEXT, input_text TEXT, output_text TEXT)")
+                conn.commit()
+        finally:
+            conn.close()
 
     def write(self, request:Message, output_text, total_ms):
         try:

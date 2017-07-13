@@ -2,7 +2,9 @@
 from datetime import datetime
 import logging
 import traceback
+from configparser import ConfigParser
 import sqlite3
+from pytz import timezone
 from minette.util import encode_json, decode_json, date_to_str, str_to_date
 
 class ModeStatus:
@@ -25,23 +27,32 @@ class Session:
         self.data = None
 
 class SessionStore:
-    def __init__(self, timeout=300, connection_str="minette.db", logger:logging.Logger=None):
-        self.logger = logger
-        self.timezone = None
+    def __init__(self, timeout=300, connection_str="minette.db", logger:logging.Logger=None, config:ConfigParser=None, tzone:timezone=None, prepare_database=True):
         self.timeout = timeout
         self.connection_str = connection_str
-        conn, cur = self.__get_connection()
-        cur.execute("select * from sqlite_master where type='table' and name='session'")
-        if cur.fetchone() is None:
-            cur.execute("create table session(channel TEXT, channel_user TEXT, timestamp TEXT, mode TEXT, dialog_status TEXT, chat_context TEXT, data TEXT, primary key(channel, channel_user))")
-            conn.commit()
-        conn.close()
+        self.logger = logger if logger else logging.getLogger(__name__)
+        self.config = config
+        self.timezone = tzone
+        if prepare_database:
+            self.prepare_database(self.connection_str)
 
     def __get_connection(self):
         conn = sqlite3.connect(self.connection_str)
         conn.row_factory = sqlite3.Row
         cur = conn.cursor()
         return (conn, cur)
+
+    def prepare_database(self, connection_str):
+        self.logger.warn("DB preparation for SessionStore is ON. Turn off if this bot is runnning in production environment.")
+        try:
+            self.connection_str = connection_str
+            conn, cur = self.__get_connection()
+            cur.execute("select * from sqlite_master where type='table' and name='session'")
+            if cur.fetchone() is None:
+                cur.execute("create table session(channel TEXT, channel_user TEXT, timestamp TEXT, mode TEXT, dialog_status TEXT, chat_context TEXT, data TEXT, primary key(channel, channel_user))")
+                conn.commit()
+        finally:
+            conn.close()
 
     def get_session(self, channel, channel_user) -> Session:
         sess = Session(channel, channel_user)

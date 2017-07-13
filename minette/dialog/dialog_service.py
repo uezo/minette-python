@@ -1,15 +1,17 @@
 """ base class of dialog service """
 import logging
+from configparser import ConfigParser
 from pytz import timezone
 from minette.session.session_store import Session
 from minette.dialog.message import Message
 
 class DialogService:
-    def __init__(self, request:Message, session:Session, logger:logging.Logger=None, tzone:timezone=None):
+    def __init__(self, request:Message, session:Session, logger:logging.Logger=None, config:ConfigParser=None, tzone:timezone=None):
         self.request = request
         self.session = session
         self.logger = logger
         self.timezone = tzone
+        self.config = config
 
     def decode_data(self):
         """ Restore data from JSON to your own data objects """

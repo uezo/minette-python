@@ -4,8 +4,8 @@ from minette import automata
 from minette.channel.line_adapter import WorkerThread, RequestParser
 
 bot = automata.create(
-    #tagger=mecabtagger.MeCabTagger(),
-    #classifier=classifier.MyClassifier()
+    #tagger=mecabtagger.MeCabTagger,
+    #classifier=classifier.MyClassifier
 )
 channel_secret = bot.config.get("line_bot_api", "channel_secret")
 channel_access_token = bot.config.get("line_bot_api", "channel_access_token")

@@ -12,15 +12,15 @@ from minette.dialog.message import Message, MessageLogger
 from minette.dialog.classifier import Classifier
 
 class Automata:
-    def __init__(self, session_store:SessionStore, user_repository:UserRepository, classifier:Classifier, tagger:Tagger, message_logger:MessageLogger, logger:logging.Logger):
+    def __init__(self, session_store:SessionStore, user_repository:UserRepository, classifier:Classifier, tagger:Tagger, message_logger:MessageLogger, logger:logging.Logger, config:ConfigParser, tzone:timezone):
         self.session_store = session_store
         self.user_repository = user_repository
         self.classifier = classifier
         self.tagger = tagger
         self.message_logger = message_logger
         self.logger = logger
-        self.timezone = timezone("UTC")
-        self.config = None
+        self.config = config
+        self.timezone = tzone
 
     def execute(self, request:Message) -> List[Message]:
         start_time = time()
@@ -32,7 +32,7 @@ class Automata:
             session = self.session_store.get_session(request.channel, request.channel_user)
             dialog_service = self.classifier.classify(request, session)
             if isinstance(dialog_service, type):
-                dialog_service = dialog_service(request, session, self.logger, self.timezone)
+                dialog_service = dialog_service(request=request, session=session, logger=self.logger, config=self.config, tzone=self.timezone)
             elif dialog_service is None:
                 self.logger.info("No dialog services")
                 return []
@@ -74,30 +74,34 @@ def get_default_logger():
     logger.addHandler(file_handler)
     return logger
 
-def create(session_store:SessionStore=None, user_repository:UserRepository=None, classifier:Classifier=None, tagger:Tagger=None, message_logger:MessageLogger=None, logger:logging.Logger=None):
-    #set default values
-    if session_store is None: session_store = SessionStore()
-    if user_repository is None: user_repository = UserRepository()
-    if classifier is None: classifier = Classifier()
-    if tagger is None: tagger = Tagger()
-    if message_logger is None: message_logger = MessageLogger()
+def create(session_store:SessionStore=None, user_repository:UserRepository=None, classifier:Classifier=None, tagger:Tagger=None, message_logger:MessageLogger=None, logger:logging.Logger=None, config_file="", prepare_database=True):
+    #initialize logger and config
     if logger is None: logger = get_default_logger()
-    #set default logger for all components
-    if session_store.logger is None: session_store.logger = logger
-    if user_repository.logger is None: user_repository.logger = logger
-    if classifier.logger is None: classifier.logger = logger
-    if tagger.logger is None: tagger.logger = logger
-    if message_logger.logger is None: message_logger.logger = logger
-    #set default timezone for all components
-    automata = Automata(session_store, user_repository, classifier, tagger, message_logger, logger)
+    config = ConfigParser()
+    config.read(config_file if config_file else "./minette.ini")
+    tzone = timezone("UTC")
     try:
-        automata.config = ConfigParser()
-        automata.config.read("./minette.ini")
-        automata.timezone = timezone(automata.config.get("minette", "timezone"))
+        tzone = timezone(config.get("minette", "timezone"))
     except Exception as ex:
         logger.warn("No timezone or invalid timezone: " + str(ex) + "\n" + traceback.format_exc())
-    session_store.timezone = automata.timezone
-    user_repository.timezone = automata.timezone
-    classifier.timezone = automata.timezone
-    message_logger.timezone = automata.timezone
-    return automata
+    #initialize default components
+    args = {"logger":logger, "config":config, "tzone":tzone}
+    if session_store is None:
+        session_store = SessionStore(**args, prepare_database=prepare_database)
+    elif isinstance(session_store, type):
+        session_store = session_store(**args, prepare_database=prepare_database)
+    if user_repository is None:
+        user_repository = UserRepository(**args, prepare_database=prepare_database)
+    elif isinstance(user_repository, type):
+        user_repository = user_repository(**args, prepare_database=prepare_database)
+    if classifier is None:
+        classifier = Classifier(**args)
+    elif isinstance(classifier, type):
+        classifier = classifier(**args)
+    if tagger is None:
+        tagger = Tagger(**args)
+    elif isinstance(tagger, type):
+        tagger = tagger(**args)
+    if message_logger is None: message_logger = MessageLogger(**args, prepare_database=prepare_database)
+    #create automata
+    return Automata(session_store, user_repository, classifier, tagger, message_logger, logger, config, tzone)

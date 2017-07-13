@@ -3,7 +3,9 @@ from datetime import datetime
 import logging
 import traceback
 import uuid
+from configparser import ConfigParser
 import sqlite3
+from pytz import timezone
 from minette.util import encode_json, decode_json, date_to_str
 
 class User:
@@ -22,26 +24,35 @@ class User:
             self.__repository.save_user(self)
 
 class UserRepository:
-    def __init__(self, connection_str="minette.db", logger:logging.Logger=None):
+    def __init__(self, connection_str="minette.db", logger:logging.Logger=None, config:ConfigParser=None, tzone:timezone=None, prepare_database=True):
         self.logger = logger
-        self.timezone = None
+        self.config = config
+        self.timezone = tzone
         self.connection_str = connection_str
-        conn, cur = self.__get_connection()
-        cur.execute("select * from sqlite_master where type='table' and name='user'")
-        if cur.fetchone() is None:
-            cur.execute("create table user(user_id TEXT primary key, timestamp TEXT, name TEXT, nickname TEXT, data TEXT)")
-            conn.commit()
-        cur.execute("select * from sqlite_master where type='table' and name='user_id_mapper'")
-        if cur.fetchone() is None:
-            cur.execute("create table user_id_mapper(channel TEXT, channel_user TEXT, user_id TEXT, timestamp TEXT, primary key(channel, channel_user))")
-            conn.commit()
-        conn.close()
+        if prepare_database:
+            self.prepare_database(self.connection_str)
 
     def __get_connection(self):
         conn = sqlite3.connect(self.connection_str)
         conn.row_factory = sqlite3.Row
         cur = conn.cursor()
         return (conn, cur)
+
+    def prepare_database(self, connection_str):
+        self.logger.warn("DB preparation for UserRepository is ON. Turn off if this bot is runnning in production environment.")
+        try:
+            self.connection_str = connection_str
+            conn, cur = self.__get_connection()
+            cur.execute("select * from sqlite_master where type='table' and name='user'")
+            if cur.fetchone() is None:
+                cur.execute("create table user(user_id TEXT primary key, timestamp TEXT, name TEXT, nickname TEXT, data TEXT)")
+                conn.commit()
+            cur.execute("select * from sqlite_master where type='table' and name='user_id_mapper'")
+            if cur.fetchone() is None:
+                cur.execute("create table user_id_mapper(channel TEXT, channel_user TEXT, user_id TEXT, timestamp TEXT, primary key(channel, channel_user))")
+                conn.commit()
+        finally:
+            conn.close()
 
     def get_user(self, channel, channel_user) -> User:
         user = User(channel, channel_user)

@@ -5,8 +5,8 @@ from minette.dialog.message import Message
 
 #Create an instance of automata
 bot = automata.create(
-    #tagger=mecabtagger.MeCabTagger(),      #If MeCab is installed, uncomment this line
-    #classifier=classifier.MyClassifier()   #Your own classifier
+    #tagger=mecabtagger.MeCabTagger,      #If MeCab is installed, uncomment this line
+    #classifier=classifier.MyClassifier   #Your own classifier
 )
 
 #Send and receive messages
