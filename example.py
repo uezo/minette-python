@@ -1,5 +1,4 @@
 """ Console BOT example """
-from datetime import datetime
 from minette import automata
 from minette.dialog.message import Message
 
