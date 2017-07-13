@@ -19,7 +19,7 @@ class Payload:
         self.content = content
 
 class Message:
-    def __init__(self, message_id="", message_type="message", timestamp=None, channel="", channel_user="", channel_message=None, token="", text="", words:List[WordNode]=None, payloads:List[Payload]=None, is_private=True, user:User=None):
+    def __init__(self, message_id="", message_type="message", timestamp=None, channel="[NOT_SPECIFIED]", channel_user="[ANONYMOUS]", channel_message=None, token="", text="", words:List[WordNode]=None, payloads:List[Payload]=None, is_private=True, user:User=None):
         self.message_id = message_id
         self.type = message_type
         self.timestamp = timestamp if timestamp else datetime.now(timezone("UTC"))

@@ -12,7 +12,7 @@ bot = automata.create(
 #Send and receive messages
 while True:
     text = input("user> ")
-    req = Message(text=text, channel="CONSOLE", channel_user="default_user", timestamp=datetime.now(bot.timezone))
+    req = Message(text=text)
     res = bot.execute(req)
     for message in res:
         print("minette> " + message.text)
