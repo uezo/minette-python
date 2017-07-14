@@ -1,6 +1,5 @@
 """ Console BOT example """
 from minette import automata
-from minette.dialog import Message
 
 #Create an instance of automata
 bot = automata.create(
@@ -10,8 +9,7 @@ bot = automata.create(
 
 #Send and receive messages
 while True:
-    text = input("user> ")
-    req = Message(text=text)
+    req = input("user> ")
     res = bot.execute(req)
     for message in res:
         print("minette> " + message.text)

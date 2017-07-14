@@ -21,10 +21,12 @@ class Automata:
         self.config = config
         self.timezone = tzone
 
-    def execute(self, request:Message) -> List[Message]:
+    def execute(self, request) -> List[Message]:
         start_time = time()
         #processing dialog
         try:
+            if isinstance(request, str):
+                request = Message(text=request)
             response = [request.get_reply_message("?")]
             request.words = self.tagger.parse(request.text)
             request.user = self.user_repository.get_user(request.channel, request.channel_user)

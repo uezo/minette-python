@@ -11,15 +11,13 @@ $ git clone https://github.com/uezo/minette-python.git
 Make example.py and run.
 ```python
 from minette import automata
-from minette.dialog.message import Message
 
 # create bot
 bot = automata.create()
 
 # start conversation
 while True:
-    text = input("user> ")
-    req = Message(text=text)
+    req = input("user> ")
     res = bot.execute(req)
     for message in res:
         print("minette> " + message.text)
@@ -83,9 +81,7 @@ Here is the example. RateDialogService calculate ＄->¥ exchange rate and MyCla
 
 ```python
 from minette import automata
-from minette.dialog.message import Message
-from minette.dialog.dialog_service import DialogService
-from minette.dialog.classifier import Classifier
+from minette.dialog import Message, DialogService, Classifier
 
 class RateDialogService(DialogService):
     def compose_response(self):
@@ -105,8 +101,7 @@ if __name__ == "__main__":
 
     # start conversation
     while True:
-        text = input("user> ")
-        req = Message(text=text)
+        req = input("user> ")
         res = bot.execute(req)
         for message in res:
             print("minette> " + message.text)
@@ -139,15 +134,13 @@ This software is licensed under the Apache v2 License.
 The first bot that just echoes what you say.
 ```python
 from minette import automata
-from minette.dialog.message import Message
 
 # create bot
 bot = automata.create()
 
 # start conversation
 while True:
-    text = input("user> ")
-    req = Message(text=text)
+    req = input("user> ")
     res = bot.execute(req)
     for message in res:
         print("minette> " + message.text)
@@ -162,9 +155,7 @@ The simplest structure. All logic is implemented in a custom DialogService.
 ```python
 from datetime import datetime
 from minette import automata
-from minette.dialog.message import Message
-from minette.dialog.dialog_service import DialogService
-from minette.dialog.classifier import Classifier
+from minette.dialog import Message, DialogService, Classifier
 
 class GreetingDialogService(DialogService):
     def compose_response(self):
@@ -187,8 +178,7 @@ if __name__ == "__main__":
 
     # start conversation
     while True:
-        text = input("user> ")
-        req = Message(text=text)
+        req = input("user> ")
         res = bot.execute(req)
         for message in res:
             print("minette> " + message.text)
@@ -203,9 +193,7 @@ Override process_request method to execute application logic.
 ```python
 import random
 from minette import automata
-from minette.dialog.message import Message
-from minette.dialog.dialog_service import DialogService
-from minette.dialog.classifier import Classifier
+from minette.dialog import Message, DialogService, Classifier
 
 class DiceDialogService(DialogService):
     def process_request(self):
@@ -228,8 +216,7 @@ if __name__ == "__main__":
     bot = automata.create(classifier=MyClassifier)
     # start conversation
     while True:
-        text = input("user> ")
-        req = Message(text=text)
+        req = input("user> ")
         res = bot.execute(req)
         for message in res:
             print("minette> " + message.text)
@@ -242,9 +229,7 @@ Switching DialogService by request.text.
 import random
 from datetime import datetime
 from minette import automata
-from minette.dialog.message import Message
-from minette.dialog.dialog_service import DialogService
-from minette.dialog.classifier import Classifier
+from minette.dialog import Message, DialogService, Classifier
 
 class GreetingDialogService(DialogService):
     def compose_response(self):
@@ -281,8 +266,7 @@ if __name__ == "__main__":
     bot = automata.create(classifier=MyClassifier)
     # start conversation
     while True:
-        text = input("user> ")
-        req = Message(text=text)
+        req = input("user> ")
         res = bot.execute(req)
         for message in res:
             print("minette> " + message.text)
