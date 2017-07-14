@@ -1,5 +1,5 @@
 # Minette for Python
-Minette is a micro Bot framework. Session and user management, Natural language analyzing and architecture for multi-skill/character bot are ready-to-use.
+Minette is a micro Bot framework. Session and user management, Natural language analyzing and architecture for multi-skill/character bot are ready-to-use.
 
 ## Installation
 `git clone` or download this project and set path. We are preparing for `pip`.
@@ -50,7 +50,7 @@ bot = automata.create(
 ```
 
 ### MeCab Tagger
-MeCabTagger uses MeCab which is one of the most popular Japanese morphological analyzer. This provides all information of MeCab nodes. To use this tagger, MeCab and its binding for Python are required.
+MeCabTagger uses MeCab which is one of the most popular Japanese morphological analyzer. This provides all information of MeCab nodes. To use this tagger, MeCab and its binding for Python are required.
 
 #### Installing MeCab
 - Ubuntu 16.04
