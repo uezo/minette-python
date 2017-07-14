@@ -4,7 +4,7 @@ from typing import List
 from queue import Queue
 import traceback
 from minette import automata
-from minette.dialog.message import Message, Payload
+from minette.dialog import Message, Payload
 from linebot import LineBotApi, WebhookParser
 from linebot.exceptions import InvalidSignatureError
 from linebot.models import (

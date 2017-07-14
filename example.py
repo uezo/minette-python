@@ -1,6 +1,6 @@
 """ Console BOT example """
 from minette import automata
-from minette.dialog.message import Message
+from minette.dialog import Message
 
 #Create an instance of automata
 bot = automata.create(

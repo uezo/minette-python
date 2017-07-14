@@ -1,12 +1,11 @@
 """ Japanese chatting """
 import logging
 from configparser import ConfigParser
-from pytz import timezone
 import json
+from pytz import timezone
 import requests
-from minette.session.session_store import Session
-from minette.dialog.message import Message
-from minette.dialog.dialog_service import DialogService
+from minette.session import Session
+from minette.dialog import Message, DialogService
 
 class ChatDialogService(DialogService):
     def __init__(self, request:Message, session:Session, logger:logging.Logger=None, config:ConfigParser=None, tzone:timezone=None, api_key="", replace_values:dict=None):

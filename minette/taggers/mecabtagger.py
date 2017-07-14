@@ -2,7 +2,7 @@
 from typing import List
 import traceback
 import MeCab
-from minette.taggers.tagger import WordNode, Tagger
+from minette.tagger import WordNode, Tagger
 
 class MeCabNode(WordNode):
     def __init__(self, features):

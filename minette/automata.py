@@ -5,11 +5,10 @@ import logging
 import traceback
 from configparser import ConfigParser
 from pytz import timezone
-from minette.session.session_store import SessionStore
-from minette.user.user_repository import UserRepository
-from minette.taggers.tagger import Tagger
-from minette.dialog.message import Message, MessageLogger
-from minette.dialog.classifier import Classifier
+from minette.session import SessionStore
+from minette.user import UserRepository
+from minette.tagger import Tagger
+from minette.dialog import Message, MessageLogger, Classifier
 
 class Automata:
     def __init__(self, session_store:SessionStore, user_repository:UserRepository, classifier:Classifier, tagger:Tagger, message_logger:MessageLogger, logger:logging.Logger, config:ConfigParser, tzone:timezone):

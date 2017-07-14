@@ -6,9 +6,11 @@ import traceback
 from configparser import ConfigParser
 import sqlite3
 from pytz import timezone
-from minette.user.user_repository import User
-from minette.taggers.tagger import WordNode
+from minette.session import Session
+from minette.user import User
+from minette.tagger import WordNode
 from minette.util import date_to_str, date_to_unixtime
+
 
 class Payload:
     def __init__(self, content_type="image", url="", thumb="", headers=None, content=None):
@@ -17,6 +19,7 @@ class Payload:
         self.thumb = thumb if thumb != "" else url
         self.headers = headers if headers else {}
         self.content = content
+
 
 class Message:
     def __init__(self, message_id="", message_type="message", timestamp=None, channel="[NOT_SPECIFIED]", channel_user="[ANONYMOUS]", channel_message=None, token="", text="", words:List[WordNode]=None, payloads:List[Payload]=None, is_private=True, user:User=None):
@@ -43,6 +46,7 @@ class Message:
         message.words = []
         message.payloads = payloads if payloads else []
         return message
+
 
 class MessageLogger:
     def __init__(self, connection_str="minette.db", logger:logging.Logger=None, config:ConfigParser=None, tzone:timezone=None, prepare_database=True):
@@ -82,3 +86,39 @@ class MessageLogger:
             self.logger.error("Message log failed: " + str(ex) + "\n" + traceback.format_exc())
         finally:
             conn.close()
+
+
+class DialogService:
+    def __init__(self, request:Message, session:Session, logger:logging.Logger=None, config:ConfigParser=None, tzone:timezone=None):
+        self.request = request
+        self.session = session
+        self.logger = logger
+        self.timezone = tzone
+        self.config = config
+
+    def decode_data(self):
+        """ Restore data from JSON to your own data objects """
+        pass
+
+    def encode_data(self):
+        """ Serialize your own data objects to JSON """
+        pass
+
+    def process_request(self):
+        """ Process your bot's functions/skills and setup session data """
+        pass
+
+    def compose_response(self) -> Message:
+        """ Compose the response messages using session data """
+        return self.request.get_reply_message("You said: " + self.request.text)
+
+
+class Classifier:
+    def __init__(self, logger:logging.Logger=None, config:ConfigParser=None, tzone:timezone=None):
+        self.logger = logger if logger else logging.getLogger(__name__)
+        self.config = config
+        self.timezone = tzone
+
+    def classify(self, request:Message, session: Session) -> DialogService:
+        """ Detect the topic from what user is saying and return DialogService suitable for it """
+        return DialogService(request=request, session=session, logger=self.logger, config=self.config, tzone=self.timezone)

@@ -5,7 +5,7 @@ import traceback
 from configparser import ConfigParser
 from pytz import timezone
 import requests
-from minette.taggers.tagger import WordNode, Tagger
+from minette.tagger import WordNode, Tagger
 
 class GoogleNode(WordNode):
     def __init__(self, token):
