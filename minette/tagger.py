@@ -1,8 +1,5 @@
 """ WordNode datamodel and base class of Tagger(do nothing) """
-from typing import List
 import logging
-from configparser import ConfigParser
-from pytz import timezone
 
 class WordNode:
     def __init__(self):
@@ -17,10 +14,24 @@ class WordNode:
         self.pronunciation = ""
 
 class Tagger:
-    def __init__(self, logger:logging.Logger=None, config:ConfigParser=None, tzone:timezone=None):
+    def __init__(self, logger=None, config=None, tzone=None):
+        """
+        :param logger: Logger
+        :type logger: logging.Logger
+        :param config: ConfigParser
+        :type config: ConfigParser
+        :param tzone: Timezone
+        :type tzone: timezone
+        """
         self.logger = logger if logger else logging.getLogger(__name__)
         self.config = config
         self.timezone = tzone
 
-    def parse(self, text) -> List[WordNode]:
+    def parse(self, text):
+        """
+        :param text: Text to analyze
+        :type text: str
+        :return: Word nodes
+        :rtype: [WordNode]
+        """
         return []

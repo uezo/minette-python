@@ -1,5 +1,4 @@
 """ tagger using mecab """
-from typing import List
 import traceback
 import MeCab
 from minette.tagger import WordNode, Tagger
@@ -17,7 +16,13 @@ class MeCabNode(WordNode):
         self.pronunciation = features[8] if len(features) > 8 else ""
 
 class MeCabTagger(Tagger):
-    def parse(self, text) -> List[MeCabNode]:
+    def parse(self, text):
+        """
+        :param text: Text to analyze
+        :type text: str
+        :return: MeCabNodes
+        :rtype: [MeCabNode]
+        """
         ret = []
         if text == "":
             return ret

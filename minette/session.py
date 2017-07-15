@@ -1,10 +1,8 @@
-""" session datamodel and defalt session_store using SQLite """
+""" Session datamodel and defalt SessionStore using SQLite """
 from datetime import datetime
 import logging
 import traceback
-from configparser import ConfigParser
 import sqlite3
-from pytz import timezone
 from minette.util import encode_json, decode_json, date_to_str, str_to_date
 
 class ModeStatus:
@@ -14,6 +12,12 @@ class ModeStatus:
 
 class Session:
     def __init__(self, channel, channel_user):
+        """
+        :param channel: Channel
+        :type channel: str
+        :param channel_user: User ID of channel
+        :type channel_user: str
+        """
         self.channel = channel
         self.channel_user = channel_user
         self.timestamp = None
@@ -27,7 +31,21 @@ class Session:
         self.data = None
 
 class SessionStore:
-    def __init__(self, timeout=300, connection_str="minette.db", logger:logging.Logger=None, config:ConfigParser=None, tzone:timezone=None, prepare_database=True):
+    def __init__(self, timeout=300, connection_str="minette.db", logger=None, config=None, tzone=None, prepare_database=True):
+        """
+        :param timeout: Session timeout (seconds)
+        :type timeout: int
+        :param connection_str: Connection string or file path to access the database
+        :type connection_str: str
+        :param logger: Logger
+        :type logger: logging.Logger
+        :param config: ConfigParser
+        :type config: ConfigParser
+        :param tzone: Timezone
+        :type tzone: timezone
+        :param prepare_database: Check and create table if not existing
+        :type prepare_database: bool
+        """
         self.timeout = timeout
         self.connection_str = connection_str
         self.logger = logger if logger else logging.getLogger(__name__)
@@ -37,12 +55,20 @@ class SessionStore:
             self.prepare_database(self.connection_str)
 
     def __get_connection(self):
+        """
+        :return: Database connection
+        :rtype: (Connection, cur)
+        """
         conn = sqlite3.connect(self.connection_str)
         conn.row_factory = sqlite3.Row
         cur = conn.cursor()
         return (conn, cur)
 
     def prepare_database(self, connection_str):
+        """
+        :param connection_str: Connection string or file path to access the database
+        :type connection_str: str
+        """
         self.logger.warn("DB preparation for SessionStore is ON. Turn off if this bot is runnning in production environment.")
         try:
             self.connection_str = connection_str
@@ -54,7 +80,15 @@ class SessionStore:
         finally:
             conn.close()
 
-    def get_session(self, channel, channel_user) -> Session:
+    def get_session(self, channel, channel_user):
+        """
+        :param channel: Channel
+        :type channel: str
+        :param channel_user: User ID of channel
+        :type channel_user: str
+        :return: Session
+        :rtype: Session
+        """
         sess = Session(channel, channel_user)
         sess.timestamp = datetime.now(self.timezone)
         try:
@@ -79,11 +113,15 @@ class SessionStore:
                 self.logger.error("Error occured in restoring session from Sqlite: " + str(ex) + "\n" + traceback.format_exc())
         return sess
 
-    def save_session(self, sess:Session):
+    def save_session(self, session):
+        """
+        :param session: Session
+        :type session: Session
+        """
         try:
             conn, cur = self.__get_connection()
             sql = "replace into session (channel, channel_user, timestamp, mode, dialog_status, chat_context, data) values (?,?,?,?,?,?,?)"
-            cur.execute(sql, (sess.channel, sess.channel_user, date_to_str(sess.timestamp), sess.mode, sess.dialog_status, sess.chat_context, encode_json(sess.data)))
+            cur.execute(sql, (session.channel, session.channel_user, date_to_str(session.timestamp), session.mode, session.dialog_status, session.chat_context, encode_json(session.data)))
             conn.commit()
         finally:
             conn.close()

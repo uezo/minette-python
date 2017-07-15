@@ -1,9 +1,5 @@
 """ tagger using Google Cloud Natural Languege API """
-from typing import List
-import logging
 import traceback
-from configparser import ConfigParser
-from pytz import timezone
 import requests
 from minette.tagger import WordNode, Tagger
 
@@ -14,11 +10,29 @@ class GoogleNode(WordNode):
         self.part = token["partOfSpeech"]["tag"]
 
 class GoogleTagger(Tagger):
-    def __init__(self, api_key, logger:logging.Logger=None, config:ConfigParser=None, tzone:timezone=None):
+    def __init__(self, api_key, logger=None, config=None, tzone=None):
+        """
+        :param api_key: API Key for Google Cloud Natural Language API
+        :type api_key: str
+        :param logger: Logger
+        :type logger: logging.Logger
+        :param config: ConfigParser
+        :type config: ConfigParser
+        :param tzone: Timezone
+        :type tzone: timezone
+        """
         super().__init__(logger=logger, config=config, tzone=tzone)
         self.api_key = api_key
 
-    def parse(self, text, lang="en") -> List[GoogleNode]:
+    def parse(self, text, lang="en"):
+        """
+        :param text: Text to analyze
+        :type text: str
+        :param lang: Language
+        :type lang: str
+        :return: GoogleNode
+        :rtype: [GoogleNode]
+        """
         ret = []
         if text == "":
             return ret

@@ -1,22 +1,27 @@
 """ Adapter for LINE """
 from threading import Thread
-from typing import List
 from queue import Queue
 import traceback
-from minette import automata
 from minette.dialog import Message, Payload
 from linebot import LineBotApi, WebhookParser
 from linebot.exceptions import InvalidSignatureError
 from linebot.models import (
-    Event, BeaconEvent, FollowEvent, JoinEvent, LeaveEvent, MessageEvent, PostbackEvent, UnfollowEvent,
+    BeaconEvent, FollowEvent, JoinEvent, LeaveEvent, MessageEvent, PostbackEvent, UnfollowEvent,
     TextMessage, ImageMessage, AudioMessage, VideoMessage, LocationMessage, StickerMessage,
-    SendMessage, TextSendMessage, ImageSendMessage, AudioSendMessage, VideoSendMessage, LocationSendMessage, StickerSendMessage, ImagemapSendMessage, TemplateSendMessage
+    TextSendMessage, ImageSendMessage, AudioSendMessage, VideoSendMessage, LocationSendMessage, StickerSendMessage, ImagemapSendMessage, TemplateSendMessage
 )
 
 class WorkerThread(Thread):
-    def __init__(self, bot:automata.Automata, channel_secret, channel_access_token):
+    def __init__(self, bot, channel_secret, channel_access_token):
+        """
+        :param bot: Bot
+        :type bot: automata.Automata
+        :param channel_secret: channel_secret
+        :type channel_secret: str
+        :param channel_access_token: channel_access_token
+        :type channel_access_token: str
+        """
         super(WorkerThread, self).__init__()
-        # self.daemon = True
         self.bot = bot
         self.api = LineBotApi(channel_access_token)
         self.queue = Queue()
@@ -24,6 +29,7 @@ class WorkerThread(Thread):
         self.logger = bot.logger
 
     def run(self):
+        """ Start worker thread """
         while True:
             try:
                 event = self.queue.get()
@@ -37,8 +43,14 @@ class WorkerThread(Thread):
             except Exception as ex:
                 self.logger.error("Error occured in replying message: " + str(ex) + "\n" + traceback.format_exc())
 
-    def map_request(self, ev:Event) -> Message:
-        print(ev)
+    def map_request(self, ev):
+        """
+        :param ev: Event
+        :type ev: Event
+        :return: Message
+        :rtype: Message
+        """
+        self.bot.logger.debug(ev)
         msg = Message(
             message_type=ev.type,
             token=ev.reply_token,
@@ -94,7 +106,13 @@ class WorkerThread(Thread):
             pass
         return msg
 
-    def map_response(self, messages:List[Message]) -> List[SendMessage]:
+    def map_response(self, messages):
+        """
+        :param messages: Messages
+        :type messages: [Message]
+        :return: SendMessages
+        :rtype: [SendMessage]
+        """
         send_messages = []
         for msg in messages:
             if msg.type == "text":
@@ -117,11 +135,22 @@ class WorkerThread(Thread):
         return send_messages
 
 class RequestParser:
-    def __init__(self, worker:WorkerThread, channel_secret):
+    def __init__(self, worker, channel_secret):
+        """
+        :param worker: WorkerThread
+        :type worker: WorkerThread
+        :param channel_secret: channel_secret
+        :type channel_secret: str
+        """
         self.worker = worker
         self.parser = WebhookParser(channel_secret)
 
     def parse_request(self, request):
+        """
+        :param request: Flask HTTP Request
+        :return: HTTP Status code
+        :rtype: int
+        """
         signature = request.headers['X-Line-Signature']
         body = request.get_data(as_text=True)
         try:

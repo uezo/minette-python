@@ -1,6 +1,5 @@
 """ Core module of Minette """
 from time import time
-from typing import List
 import logging
 import traceback
 from configparser import ConfigParser
@@ -11,7 +10,25 @@ from minette.tagger import Tagger
 from minette.dialog import Message, MessageLogger, Classifier
 
 class Automata:
-    def __init__(self, session_store:SessionStore, user_repository:UserRepository, classifier:Classifier, tagger:Tagger, message_logger:MessageLogger, logger:logging.Logger, config:ConfigParser, tzone:timezone):
+    def __init__(self, session_store, user_repository, classifier, tagger, message_logger, logger, config, tzone):
+        """
+        :param session_store: SessionStore
+        :type session_store: SessionStore
+        :param user_repository: UserRepository
+        :type user_repository: UserRepository
+        :param classifier: Classifier
+        :type classifier: Classifier
+        :param tagger: Tagger
+        :type tagger: Tagger
+        :param message_logger: MessageLogger
+        :type message_logger: MessageLogger
+        :param logger: logging.Logger
+        :type logger: logging.Logger
+        :param config: ConfigParser
+        :type config: ConfigParser
+        :param tzone: timezone
+        :type tzone: timezone
+        """
         self.session_store = session_store
         self.user_repository = user_repository
         self.classifier = classifier
@@ -21,7 +38,13 @@ class Automata:
         self.config = config
         self.timezone = tzone
 
-    def execute(self, request) -> List[Message]:
+    def execute(self, request):
+        """
+        :param request: Request message
+        :type request: Message
+        :return: Response message
+        :rtype: [Message]
+        """
         start_time = time()
         #processing dialog
         try:
@@ -62,6 +85,10 @@ class Automata:
         return response
 
 def get_default_logger():
+    """
+    :return: Default Logger
+    :rtype: logging.Logger
+    """
     logger = logging.getLogger(__name__)
     logger.setLevel(logging.DEBUG)
     formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
@@ -75,9 +102,28 @@ def get_default_logger():
     logger.addHandler(file_handler)
     return logger
 
-def create(session_store:SessionStore=None, user_repository:UserRepository=None, classifier:Classifier=None, tagger:Tagger=None, message_logger:MessageLogger=None, logger:logging.Logger=None, config_file="", prepare_database=True):
+def create(session_store=SessionStore, user_repository=UserRepository, classifier=Classifier, tagger=Tagger, message_logger=MessageLogger, logger=None, config_file="", prepare_database=True):
+    """
+    :param session_store: SessionStore
+    :type session_store: SessionStore
+    :param user_repository: UserRepository
+    :type user_repository: UserRepository
+    :param classifier: Classifier
+    :type classifier: Classifier
+    :param tagger: Tagger
+    :type tagger: Tagger
+    :param message_logger: MessageLogger
+    :type message_logger: MessageLogger
+    :param logger: logging.Logger
+    :type logger: logging.Logger
+    :param config_file: Path to configuration file
+    :type config_file: str
+    :param prepare_database: Check and create table if not existing
+    :type prepare_database: bool
+    """
     #initialize logger and config
-    if logger is None: logger = get_default_logger()
+    if logger is None:
+        logger = get_default_logger()
     config = ConfigParser()
     config.read(config_file if config_file else "./minette.ini")
     tzone = timezone("UTC")
@@ -87,22 +133,16 @@ def create(session_store:SessionStore=None, user_repository:UserRepository=None,
         logger.warn("No timezone or invalid timezone: " + str(ex) + "\n" + traceback.format_exc())
     #initialize default components
     args = {"logger":logger, "config":config, "tzone":tzone}
-    if session_store is None:
-        session_store = SessionStore(**args, prepare_database=prepare_database)
-    elif isinstance(session_store, type):
-        session_store = session_store(**args, prepare_database=prepare_database)
-    if user_repository is None:
-        user_repository = UserRepository(**args, prepare_database=prepare_database)
-    elif isinstance(user_repository, type):
-        user_repository = user_repository(**args, prepare_database=prepare_database)
-    if classifier is None:
-        classifier = Classifier(**args)
-    elif isinstance(classifier, type):
+    args_db = {"logger":logger, "config":config, "tzone":tzone, "prepare_database":prepare_database}
+    if isinstance(session_store, type):
+        session_store = session_store(**args_db)
+    if isinstance(user_repository, type):
+        user_repository = user_repository(**args_db)
+    if isinstance(classifier, type):
         classifier = classifier(**args)
-    if tagger is None:
-        tagger = Tagger(**args)
-    elif isinstance(tagger, type):
+    if isinstance(tagger, type):
         tagger = tagger(**args)
-    if message_logger is None: message_logger = MessageLogger(**args, prepare_database=prepare_database)
+    if isinstance(message_logger, type):
+        message_logger = message_logger(**args_db)
     #create automata
     return Automata(session_store, user_repository, classifier, tagger, message_logger, logger, config, tzone)
