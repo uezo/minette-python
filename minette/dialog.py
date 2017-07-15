@@ -6,11 +6,11 @@ import traceback
 from configparser import ConfigParser
 import sqlite3
 from pytz import timezone
+import requests
 from minette.session import Session
 from minette.user import User
 from minette.tagger import WordNode
 from minette.util import date_to_str, date_to_unixtime
-
 
 class Payload:
     def __init__(self, content_type="image", url="", thumb="", headers=None, content=None):
@@ -19,7 +19,17 @@ class Payload:
         self.thumb = thumb if thumb != "" else url
         self.headers = headers if headers else {}
         self.content = content
+    
+    def get(self, set_content=False):
+        data = requests.get(self.url, headers=self.headers).content
+        if set_content:
+            self.content = data
+        return data
 
+    def save(self, filepath):
+        data = self.get()
+        with open(filepath, "wb") as f:
+            f.write(data)
 
 class Message:
     def __init__(self, message_id="", message_type="message", timestamp=None, channel="[NOT_SPECIFIED]", channel_user="[ANONYMOUS]", channel_message=None, token="", text="", words:List[WordNode]=None, payloads:List[Payload]=None, is_private=True, user:User=None):
