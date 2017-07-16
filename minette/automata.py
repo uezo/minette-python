@@ -126,23 +126,30 @@ def create(session_store=SessionStore, user_repository=UserRepository, classifie
         logger = get_default_logger()
     config = ConfigParser()
     config.read(config_file if config_file else "./minette.ini")
-    tzone = timezone("UTC")
-    try:
-        tzone = timezone(config.get("minette", "timezone"))
-    except Exception as ex:
-        logger.warn("No timezone or invalid timezone: " + str(ex) + "\n" + traceback.format_exc())
+    config_minette = config["minette"]
+    tzone = timezone(config_minette.get("timezone", "UTC"))
     #initialize default components
+    default_connection_str = config_minette.get("connection_str", "")
     args = {"logger":logger, "config":config, "tzone":tzone}
-    args_db = {"logger":logger, "config":config, "tzone":tzone, "prepare_database":prepare_database}
     if isinstance(session_store, type):
-        session_store = session_store(**args_db)
+        session_args = args.copy()
+        session_args["prepare_database"] = prepare_database
+        session_args["connection_str"] = config_minette.get("session_connection_str", default_connection_str)
+        session_args["timeout"] = config_minette.getint("session_timeout", 300)
+        session_store = session_store(**session_args)
     if isinstance(user_repository, type):
-        user_repository = user_repository(**args_db)
+        user_args = args.copy()
+        user_args["prepare_database"] = prepare_database
+        user_args["connection_str"] = config_minette.get("user_connection_str", default_connection_str)
+        user_repository = user_repository(**user_args)
     if isinstance(classifier, type):
         classifier = classifier(**args)
     if isinstance(tagger, type):
         tagger = tagger(**args)
     if isinstance(message_logger, type):
-        message_logger = message_logger(**args_db)
+        message_args = args.copy()
+        message_args["prepare_database"] = prepare_database
+        message_args["connection_str"] = config_minette.get("message_connection_str", default_connection_str)
+        message_logger = message_logger(**message_args)
     #create automata
     return Automata(session_store, user_repository, classifier, tagger, message_logger, logger, config, tzone)

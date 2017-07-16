@@ -31,7 +31,7 @@ class User:
             self.__repository.save_user(self)
 
 class UserRepository:
-    def __init__(self, connection_str="minette.db", logger=None, config=None, tzone=None, prepare_database=True):
+    def __init__(self, connection_str="", logger=None, config=None, tzone=None, prepare_database=True):
         """
         :param connection_str: Connection string or file path to access the database
         :type connection_str: str
@@ -44,10 +44,10 @@ class UserRepository:
         :param prepare_database: Check and create table if not existing
         :type prepare_database: bool
         """
+        self.connection_str = connection_str if connection_str else "./minette.db"
         self.logger = logger
         self.config = config
         self.timezone = tzone
-        self.connection_str = connection_str
         if prepare_database:
             self.prepare_database(self.connection_str)
 

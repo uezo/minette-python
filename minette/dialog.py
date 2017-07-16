@@ -110,7 +110,7 @@ class Message:
 
 
 class MessageLogger:
-    def __init__(self, connection_str="minette.db", logger=None, config=None, tzone=None, prepare_database=True):
+    def __init__(self, connection_str="", logger=None, config=None, tzone=None, prepare_database=True):
         """
         :param connection_str: Connection string or file path to access the database
         :type connection_str: str
@@ -123,7 +123,7 @@ class MessageLogger:
         :param prepare_database: Check and create table if not existing
         :type prepare_database: bool
         """
-        self.connection_str = connection_str
+        self.connection_str = connection_str if connection_str else "./minette.db"
         self.logger = logger if logger else logging.getLogger(__name__)
         self.config = config
         self.timezone = tzone

@@ -31,12 +31,12 @@ class Session:
         self.data = None
 
 class SessionStore:
-    def __init__(self, timeout=300, connection_str="minette.db", logger=None, config=None, tzone=None, prepare_database=True):
+    def __init__(self, connection_str="", timeout=300, logger=None, config=None, tzone=None, prepare_database=True):
         """
-        :param timeout: Session timeout (seconds)
-        :type timeout: int
         :param connection_str: Connection string or file path to access the database
         :type connection_str: str
+        :param timeout: Session timeout (seconds)
+        :type timeout: int
         :param logger: Logger
         :type logger: logging.Logger
         :param config: ConfigParser
@@ -46,8 +46,8 @@ class SessionStore:
         :param prepare_database: Check and create table if not existing
         :type prepare_database: bool
         """
-        self.timeout = timeout
-        self.connection_str = connection_str
+        self.connection_str = connection_str if connection_str else "./minette.db"
+        self.timeout = timeout if timeout else 300
         self.logger = logger if logger else logging.getLogger(__name__)
         self.config = config
         self.timezone = tzone
