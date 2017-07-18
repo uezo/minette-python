@@ -1,11 +1,8 @@
 """ Data models and default components for processing dialog using SQLite """
 from datetime import datetime
 import logging
-import traceback
-import sqlite3
 from pytz import timezone
 import requests
-from minette.session import Session
 from minette.util import date_to_str, date_to_unixtime
 
 class Payload:
@@ -110,53 +107,37 @@ class Message:
 
 
 class MessageLogger:
-    def __init__(self, connection_str="", logger=None, config=None, tzone=None, prepare_database=True):
+    def __init__(self, logger=None, config=None, tzone=None, connection_provider_for_prepare=None):
         """
-        :param connection_str: Connection string or file path to access the database
-        :type connection_str: str
         :param logger: Logger
         :type logger: logging.Logger
         :param config: ConfigParser
         :type config: ConfigParser
         :param tzone: Timezone
         :type tzone: timezone
-        :param prepare_database: Check and create table if not existing
-        :type prepare_database: bool
+        :param connection_provider_for_prepare: ConnectionProvider to create table if not existing
+        :type connection_provider_for_prepare: ConnectionProvider
         """
-        self.connection_str = connection_str if connection_str else "./minette.db"
         self.logger = logger if logger else logging.getLogger(__name__)
         self.config = config
         self.timezone = tzone
-        if prepare_database:
-            self.prepare_database(self.connection_str)
+        if connection_provider_for_prepare:
+            self.prepare_table(connection_provider_for_prepare)
 
-    def __get_connection(self):
+    def prepare_table(self, connection_provider):
         """
-        :return: Database connection
-        :rtype: (Connection, cur)
-        """
-        conn = sqlite3.connect(self.connection_str)
-        conn.row_factory = sqlite3.Row
-        cur = conn.cursor()
-        return (conn, cur)
-
-    def prepare_database(self, connection_str):
-        """
-        :param connection_str: Connection string or file path to access the database
-        :type connection_str: str
+        :param connection_provider: ConnectionProvider to create table if not existing
+        :type connection_provider: ConnectionProvider
         """
         self.logger.warn("DB preparation for MessageLogger is ON. Turn off if this bot is runnning in production environment.")
-        try:
-            self.connection_str = connection_str
-            conn, cur = self.__get_connection()
-            cur.execute("select * from sqlite_master where type='table' and name='messagelog'")
-            if cur.fetchone() is None:
-                cur.execute("create table messagelog(timestamp TEXT, unixtime INTEGER, channel TEXT, totaltick INTEGER, user_id TEXT, user_name TEXT, message_type TEXT, input_text TEXT, output_text TEXT)")
-                conn.commit()
-        finally:
-            conn.close()
+        connection = connection_provider.get_connection()
+        cursor = connection.cursor()
+        cursor.execute("select * from sqlite_master where type='table' and name='messagelog'")
+        if cursor.fetchone() is None:
+            cursor.execute("create table messagelog(timestamp TEXT, unixtime INTEGER, channel TEXT, totaltick INTEGER, user_id TEXT, user_name TEXT, message_type TEXT, input_text TEXT, output_text TEXT)")
+            connection.commit()
 
-    def write(self, request, output_text, total_ms):
+    def write(self, request, output_text, total_ms, connection):
         """
         :param request: Request message
         :type request: Message
@@ -164,21 +145,18 @@ class MessageLogger:
         :type output_text: str
         :param total_ms: Response time (milliseconds)
         :type total_ms: int
+        :param connection: Connection
+        :type connection: Connection
         """
-        try:
-            sql = "insert into messagelog (timestamp, unixtime, channel, totaltick, user_id, user_name, message_type, input_text, output_text) values (?,?,?,?,?,?,?,?,?)"
-            conn, cur = self.__get_connection()
-            now = datetime.now(self.timezone)
-            cur.execute(sql, (date_to_str(now), date_to_unixtime(now), request.channel, total_ms, request.user.user_id, request.user.name, request.type, request.text, output_text))
-            conn.commit()
-        except Exception as ex:
-            self.logger.error("Message log failed: " + str(ex) + "\n" + traceback.format_exc())
-        finally:
-            conn.close()
+        now = datetime.now(self.timezone)
+        cursor = connection.cursor()
+        sql = "insert into messagelog (timestamp, unixtime, channel, totaltick, user_id, user_name, message_type, input_text, output_text) values (?,?,?,?,?,?,?,?,?)"
+        cursor.execute(sql, (date_to_str(now), date_to_unixtime(now), request.channel, total_ms, request.user.user_id, request.user.name, request.type, request.text, output_text))
+        connection.commit()
 
 
 class DialogService:
-    def __init__(self, request, session, logger=None, config=None, tzone=None):
+    def __init__(self, request, session, logger=None, config=None, tzone=None, connection=None):
         """
         :param request: Request message
         :type request: Message
@@ -190,12 +168,15 @@ class DialogService:
         :type config: ConfigParser
         :param tzone: Timezone
         :type tzone: timezone
+        :param connection: Connection
+        :type connection: Connection
         """
         self.request = request
         self.session = session
         self.logger = logger
         self.timezone = tzone
         self.config = config
+        self.connection = connection
 
     def decode_data(self):
         """ Restore data from JSON to your own data objects """
@@ -231,13 +212,15 @@ class Classifier:
         self.config = config
         self.timezone = tzone
 
-    def classify(self, request:Message, session: Session):
+    def classify(self, request, session, connection=None):
         """ Detect the topic from what user is saying and return DialogService suitable for it
         :param request: Request message
         :type request: Message
         :param session: Session
         :type session: Session
+        :param connection: Connection
+        :type connection: Connection
         :return: DialogService
-        :rtype: DialogService        
+        :rtype: DialogService
         """
-        return DialogService(request=request, session=session, logger=self.logger, config=self.config, tzone=self.timezone)
+        return DialogService(request=request, session=session, logger=self.logger, config=self.config, tzone=self.timezone, connection=connection)

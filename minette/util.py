@@ -28,13 +28,17 @@ def decode_json(json_string):
         return None
     return json.loads(json_string)
 
-def date_to_str(dt):
+def date_to_str(dt, without_timezone=False):
     """
     :param dt: Datetime
     :type dt: datetime
+    :param without_timezone: Return string without timezone
+    :type without_timezone: bool
     :return: Datetime string
     :rtype: str
     """
+    if without_timezone:
+        return dt.strftime("%Y-%m-%d %H:%M:%S")
     if dt.tzinfo:
         return dt.strftime("%Y-%m-%d %H:%M:%S %z")
     else:
