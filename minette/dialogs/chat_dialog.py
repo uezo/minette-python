@@ -12,11 +12,24 @@ from minette.dialog import Message, DialogService
 from minette.util import date_to_str
 
 class ChatDialogService(DialogService):
-    def __init__(self, request, session, logger=None, config=None, tzone=None, connection=None, api_key="", replace_values=None, debug=False):
+    def __init__(self, request, session, logger=None, config=None, tzone=None, connection=None, api_key="", replace_values=None, chat_logfile=""):
         super().__init__(request=request, session=session, logger=logger, config=config, tzone=tzone, connection=connection)
         self.api_key = api_key
         self.replace_values = replace_values if replace_values else {}
-        self.debug = debug
+        self.chat_logger = None
+        if chat_logfile:
+            logger = logging.getLogger(__name__)
+            logger.setLevel(logging.DEBUG)
+            formatter = logging.Formatter('%(asctime)s - %(name)s - %(message)s')
+            stream_handler = logging.StreamHandler()
+            stream_handler.setLevel(logging.DEBUG)
+            stream_handler.setFormatter(formatter)
+            logger.addHandler(stream_handler)
+            file_handler = logging.FileHandler(filename=chat_logfile)
+            file_handler.setLevel(logging.DEBUG)
+            file_handler.setFormatter(formatter)
+            logger.addHandler(file_handler)
+            self.chat_logger = logger
 
     def process_request(self):
         chat_req = {
@@ -33,37 +46,12 @@ class ChatDialogService(DialogService):
         for k, v in self.replace_values.items():
             chat_str = chat_str.replace(k, v)
         self.session.data = chat_str
-        self.debug_chat_message(chat_res)
+        if self.chat_logger:
+            try:
+                self.chat_logger.debug(json.dumps(chat_res))
+            except Exception as ex:
+                self.logger.error("Error occured in logging chat message for debug: " + str(ex) + "\n" + traceback.format_exc())
 
     def compose_response(self):
         self.session.keep_mode = True if self.session.mode == "srtr" else False
         return self.request.get_reply_message(str(self.session.data))
-
-    def debug_chat_message(self, chat_json):
-        """
-        :param chat_json: JSON to log
-        """
-        if self.debug is False:
-            return
-        try:
-            start_time = time()
-            chat_json_str = json.dumps(chat_json)
-            now = datetime.now(self.timezone)
-            cursor = self.connection.cursor()
-            sql = "insert into chatlog(timestamp, overhead, text) values (%s,%s,%s)"
-            overhead = int((time() - start_time) * 1000)
-            cursor.execute(sql, (date_to_str(now, True), overhead, chat_json_str))
-            self.connection.commit()
-        except Exception as ex:
-            self.logger.error("Error occured in logging chat message for debug: " + str(ex) + "\n" + traceback.format_exc())
-
-    @classmethod
-    def prepare_table(cls, connection_provider):
-        """
-        :param connection_provider: MySQLConnectionProvider to create table if not existing
-        :type connection_provider: MySQLConnectionProvider
-        """
-        connection = connection_provider.get_connection()
-        cursor = connection.cursor()
-        cursor.execute("create table chatlog(timestamp DATETIME, overhead INT, text VARCHAR(4000))")
-        connection.commit()
