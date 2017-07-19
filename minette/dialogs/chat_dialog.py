@@ -20,7 +20,7 @@ class ChatDialogService(DialogService):
         if chat_logfile:
             logger = logging.getLogger(__name__)
             logger.setLevel(logging.DEBUG)
-            formatter = logging.Formatter('%(asctime)s - %(name)s - %(message)s')
+            formatter = logging.Formatter('%(asctime)s - %(message)s')
             stream_handler = logging.StreamHandler()
             stream_handler.setLevel(logging.DEBUG)
             stream_handler.setFormatter(formatter)
