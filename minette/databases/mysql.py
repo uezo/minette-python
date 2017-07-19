@@ -1,11 +1,10 @@
-
-
+""" Connection provider using MySQL """
 import MySQLdb
 from MySQLdb.cursors import DictCursor
 from minette.database import ConnectionProvider
 
 class MySQLConnectionProvider(ConnectionProvider):
-    def __init__(self, connection_str):
+    def __init__(self, connection_str=""):
         """
         :param connection_str: Connection string
         :type connection_str: str

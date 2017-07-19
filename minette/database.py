@@ -1,8 +1,8 @@
-""" Connection provider """
+""" Connection provider using SQLite """
 import sqlite3
 
 class ConnectionProvider:
-    def __init__(self, connection_str):
+    def __init__(self, connection_str=""):
         """
         :param connection_str: Connection string
         :type connection_str: str

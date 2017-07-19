@@ -98,7 +98,8 @@ class SessionStore:
         """
         :param session: Session
         :type session: Session
-        
+        :param connection: Connection
+        :type connection: Connection
         """
         cursor = connection.cursor()
         sql = "replace into session (channel, channel_user, timestamp, mode, dialog_status, chat_context, data) values (?,?,?,?,?,?,?)"

@@ -2,6 +2,8 @@
 from datetime import datetime
 import calendar
 import json
+import importlib
+import sys
 
 class DateTimeJSONEncoder(json.JSONEncoder):
     def default(self, obj):
@@ -74,3 +76,15 @@ def unixtime_to_date(unixtime, tz=None):
     :rtype: datetime
     """
     return datetime.fromtimestamp(unixtime, tz=tz)
+
+def get_class(path_to_class):
+    """
+    :param path_to_class: Namespace and class name like "name.space.and.Class"
+    :type path_to_class: str
+    :return: Class
+    """
+    namespaces = path_to_class.split(".")
+    package_name = ".".join(namespaces[:-1])
+    class_name = namespaces[-1]
+    importlib.import_module(package_name)
+    return getattr(sys.modules[package_name], class_name)

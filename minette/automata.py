@@ -9,6 +9,7 @@ from minette.session import SessionStore
 from minette.user import UserRepository
 from minette.tagger import Tagger
 from minette.dialog import Message, MessageLogger, Classifier
+from minette.util import get_class
 
 class Automata:
     def __init__(self, connection_provider, session_store, user_repository, classifier, tagger, message_logger, logger, config, tzone):
@@ -113,7 +114,7 @@ def get_default_logger():
     logger.addHandler(file_handler)
     return logger
 
-def create(connection_provider=ConnectionProvider, session_store=SessionStore, user_repository=UserRepository, classifier=Classifier, tagger=Tagger, message_logger=MessageLogger, logger=None, config_file="", prepare_table=True):
+def create(connection_provider=None, session_store=None, user_repository=None, classifier=Classifier, tagger=Tagger, message_logger=None, logger=None, config_file="", prepare_table=True):
     """
     :param connection_provider: ConnectionProvider
     :type connection_provider: ConnectionProvider
@@ -141,25 +142,54 @@ def create(connection_provider=ConnectionProvider, session_store=SessionStore, u
     config.read(config_file if config_file else "./minette.ini")
     config_minette = config["minette"]
     tzone = timezone(config_minette.get("timezone", "UTC"))
-    #initialize connection provider and get connection
+    #initialize connection provider
     connection_str = config_minette.get("connection_str", "")
+    if connection_provider is None:
+        connection_provider_classname = config_minette.get("connection_provider", "")
+        if connection_provider_classname:
+            connection_provider = get_class(connection_provider_classname)
+        else:
+            connection_provider = ConnectionProvider
     if isinstance(connection_provider, type):
         connection_provider = connection_provider(connection_str)
     #initialize default components
     args = {"logger":logger, "config":config, "tzone":tzone}
+    #session store
+    if session_store is None:
+        session_store_classname = config_minette.get("session_store", "")
+        if session_store_classname:
+            session_store = get_class(session_store_classname)
+        else:
+            session_store = SessionStore
     if isinstance(session_store, type):
         session_args = args.copy()
         session_args["connection_provider_for_prepare"] = connection_provider if prepare_table else None
         session_args["timeout"] = config_minette.getint("session_timeout", 300)
         session_store = session_store(**session_args)
+    #user repository
+    if user_repository is None:
+        user_repository_classname = config_minette.get("user_repository", "")
+        if user_repository_classname:
+            user_repository = get_class(user_repository_classname)
+        else:
+            user_repository = UserRepository
     if isinstance(user_repository, type):
         user_args = args.copy()
         user_args["connection_provider_for_prepare"] = connection_provider if prepare_table else None
         user_repository = user_repository(**user_args)
+    #classifier
     if isinstance(classifier, type):
         classifier = classifier(**args)
+    #tagger
     if isinstance(tagger, type):
         tagger = tagger(**args)
+    #message logger
+    if message_logger is None:
+        message_logger_classname = config_minette.get("message_logger", "")
+        if message_logger_classname:
+            message_logger = get_class(message_logger_classname)
+        else:
+            message_logger = UserRepository
     if isinstance(message_logger, type):
         message_args = args.copy()
         message_args["connection_provider_for_prepare"] = connection_provider if prepare_table else None
