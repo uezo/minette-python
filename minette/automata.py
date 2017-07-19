@@ -110,7 +110,7 @@ def get_default_logger():
     logger.addHandler(stream_handler)
     file_handler = logging.FileHandler(filename="./minette.log")
     file_handler.setLevel(logging.ERROR)
-    file_handler.setFormatter(logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
+    file_handler.setFormatter(formatter)
     logger.addHandler(file_handler)
     return logger
 
@@ -189,7 +189,7 @@ def create(connection_provider=None, session_store=None, user_repository=None, c
         if message_logger_classname:
             message_logger = get_class(message_logger_classname)
         else:
-            message_logger = UserRepository
+            message_logger = MessageLogger
     if isinstance(message_logger, type):
         message_args = args.copy()
         message_args["connection_provider_for_prepare"] = connection_provider if prepare_table else None
