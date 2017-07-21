@@ -102,6 +102,8 @@ def get_default_logger():
     :rtype: logging.Logger
     """
     logger = logging.getLogger(__name__)
+    if len(logger.handlers) > 0:
+        return logger
     logger.setLevel(logging.DEBUG)
     formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
     stream_handler = logging.StreamHandler()
