@@ -3,6 +3,7 @@ from datetime import datetime
 import logging
 import traceback
 from minette.util import encode_json, decode_json, date_to_str, str_to_date
+import sqlite3
 
 class ModeStatus:
     Start = 1
@@ -30,7 +31,7 @@ class Session:
         self.data = None
 
 class SessionStore:
-    def __init__(self, timeout=300, logger=None, config=None, tzone=None, connection_provider_for_prepare=None):
+    def __init__(self, timeout=300, logger=None, config=None, tzone=None, connection_provider_for_prepare=None, table_name="session"):
         """
         :param timeout: Session timeout (seconds)
         :type timeout: int
@@ -42,26 +43,46 @@ class SessionStore:
         :type tzone: timezone
         :param connection_provider_for_prepare: ConnectionProvider to create table if not existing
         :type connection_provider_for_prepare: ConnectionProvider
+        :param table_name: Session table
+        :type table_name: str
         """
+        self.sqls = self.get_sqls(table_name)
         self.timeout = timeout if timeout else 300
         self.logger = logger if logger else logging.getLogger(__name__)
         self.config = config
         self.timezone = tzone
         if connection_provider_for_prepare:
-            self.prepare_table(connection_provider_for_prepare)
+            self.logger.warn("DB preparation for SessionStore is ON. Turn off if this bot is runnning in production environment.")
+            connection_provider_for_prepare.prepare_table(self.sqls["prepare_check"], self.sqls["prepare_create"])
 
-    def prepare_table(self, connection_provider):
+    def get_sqls(self, table_name):
         """
-        :param connection_provider: ConnectionProvider to create table if not existing
-        :type connection_provider: ConnectionProvider
+        :param table_name: Session table
+        :type table_name: str
+        :return: Dictionary of SQL
+        :rtype: dict
         """
-        self.logger.warn("DB preparation for SessionStore is ON. Turn off if this bot is runnning in production environment.")
-        connection = connection_provider.get_connection()
-        cursor = connection.cursor()
-        cursor.execute("select * from sqlite_master where type='table' and name='session'")
-        if cursor.fetchone() is None:
-            cursor.execute("create table session(channel TEXT, channel_user TEXT, timestamp TEXT, mode TEXT, dialog_status TEXT, chat_context TEXT, data TEXT, primary key(channel, channel_user))")
-            connection.commit()
+        return {
+            "prepare_check": "select * from sqlite_master where type='table' and name='{0}'".format(table_name),
+            "prepare_create": "create table {0} (channel TEXT, channel_user TEXT, timestamp TEXT, mode TEXT, dialog_status TEXT, chat_context TEXT, data TEXT, primary key(channel, channel_user))".format(table_name),
+            "get_session": "select * from {0} where channel=? and channel_user=? limit 1".format(table_name),
+            "save_session": "replace into {0} (channel, channel_user, timestamp, mode, dialog_status, chat_context, data) values (?,?,?,?,?,?,?)".format(table_name),
+        }
+
+    def map_record(self, row):
+        """
+        :param row: A row of record set
+        :type row: sqlite3.Row
+        :return: Record
+        :rtype: dict
+        """
+        return {
+            "timestamp": str_to_date(str(row["timestamp"])),
+            "mode": str(row["mode"]),
+            "dialog_status": str(row["dialog_status"]),
+            "chat_context": str(row["chat_context"]),
+            "data": decode_json(row["data"])
+        }
 
     def get_session(self, channel, channel_user, connection):
         """
@@ -78,20 +99,21 @@ class SessionStore:
         sess.timestamp = datetime.now(self.timezone)
         try:
             cursor = connection.cursor()
-            sql = "select * from session where channel=? and channel_user=? limit 1"
-            cursor.execute(sql, (channel, channel_user))
+            cursor.execute(self.sqls["get_session"], (channel, channel_user))
             row = cursor.fetchone()
             if row is not None:
-                last_access = str_to_date(str(row["timestamp"]))
+                record = self.map_record(row)
+                last_access = record["timestamp"]
+                last_access = last_access.replace(tzinfo=self.timezone)
                 if (datetime.now(self.timezone) - last_access).total_seconds() <= self.timeout:
-                    sess.mode = str(row["mode"])
-                    sess.dialog_status = str(row["dialog_status"])
-                    sess.chat_context = str(row["chat_context"])
-                    sess.data = decode_json(row["data"])
+                    sess.mode = record["mode"]
+                    sess.dialog_status = record["dialog_status"]
+                    sess.chat_context = record["chat_context"]
+                    sess.data = record["data"]
                     sess.is_new = False
                     sess.mode_status = ModeStatus.Continue if sess.mode != "" else ModeStatus.Start
         except Exception as ex:
-            self.logger.error("Error occured in restoring session from Sqlite: " + str(ex) + "\n" + traceback.format_exc())
+            self.logger.error("Error occured in restoring session from database: " + str(ex) + "\n" + traceback.format_exc())
         return sess
 
     def save_session(self, session, connection):
@@ -102,6 +124,5 @@ class SessionStore:
         :type connection: Connection
         """
         cursor = connection.cursor()
-        sql = "replace into session (channel, channel_user, timestamp, mode, dialog_status, chat_context, data) values (?,?,?,?,?,?,?)"
-        cursor.execute(sql, (session.channel, session.channel_user, date_to_str(session.timestamp), session.mode, session.dialog_status, session.chat_context, encode_json(session.data)))
+        cursor.execute(self.sqls["save_session"], (session.channel, session.channel_user, date_to_str(session.timestamp), session.mode, session.dialog_status, session.chat_context, encode_json(session.data)))
         connection.commit()

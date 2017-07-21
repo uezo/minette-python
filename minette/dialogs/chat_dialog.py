@@ -9,7 +9,6 @@ from datetime import datetime
 import requests
 from minette.session import Session
 from minette.dialog import Message, DialogService
-from minette.util import date_to_str
 
 class ChatDialogService(DialogService):
     def __init__(self, request, session, logger=None, config=None, tzone=None, connection=None, api_key="", replace_values=None, chat_logfile=""):

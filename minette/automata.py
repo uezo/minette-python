@@ -164,6 +164,7 @@ def create(connection_provider=None, session_store=None, user_repository=None, c
     if isinstance(session_store, type):
         session_args = args.copy()
         session_args["connection_provider_for_prepare"] = connection_provider if prepare_table else None
+        session_args["table_name"] = config_minette.get("session_table", "session")
         session_args["timeout"] = config_minette.getint("session_timeout", 300)
         session_store = session_store(**session_args)
     #user repository
@@ -176,6 +177,8 @@ def create(connection_provider=None, session_store=None, user_repository=None, c
     if isinstance(user_repository, type):
         user_args = args.copy()
         user_args["connection_provider_for_prepare"] = connection_provider if prepare_table else None
+        user_args["table_user"] = config_minette.get("user_table", "user")
+        user_args["table_uidmap"] = config_minette.get("uidmap_table", "user_id_mapper")
         user_repository = user_repository(**user_args)
     #classifier
     if isinstance(classifier, type):
@@ -193,6 +196,7 @@ def create(connection_provider=None, session_store=None, user_repository=None, c
     if isinstance(message_logger, type):
         message_args = args.copy()
         message_args["connection_provider_for_prepare"] = connection_provider if prepare_table else None
+        message_args["table_name"] = config_minette.get("messagelog_table", "messagelog")
         message_logger = message_logger(**message_args)
     #create automata
     return Automata(connection_provider, session_store, user_repository, classifier, tagger, message_logger, logger, config, tzone)

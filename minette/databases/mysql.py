@@ -23,3 +23,14 @@ class MySQLConnectionProvider(ConnectionProvider):
         :rtype: Connection, Cursor
         """
         return MySQLdb.connect(**self.connection_info)
+
+    def prepare_table(self, check_sql, create_sql, query_params=tuple()):
+        """
+        :param check_sql: SQL to check the table is existing
+        :type check_sql: str
+        :param create_sql: SQL to create the table
+        :type create_sql: str
+        :param query_params: Query parameters for checking table
+        :type query_params: tuple
+        """
+        super().prepare_table(check_sql, create_sql, (self.connection_info["db"],))

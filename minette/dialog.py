@@ -107,7 +107,7 @@ class Message:
 
 
 class MessageLogger:
-    def __init__(self, logger=None, config=None, tzone=None, connection_provider_for_prepare=None):
+    def __init__(self, logger=None, config=None, tzone=None, connection_provider_for_prepare=None, table_name="messagelog"):
         """
         :param logger: Logger
         :type logger: logging.Logger
@@ -117,25 +117,29 @@ class MessageLogger:
         :type tzone: timezone
         :param connection_provider_for_prepare: ConnectionProvider to create table if not existing
         :type connection_provider_for_prepare: ConnectionProvider
+        :param table_name: Message log table
+        :type table_name: str
         """
+        self.sqls = self.get_sqls(table_name)
         self.logger = logger if logger else logging.getLogger(__name__)
         self.config = config
         self.timezone = tzone
         if connection_provider_for_prepare:
-            self.prepare_table(connection_provider_for_prepare)
+            self.logger.warn("DB preparation for MessageLogger is ON. Turn off if this bot is runnning in production environment.")
+            connection_provider_for_prepare.prepare_table(self.sqls["prepare_check"], self.sqls["prepare_create"])
 
-    def prepare_table(self, connection_provider):
+    def get_sqls(self, table_name):
         """
-        :param connection_provider: ConnectionProvider to create table if not existing
-        :type connection_provider: ConnectionProvider
+        :param table_name: Message log table
+        :type table_name: str
+        :return: Dictionary of SQL
+        :rtype: dict
         """
-        self.logger.warn("DB preparation for MessageLogger is ON. Turn off if this bot is runnning in production environment.")
-        connection = connection_provider.get_connection()
-        cursor = connection.cursor()
-        cursor.execute("select * from sqlite_master where type='table' and name='messagelog'")
-        if cursor.fetchone() is None:
-            cursor.execute("create table messagelog(timestamp TEXT, unixtime INTEGER, channel TEXT, totaltick INTEGER, user_id TEXT, user_name TEXT, message_type TEXT, input_text TEXT, output_text TEXT)")
-            connection.commit()
+        return {
+            "prepare_check": "select * from sqlite_master where type='table' and name='{0}'".format(table_name),
+            "prepare_create": "create table {0} (timestamp TEXT, unixtime INTEGER, channel TEXT, totaltick INTEGER, user_id TEXT, user_name TEXT, message_type TEXT, input_text TEXT, output_text TEXT)".format(table_name),
+            "write": "insert into {0} (timestamp, unixtime, channel, totaltick, user_id, user_name, message_type, input_text, output_text) values (?,?,?,?,?,?,?,?,?)".format(table_name)
+        }
 
     def write(self, request, output_text, total_ms, connection):
         """
@@ -150,8 +154,7 @@ class MessageLogger:
         """
         now = datetime.now(self.timezone)
         cursor = connection.cursor()
-        sql = "insert into messagelog (timestamp, unixtime, channel, totaltick, user_id, user_name, message_type, input_text, output_text) values (?,?,?,?,?,?,?,?,?)"
-        cursor.execute(sql, (date_to_str(now), date_to_unixtime(now), request.channel, total_ms, request.user.user_id, request.user.name, request.type, request.text, output_text))
+        cursor.execute(self.sqls["write"], (date_to_str(now), date_to_unixtime(now), request.channel, total_ms, request.user.user_id, request.user.name, request.type, request.text, output_text))
         connection.commit()
 
 

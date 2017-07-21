@@ -31,7 +31,7 @@ class User:
             self.__repository.save_user(self, self.__connection)
 
 class UserRepository:
-    def __init__(self, logger=None, config=None, tzone=None, connection_provider_for_prepare=None):
+    def __init__(self, logger=None, config=None, tzone=None, connection_provider_for_prepare=None, table_user="user", table_uidmap="user_id_mapper"):
         """
         :param logger: Logger
         :type logger: logging.Logger
@@ -41,29 +41,54 @@ class UserRepository:
         :type tzone: timezone
         :param connection_provider_for_prepare: ConnectionProvider to create table if not existing
         :type connection_provider_for_prepare: ConnectionProvider
+        :param table_user: User table
+        :type table_user: str
+        :param table_uidmap: User-Channel mapping table
+        :type table_uidmap: str
         """
+        self.sqls = self.get_sqls(table_user, table_uidmap)
         self.logger = logger
         self.config = config
         self.timezone = tzone
         if connection_provider_for_prepare:
-            self.prepare_table(connection_provider_for_prepare)
+            self.logger.warn("DB preparation for UserRepository is ON. Turn off if this bot is runnning in production environment.")
+            connection_provider_for_prepare.prepare_table(self.sqls["prepare_check_user"], self.sqls["prepare_create_user"])
+            connection_provider_for_prepare.prepare_table(self.sqls["prepare_check_uidmap"], self.sqls["prepare_create_uidmap"])
 
-    def prepare_table(self, connection_provider):
+    def get_sqls(self, table_user, table_uidmap):
         """
-        :param connection_provider: ConnectionProvider to create table if not existing
-        :type connection_provider: ConnectionProvider
+        :param table_user: User table
+        :type table_user: str
+        :param table_uidmap: UserId-Channel mapping table
+        :type table_uidmap: str
+        :return: Dictionary of SQL
+        :rtype: dict
         """
-        self.logger.warn("DB preparation for UserRepository is ON. Turn off if this bot is runnning in production environment.")
-        connection = connection_provider.get_connection()
-        cursor = connection.cursor()
-        cursor.execute("select * from sqlite_master where type='table' and name='user'")
-        if cursor.fetchone() is None:
-            cursor.execute("create table user(user_id TEXT primary key, timestamp TEXT, name TEXT, nickname TEXT, data TEXT)")
-            connection.commit()
-        cursor.execute("select * from sqlite_master where type='table' and name='user_id_mapper'")
-        if cursor.fetchone() is None:
-            cursor.execute("create table user_id_mapper(channel TEXT, channel_user TEXT, user_id TEXT, timestamp TEXT, primary key(channel, channel_user))")
-            connection.commit()
+        return {
+            "prepare_check_user": "select * from sqlite_master where type='table' and name='{0}'".format(table_user),
+            "prepare_create_user": "create table {0} (user_id TEXT primary key, timestamp TEXT, name TEXT, nickname TEXT, data TEXT)".format(table_user),
+            "prepare_check_uidmap": "select * from sqlite_master where type='table' and name='{0}'".format(table_uidmap),
+            "prepare_create_uidmap": "create table {0} (channel TEXT, channel_user TEXT, user_id TEXT, timestamp TEXT, primary key(channel, channel_user))".format(table_uidmap),
+            #todo subquery before innner join
+            "get_user": "select * from {0} inner join {1} on ({0}.user_id = {1}.user_id) where {1}.channel=? and {1}.channel_user=? limit 1".format(table_user, table_uidmap),
+            "add_user": "insert into {0} (user_id, timestamp, name, nickname, data) values (?,?,?,?,?)".format(table_user),
+            "add_uidmap": "insert into {0} (channel, channel_user, user_id, timestamp) values (?,?,?,?)".format(table_uidmap),
+            "save_user": "update {0} set timestamp=?, name=?, nickname=?, data=? where user_id=?".format(table_user),
+        }
+
+    def map_record(self, row):
+        """
+        :param row: A row of record set
+        :type row: sqlite3.Row
+        :return: Record
+        :rtype: dict
+        """
+        return {
+            "user_id": str(row["user_id"]),
+            "name": str(row["name"]),
+            "nickname": str(row["nickname"]),
+            "data": decode_json(row["data"])
+        }
 
     def get_user(self, channel, channel_user, connection):
         """
@@ -79,23 +104,21 @@ class UserRepository:
         user = User(channel=channel, channel_user=channel_user, repository=self, connection=connection)
         try:
             cursor = connection.cursor()
-            sql = "select * from user inner join user_id_mapper on (user.user_id = user_id_mapper.user_id) where user_id_mapper.channel=? and user_id_mapper.channel_user=? limit 1"
-            cursor.execute(sql, (channel, channel_user))
+            cursor.execute(self.sqls["get_user"], (channel, channel_user))
             row = cursor.fetchone()
             if row is not None:
-                user.user_id = str(row["user_id"])
-                user.name = str(row["name"])
-                user.nickname = str(row["nickname"])
-                user.data = decode_json(row["data"])
+                record = self.map_record(row)
+                user.user_id = record["user_id"]
+                user.name = record["name"]
+                user.nickname = record["nickname"]
+                user.data = record["data"]
             else:
                 now = date_to_str(datetime.now(self.timezone))
-                sql_user = "insert into user (user_id, timestamp, name, nickname, data) values (?,?,?,?,?)"
-                sql_uid = "insert into user_id_mapper (channel, channel_user, user_id, timestamp) values (?,?,?,?)"
-                cursor.execute(sql_user, (user.user_id, now, user.name, user.nickname, None))
-                cursor.execute(sql_uid, (channel, channel_user, user.user_id, now))
+                cursor.execute(self.sqls["add_user"], (user.user_id, now, user.name, user.nickname, None))
+                cursor.execute(self.sqls["add_uidmap"], (channel, channel_user, user.user_id, now))
                 connection.commit()
         except Exception as ex:
-            self.logger.error("Error occured in restoring user from Sqlite: " + str(ex) + "\n" + traceback.format_exc())
+            self.logger.error("Error occured in restoring user from database: " + str(ex) + "\n" + traceback.format_exc())
         return user
 
     def save_user(self, user, connection):
@@ -106,6 +129,5 @@ class UserRepository:
         :type connection: Connection
         """
         cursor = connection.cursor()
-        sql = "update user set timestamp=?, name=?, nickname=?, data=? where user_id=?"
-        cursor.execute(sql, (date_to_str(datetime.now(self.timezone)), user.name, user.nickname, encode_json(user.data), user.user_id))
+        cursor.execute(self.sqls["save_user"], (date_to_str(datetime.now(self.timezone)), user.name, user.nickname, encode_json(user.data), user.user_id))
         connection.commit()
