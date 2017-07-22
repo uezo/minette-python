@@ -116,7 +116,7 @@ def get_default_logger():
     logger.addHandler(file_handler)
     return logger
 
-def create(connection_provider=None, session_store=None, user_repository=None, classifier=Classifier, tagger=Tagger, message_logger=None, logger=None, config_file="", prepare_table=True):
+def create(connection_provider=None, session_store=None, user_repository=None, classifier=Classifier, tagger=None, message_logger=None, logger=None, config_file="", prepare_table=True):
     """
     :param connection_provider: ConnectionProvider
     :type connection_provider: ConnectionProvider
@@ -186,6 +186,12 @@ def create(connection_provider=None, session_store=None, user_repository=None, c
     if isinstance(classifier, type):
         classifier = classifier(**args)
     #tagger
+    if tagger is None:
+        tagger_classname = config_minette.get("tagger", "")
+        if tagger_classname:
+            tagger = get_class(tagger_classname)
+        else:
+            tagger = Tagger
     if isinstance(tagger, type):
         tagger = tagger(**args)
     #message logger

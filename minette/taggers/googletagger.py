@@ -10,7 +10,7 @@ class GoogleNode(WordNode):
         self.part = token["partOfSpeech"]["tag"]
 
 class GoogleTagger(Tagger):
-    def __init__(self, api_key, logger=None, config=None, tzone=None):
+    def __init__(self, api_key="", logger=None, config=None, tzone=None):
         """
         :param api_key: API Key for Google Cloud Natural Language API
         :type api_key: str
@@ -23,6 +23,8 @@ class GoogleTagger(Tagger):
         """
         super().__init__(logger=logger, config=config, tzone=tzone)
         self.api_key = api_key
+        if not api_key and config:
+            self.api_key = config["minette"].get("googletagger_api_key", "")
 
     def parse(self, text, lang="en"):
         """
