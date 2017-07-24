@@ -14,6 +14,8 @@ class ChatDialogService(DialogService):
     def __init__(self, request, session, logger=None, config=None, tzone=None, connection=None, api_key="", replace_values=None, chat_logfile=""):
         super().__init__(request=request, session=session, logger=logger, config=config, tzone=tzone, connection=connection)
         self.api_key = api_key
+        if not api_key and config:
+            self.api_key = config["minette"].get("chatting_api_key", "")
         self.replace_values = replace_values if replace_values else {}
         self.chat_logger = None
         if chat_logfile:
