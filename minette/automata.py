@@ -71,16 +71,20 @@ class Automata:
             dialog_service.process_request()
             response = dialog_service.compose_response()
             dialog_service.encode_data()
-            self.session_store.save_session(session, conn)
-            self.user_repository.save_user(request.user, conn)
         except Exception as ex:
             self.logger.error("Error occured in processing dialog: " + str(ex) + "\n" + traceback.format_exc())
             session.keep_mode = False
-        #clear session
-        if session.keep_mode is False:
-            session.mode = ""
-            session.dialog_status = ""
-            session.data = None
+        #session and user
+        try:
+            #clear session
+            if session.keep_mode is False:
+                session.mode = ""
+                session.dialog_status = ""
+                session.data = None
+            self.session_store.save_session(session, conn)
+            self.user_repository.save_user(request.user, conn)
+        except Exception as ex:
+            self.logger.error("Error occured in saving session/user: " + str(ex) + "\n" + traceback.format_exc())
         #message log
         try:
             if not isinstance(response, list):
