@@ -1,8 +1,8 @@
 """ Console BOT example """
-from minette import automata
+import minette
 
-#Create an instance of automata
-bot = automata.create(
+#Create an instance of Automata
+bot = minette.create(
     #tagger=mecabtagger.MeCabTagger,      #If MeCab is installed, uncomment this line
     #classifier=classifier.MyClassifier   #Your own classifier
 )

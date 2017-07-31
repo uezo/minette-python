@@ -1,27 +1,20 @@
+import sys, os
+sys.path.append(os.pardir)
 import unittest
 import logging
 from datetime import datetime
-import minette, minette.automata
-from minette.database import ConnectionProvider
-from minette.databases.mysql import MySQLConnectionProvider
-from minette.databases.sqldb import SQLDBConnectionProvider
-from minette.dialog import Classifier, DialogService, Message, MessageLogger
-from minette.dialogs.mysqlmessagelogger import MySQLMessageLogger
-from minette.dialogs.sqldbmessagelogger import SQLDBMessageLogger
-from minette.session import Session, SessionStore
-from minette.user import User, UserRepository
-from minette.sessions.mysqlsession import MySQLSessionStore
-from minette.sessions.sqldbsession import SQLDBSessionStore
-from minette.users.mysqluserrepository import MySQLUserRepository
-from minette.users.sqldbuserrepository import SQLDBUserRepository
-from minette.taggers.mecabtagger import MeCabTagger
-from minette.taggers.googletagger import GoogleTagger
+import minette
+from minette.database import ConnectionProvider, MySQLConnectionProvider, SQLDBConnectionProvider
+from minette.dialog import Classifier, DialogService, Message, MessageLogger, MySQLMessageLogger, SQLDBMessageLogger
+from minette.session import Session, SessionStore, MySQLSessionStore, SQLDBSessionStore
+from minette.user import User, UserRepository, MySQLUserRepository, SQLDBUserRepository
+from minette.tagger import MeCabTagger, GoogleTagger
 
 class TestAutomata(unittest.TestCase):
     def create_base(self, config_file, cp, ss, ur, ml):
         channel = "TEST"
         channel_user = "test_user"
-        bot = minette.automata.create(config_file=config_file)
+        bot = minette.create(config_file=config_file)
         # ConnectionProvider
         self.assertIsInstance(bot.connection_provider, cp)
         conn = bot.connection_provider.get_connection()
@@ -62,7 +55,7 @@ class TestAutomata(unittest.TestCase):
         self.create_base("config/minette_test_create_sqldb.ini", SQLDBConnectionProvider, SQLDBSessionStore, SQLDBUserRepository, SQLDBMessageLogger)
 
     def test_get_default_logger(self):
-        logger = minette.automata.get_default_logger()
+        logger = minette.get_default_logger()
         self.assertEqual("minette.automata", logger.name)
         logger.debug("test debug message")
         logger.error("test error message")
@@ -80,7 +73,7 @@ class TestAutomata(unittest.TestCase):
                 return super().classify(request, session, connection)
 
         # default
-        bot = minette.automata.create(config_file=config_file)
+        bot = minette.create(config_file=config_file)
         self.assertEqual("You said: Hello", bot.execute(Message(text="Hello"))[0].text)
         self.assertEqual("You said: Good Morning", bot.execute("Good Morning")[0].text)
         # check message logger is working
@@ -93,7 +86,7 @@ class TestAutomata(unittest.TestCase):
         self.assertEqual(message_str, row[input_key])
         self.assertEqual("You said: " + message_str, row[output_key])
         # using custom classifier
-        bot_clsfr = minette.automata.create(config_file="config/minette_test_create.ini", classifier=MyClassifier)
+        bot_clsfr = minette.create(config_file="config/minette_test_create.ini", classifier=MyClassifier)
         self.assertEqual("You said: Hello", bot_clsfr.execute(Message(text="Hello"))[0].text)
         self.assertEqual("You said: Get type", bot_clsfr.execute(Message(text="Get type"))[0].text)
         self.assertListEqual([], bot_clsfr.execute(Message(text="Get None")))
@@ -108,7 +101,7 @@ class TestAutomata(unittest.TestCase):
         self.execute_base("config/minette_test_create_mysql.ini", "select * from messagelog where input_text=%s limit 1", "input_text", "output_text")
 
     def test_execute_sqldb(self):
-        self.execute_base("config/minette_test_create_sqldb.ini", "select top 1 * from minette_messagelog3 where input_text=?", 7, 8)
+        self.execute_base("config/minette_test_create_sqldb.ini", "select top 1 * from minette_messagelog where input_text=?", 7, 8)
 
     def test_execute_tagger(self):
         class MyClassifier(Classifier):
@@ -122,13 +115,13 @@ class TestAutomata(unittest.TestCase):
                     words.append(w.word)
                 return [Message(text="/".join(words))]
 
-        bot = minette.automata.create(config_file="config/minette_test_mecab.ini", classifier=MyClassifier)
-        self.assertIsInstance(bot.tagger, minette.taggers.mecabtagger.MeCabTagger)
+        bot = minette.create(config_file="config/minette_test_mecab.ini", classifier=MyClassifier)
+        self.assertIsInstance(bot.tagger, MeCabTagger)
         self.assertEqual("これ/は/テスト/です", bot.execute("これはテストです")[0].text)
         self.assertEqual("", bot.execute("")[0].text)
 
-        bot = minette.automata.create(config_file="config/minette_test_googletagger.ini", classifier=MyClassifier, tagger=GoogleTagger)
-        self.assertIsInstance(bot.tagger, minette.taggers.googletagger.GoogleTagger)
+        bot = minette.create(config_file="config/minette_test_googletagger.ini", classifier=MyClassifier, tagger=GoogleTagger)
+        self.assertIsInstance(bot.tagger, GoogleTagger)
         self.assertEqual("これ/は/テスト/です", bot.execute("これはテストです")[0].text)
         self.assertEqual("", bot.execute("")[0].text)
 
