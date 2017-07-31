@@ -10,10 +10,10 @@ $ git clone https://github.com/uezo/minette-python.git
 ## Running the echo bot
 Make example.py and run.
 ```python
-from minette import automata
+import minette
 
 # create bot
-bot = automata.create()
+bot = minette.create()
 
 # start conversation
 while True:
@@ -41,8 +41,8 @@ GoogleTagger uses Cloud Natural Language API. This separates text into words and
 
 #### Usase
 ```python
-from minette.taggers.googletagger import GoogleTagger
-bot = automata.create(
+from minette.tagger import GoogleTagger
+bot = minette.create(
     tagger=GoogleTagger(api_key="your api key")
 )
 ```
@@ -68,8 +68,8 @@ pip install mecab-python3
 
 #### Usase
 ```python
-from minette.taggers.mecabtagger import MeCabTagger
-bot = automata.create(
+from minette.tagger import MeCabTagger
+bot = minette.create(
     tagger=MeCabTagger
 )
 ```
@@ -80,7 +80,7 @@ Minette detect the intention of the user in the `Classifier` and delegate to pro
 Here is the example. RateDialogService calculate ＄->¥ exchange rate and MyClassifier has a rule to delegate when the input is numeric.
 
 ```python
-from minette import automata
+import minette
 from minette.dialog import Message, DialogService, Classifier
 
 class RateDialogService(DialogService):
@@ -89,7 +89,7 @@ class RateDialogService(DialogService):
         return self.request.get_reply_message("$" + self.request.text + " = ¥" + str(yen))
 
 class MyClassifier(Classifier):
-    def classify(self, request, session):
+    def classify(self, request, session, connection):
         if request.text.isdecimal():
             return RateDialogService
         else:
@@ -121,7 +121,7 @@ minette> You said: hello
 ## Built-in Chatting (Japanese Only)
 Minette has a DialogService for Japanese chatting using docomo API. All you have to do is adding a rule to the classifier!
 ```python
-from minette.dialog.dialog_service import ChatDialogService
+from minette.dialog.chat_dialog import ChatDialogService
 return ChatDialogService(request=request, session=session, logger=self.logger, api_key="your api key")
 ```
 
@@ -133,10 +133,10 @@ This software is licensed under the Apache v2 License.
 ## Echo bot
 The first bot that just echoes what you say.
 ```python
-from minette import automata
+import minette
 
 # create bot
-bot = automata.create()
+bot = minette.create()
 
 # start conversation
 while True:
@@ -154,7 +154,7 @@ minette> You said:hello
 The simplest structure. All logic is implemented in a custom DialogService.
 ```python
 from datetime import datetime
-from minette import automata
+import minette
 from minette.dialog import Message, DialogService, Classifier
 
 class GreetingDialogService(DialogService):
@@ -169,13 +169,12 @@ class GreetingDialogService(DialogService):
         return self.request.get_reply_message(text=phrase)
 
 class MyClassifier(Classifier):
-    def classify(self, request, session):
+    def classify(self, request, session, connection):
         return GreetingDialogService
 
 if __name__ == "__main__":
     # create bot
-    bot = automata.create(classifier=MyClassifier)
-
+    bot = minette.create(classifier=MyClassifier)
     # start conversation
     while True:
         req = input("user> ")
@@ -192,7 +191,7 @@ minette> Good morning
 Override process_request method to execute application logic.
 ```python
 import random
-from minette import automata
+import minette
 from minette.dialog import Message, DialogService, Classifier
 
 class DiceDialogService(DialogService):
@@ -208,12 +207,12 @@ class DiceDialogService(DialogService):
         return self.request.get_reply_message(text="Dice1:" + dice1 + " / Dice2:" + dice2)
 
 class MyClassifier(Classifier):
-    def classify(self, request, session):
+    def classify(self, request, session, connection):
         return DiceDialogService
 
 if __name__ == "__main__":
     # create bot
-    bot = automata.create(classifier=MyClassifier)
+    bot = minette.create(classifier=MyClassifier)
     # start conversation
     while True:
         req = input("user> ")
@@ -228,7 +227,7 @@ Switching DialogService by request.text.
 ```python
 import random
 from datetime import datetime
-from minette import automata
+import minette
 from minette.dialog import Message, DialogService, Classifier
 
 class GreetingDialogService(DialogService):
@@ -255,7 +254,7 @@ class DiceDialogService(DialogService):
         return self.request.get_reply_message(text="Dice1:" + dice1 + " / Dice2:" + dice2)
 
 class MyClassifier(Classifier):
-    def classify(self, request, session):
+    def classify(self, request, session, connection):
         if request.text.lower() == "dice":
             return DiceDialogService
         else:
@@ -263,7 +262,7 @@ class MyClassifier(Classifier):
 
 if __name__ == "__main__":
     # create bot
-    bot = automata.create(classifier=MyClassifier)
+    bot = minette.create(classifier=MyClassifier)
     # start conversation
     while True:
         req = input("user> ")
@@ -280,3 +279,103 @@ minette> Good morning
 user> dice
 minette> Dice1:2 / Dice2:4
 ```
+
+## Translation Bot
+Translation bot using Google translation API.
+
+```python
+import requests
+import minette
+from minette.dialog import Message, DialogService, Classifier
+
+class TranslationDialogService(DialogService):
+    def process_request(self):
+        res = requests.post("https://translation.googleapis.com/language/translate/v2", data={
+            "key": "YOUR_API_KEY",
+            "q": self.request.text,
+            "target": "en"
+        }).json()
+        self.session.data = res["data"]["translations"][0]["translatedText"].replace("&#39;", "'")
+
+    def compose_response(self):
+        return self.request.get_reply_message("英語に翻訳：" + self.session.data)
+
+class MyClassifier(Classifier):
+    def classify(self, request, session, connection):
+        return TranslationDialogService
+
+if __name__ == "__main__":
+    # create bot
+    bot = minette.create(classifier=MyClassifier)
+
+    # start conversation
+    while True:
+        req = input("user> ")
+        res = bot.execute(req)
+        for message in res:
+            print("minette> " + message.text)
+```
+```
+user> こんにちは
+minette> 英語に翻訳：Hello
+user> おなかがすきました
+minette> 英語に翻訳：I'm hungry
+```
+
+## Translation and chatting bot
+Switching translation and chatting using `session.mode`.
+You can switch to the `translation` mode by saying "翻訳して" and switch back to chatting by saying "翻訳終わり".
+
+```python
+import requests
+import minette
+from minette.dialog import Message, DialogService, Classifier
+from minette.dialog.chat_dialog import ChatDialogService
+from minette.session import ModeStatus
+
+class TranslationDialogService(DialogService):
+    def process_request(self):
+        if self.session.mode_status == ModeStatus.Start:
+            self.session.mode = "translation"
+        else:
+            if self.request.text == "翻訳終わり":
+                self.session.mode_status = ModeStatus.End
+            else:
+                res = requests.post("https://translation.googleapis.com/language/translate/v2", data={
+                    "key": "YOUR_API_KEY",
+                    "q": self.request.text,
+                    "target": "en"
+                }).json()
+                self.session.data = res["data"]["translations"][0]["translatedText"].replace("&#39;", "'")
+
+    def compose_response(self):
+        if self.session.mode_status == ModeStatus.Start:
+            text = "翻訳したい文章を入力してください。「翻訳終わり」で翻訳モードを終了します"
+            self.session.keep_mode = True
+        elif self.session.mode_status == ModeStatus.Continue:
+            text = "English: " + self.session.data
+            self.session.keep_mode = True
+        else:
+            text = "はい、翻訳は終わりにします"
+        return self.request.get_reply_message(text)
+
+class MyClassifier(Classifier):
+    def classify(self, request, session, connection):
+        if "翻訳して" in request.text or session.mode == "translation":
+            return TranslationDialogService
+        else:
+            return ChatDialogService(request, session, self.logger, self.config, self.timezone, connection)
+
+if __name__ == "__main__":
+    # create bot
+    bot = minette.create(classifier=MyClassifier)
+    # start conversation
+    while True:
+        req = input("user> ")
+        res = bot.execute(req)
+        for message in res:
+            print("minette> " + message.text)
+```
+
+
+
