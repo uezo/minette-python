@@ -1,17 +1,17 @@
 """ LINE endpoint example """
 from flask import Flask, request, abort
-from minette import automata
-from minette.channel.line_adapter import WorkerThread, RequestParser
+import minette
+from minette.channel import LineWorkerThread, LineRequestParser
 
-bot = automata.create(
-    #tagger=mecabtagger.MeCabTagger,
-    #classifier=classifier.MyClassifier
+bot = minette.create(
+    #tagger=minette.tagger.MeCabTagger, #If MeCab is installed, uncomment this line
+    #classifier=MyClassifier            #Your own classifier
 )
 channel_secret = bot.config.get("line_bot_api", "channel_secret")
 channel_access_token = bot.config.get("line_bot_api", "channel_access_token")
-worker = WorkerThread(bot=bot, channel_secret=channel_secret, channel_access_token=channel_access_token)
+worker = LineWorkerThread(bot=bot, channel_secret=channel_secret, channel_access_token=channel_access_token)
 worker.start()
-parser = RequestParser(worker, channel_secret)
+parser = LineRequestParser(worker, channel_secret)
 
 app = Flask(__name__)
 

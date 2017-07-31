@@ -11,17 +11,17 @@ from linebot.models import (
     TextSendMessage, ImageSendMessage, AudioSendMessage, VideoSendMessage, LocationSendMessage, StickerSendMessage, ImagemapSendMessage, TemplateSendMessage
 )
 
-class WorkerThread(Thread):
+class LineWorkerThread(Thread):
     def __init__(self, bot, channel_secret, channel_access_token):
         """
         :param bot: Bot
-        :type bot: automata.Automata
+        :type bot: minette.Automata
         :param channel_secret: channel_secret
         :type channel_secret: str
         :param channel_access_token: channel_access_token
         :type channel_access_token: str
         """
-        super(WorkerThread, self).__init__()
+        super(LineWorkerThread, self).__init__()
         self.bot = bot
         self.api = LineBotApi(channel_access_token)
         self.queue = Queue()
@@ -134,7 +134,7 @@ class WorkerThread(Thread):
                 send_messages.append(TemplateSendMessage(alt_text=msg.text, template=msg.payloads[0].content))
         return send_messages
 
-class RequestParser:
+class LineRequestParser:
     def __init__(self, worker, channel_secret):
         """
         :param worker: WorkerThread
