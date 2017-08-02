@@ -28,7 +28,7 @@ class Session(JsonSerializable):
         self.keep_mode = False
         self.dialog_status = ""
         self.chat_context = ""
-        self.data = None
+        self.data = {}
 
 class SessionStore:
     def __init__(self, timeout=300, logger=None, config=None, tzone=None, connection_provider_for_prepare=None, table_name="session"):
@@ -109,7 +109,7 @@ class SessionStore:
                     sess.mode = record["mode"]
                     sess.dialog_status = record["dialog_status"]
                     sess.chat_context = record["chat_context"]
-                    sess.data = record["data"]
+                    sess.data = record["data"] if record["data"] else {}
                     sess.is_new = False
                     sess.mode_status = ModeStatus.Continue if sess.mode != "" else ModeStatus.Start
         except Exception as ex:
@@ -123,10 +123,11 @@ class SessionStore:
         :param connection: Connection
         :type connection: Connection
         """
-        cursor = connection.cursor()
-        if isinstance(session.data, JsonSerializable):
-            serialized_data = session.data.to_json()
+        if session.data:
+            session_dict = session.to_dict()
+            serialized_data = encode_json(session_dict["data"])
         else:
-            serialized_data = encode_json(session.data)
+            serialized_data = None
+        cursor = connection.cursor()
         cursor.execute(self.sqls["save_session"], (session.channel, session.channel_user, date_to_str(session.timestamp), session.mode, session.dialog_status, session.chat_context, serialized_data))
         connection.commit()

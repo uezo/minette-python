@@ -22,7 +22,7 @@ class User(JsonSerializable):
         self.channel = channel
         self.channel_user = channel_user
         self.channel_user_data = channel_user_data
-        self.data = None
+        self.data = {}
         self.__repository = repository
         self.__connection = connection
 
@@ -112,7 +112,7 @@ class UserRepository:
                 user.user_id = record["user_id"]
                 user.name = record["name"]
                 user.nickname = record["nickname"]
-                user.data = record["data"]
+                user.data = record["data"] if record["data"] else {}
             else:
                 now = date_to_str(datetime.now(self.timezone))
                 cursor.execute(self.sqls["add_user"], (user.user_id, now, user.name, user.nickname, None))
@@ -129,10 +129,8 @@ class UserRepository:
         :param connection: Connection
         :type connection: Connection
         """
-        if isinstance(user.data, JsonSerializable):
-            serialized_data = user.data.to_json()
-        else:
-            serialized_data = encode_json(user.data)
+        user_dict = user.to_dict()
+        serialized_data = encode_json(user_dict["data"])
         cursor = connection.cursor()
         cursor.execute(self.sqls["save_user"], (date_to_str(datetime.now(self.timezone)), user.name, user.nickname, serialized_data, user.user_id))
         connection.commit()
