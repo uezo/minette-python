@@ -4,8 +4,13 @@ import logging
 from pytz import timezone
 import requests
 from minette.util import date_to_str, date_to_unixtime
+from minette.serializer import JsonSerializable
+#for type hinting
+from minette.session import Session
+from minette.user import User
+from minette.tagger import WordNode
 
-class Payload:
+class Payload(JsonSerializable):
     def __init__(self, content_type="image", url="", thumb="", headers=None, content=None):
         """
         :param content_type: Type of content like image, audio, video or file
@@ -44,7 +49,7 @@ class Payload:
         with open(filepath, "wb") as f:
             f.write(data)
 
-class Message:
+class Message(JsonSerializable):
     def __init__(self, message_id="", message_type="message", timestamp=None, channel="[NOT_SPECIFIED]", channel_user="[ANONYMOUS]", channel_message=None, token="", text="", words=None, payloads=None, is_private=True, user=None):
         """
         :param message_id: ID of message

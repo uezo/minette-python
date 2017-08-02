@@ -2,15 +2,16 @@
 from datetime import datetime
 import logging
 import traceback
-from minette.util import encode_json, decode_json, date_to_str, str_to_date
 import sqlite3
+from minette.util import date_to_str, str_to_date
+from minette.serializer import JsonSerializable, encode_json, decode_json
 
 class ModeStatus:
     Start = 1
     Continue = 2
     End = 3
 
-class Session:
+class Session(JsonSerializable):
     def __init__(self, channel, channel_user):
         """
         :param channel: Channel
@@ -27,7 +28,6 @@ class Session:
         self.keep_mode = False
         self.dialog_status = ""
         self.chat_context = ""
-        self.dialog_service = None
         self.data = None
 
 class SessionStore:
@@ -124,5 +124,9 @@ class SessionStore:
         :type connection: Connection
         """
         cursor = connection.cursor()
-        cursor.execute(self.sqls["save_session"], (session.channel, session.channel_user, date_to_str(session.timestamp), session.mode, session.dialog_status, session.chat_context, encode_json(session.data)))
+        if isinstance(session.data, JsonSerializable):
+            serialized_data = session.data.to_json()
+        else:
+            serialized_data = encode_json(session.data)
+        cursor.execute(self.sqls["save_session"], (session.channel, session.channel_user, date_to_str(session.timestamp), session.mode, session.dialog_status, session.chat_context, serialized_data))
         connection.commit()

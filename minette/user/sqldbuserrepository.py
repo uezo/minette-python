@@ -1,7 +1,7 @@
 """ UserRepository using Azure SQL Database """
 import pyodbc
 from minette.user import UserRepository
-from minette.util import decode_json
+from minette.serializer import decode_json
 
 class SQLDBUserRepository(UserRepository):
     def get_sqls(self, table_user, table_uidmap):

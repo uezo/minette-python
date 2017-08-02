@@ -1,7 +1,7 @@
 """ SessionStore using Azure SQL Database """
 import MySQLdb
 from minette.session import SessionStore
-from minette.util import decode_json
+from minette.serializer import decode_json
 
 class SQLDBSessionStore(SessionStore):
     def get_sqls(self, table_name):

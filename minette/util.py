@@ -1,34 +1,8 @@
 """ utilities functions for minette """
 from datetime import datetime
 import calendar
-import json
 import importlib
 import sys
-
-class DateTimeJSONEncoder(json.JSONEncoder):
-    def default(self, obj):
-        if isinstance(obj, datetime):
-            return obj.isoformat()
-        return super(DateTimeJSONEncoder, self).default(obj)
-
-def encode_json(obj):
-    """
-    :param obj: Object to encode
-    :return: JSON string
-    :rtype: str
-    """
-    if obj is None:
-        return ""
-    return json.dumps(obj, cls=DateTimeJSONEncoder)
-
-def decode_json(json_string):
-    """
-    :param obj: JSON string to decode
-    :return: JSON dict
-    """
-    if json_string is None or json_string == "":
-        return None
-    return json.loads(json_string)
 
 def date_to_str(dt, with_timezone=False):
     """

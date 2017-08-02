@@ -1,7 +1,8 @@
 """ WordNode datamodel and base class of Tagger(do nothing) """
 import logging
+from minette.serializer import JsonSerializable
 
-class WordNode:
+class WordNode(JsonSerializable):
     def __init__(self):
         self.part = ""
         self.part_detail1 = ""

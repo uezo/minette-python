@@ -2,9 +2,10 @@
 from datetime import datetime
 import traceback
 import uuid
-from minette.util import encode_json, decode_json, date_to_str
+from minette.util import date_to_str
+from minette.serializer import JsonSerializable, encode_json, decode_json
 
-class User:
+class User(JsonSerializable):
     def __init__(self, channel, channel_user, channel_user_data=None, repository=None, connection=None):
         """
         :param channel: Channel
@@ -128,6 +129,10 @@ class UserRepository:
         :param connection: Connection
         :type connection: Connection
         """
+        if isinstance(user.data, JsonSerializable):
+            serialized_data = user.data.to_json()
+        else:
+            serialized_data = encode_json(user.data)
         cursor = connection.cursor()
-        cursor.execute(self.sqls["save_user"], (date_to_str(datetime.now(self.timezone)), user.name, user.nickname, encode_json(user.data), user.user_id))
+        cursor.execute(self.sqls["save_user"], (date_to_str(datetime.now(self.timezone)), user.name, user.nickname, serialized_data, user.user_id))
         connection.commit()
