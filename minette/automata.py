@@ -51,6 +51,7 @@ class Automata:
         :rtype: [Message]
         """
         start_time = time()
+        ticks = []
         #processing dialog
         try:
             #initialize response message
@@ -58,19 +59,31 @@ class Automata:
                 request = Message(text=request)
             response = [request.get_reply_message("?")]
             conn = self.connection_provider.get_connection()
+            ticks.append(("get_connection", time() - start_time))
             request.words = self.tagger.parse(request.text)
+            ticks.append(("tagger.parse", time() - start_time))
             request.user = self.user_repository.get_user(request.channel, request.channel_user, conn)
+            ticks.append(("get_user", time() - start_time))
             session = self.session_store.get_session(request.channel, request.channel_user, conn)
+            ticks.append(("get_session", time() - start_time))
+            session.mode, session.data = self.classifier.detect_mode(request, session, conn)
+            ticks.append(("classifier.detect_mode", time() - start_time))
             dialog_service = self.classifier.classify(request, session, conn)
+            ticks.append(("classifier.classify", time() - start_time))
             if isinstance(dialog_service, type):
                 dialog_service = dialog_service(request=request, session=session, logger=self.logger, config=self.config, tzone=self.timezone, connection=conn)
             elif dialog_service is None:
                 self.logger.info("No dialog services")
                 return []
+            ticks.append(("dialog_service instancing", time() - start_time))
             dialog_service.decode_data()
+            ticks.append(("dialog_service.decode_data", time() - start_time))
             dialog_service.process_request()
+            ticks.append(("dialog_service.process_request", time() - start_time))
             response = dialog_service.compose_response()
+            ticks.append(("dialog_service.compose_response", time() - start_time))
             dialog_service.encode_data()
+            ticks.append(("dialog_service.encode_data", time() - start_time))
         except Exception as ex:
             self.logger.error("Error occured in processing dialog: " + str(ex) + "\n" + traceback.format_exc())
             session.keep_mode = False
@@ -82,7 +95,9 @@ class Automata:
                 session.dialog_status = ""
                 session.data = None
             self.session_store.save_session(session, conn)
+            ticks.append(("save_session", time() - start_time))
             self.user_repository.save_user(request.user, conn)
+            ticks.append(("save_user", time() - start_time))
         except Exception as ex:
             self.logger.error("Error occured in saving session/user: " + str(ex) + "\n" + traceback.format_exc())
         #message log
@@ -92,10 +107,19 @@ class Automata:
             total_ms = int((time() - start_time) * 1000)
             outtexts = [r.text for r in response]
             self.message_logger.write(request, " / ".join(outtexts), total_ms, conn)
+            ticks.append(("message_logger.write", time() - start_time))
         except Exception as ex:
             self.logger.error("Error occured in logging message: " + str(ex) + "\n" + traceback.format_exc())
         finally:
             conn.close()
+        #performance log
+        ticks_sum = 0
+        performance_info = "Performance info:\nuser> " + request.text + "\n"
+        performance_info += "minette> " + response[0].text + "\n"
+        for i, v in enumerate(ticks):
+            performance_info += v[0] + ":" + str(int((v[1] - ticks_sum) * 1000)) + "\n"
+            ticks_sum = v[1]
+        self.logger.debug(performance_info)
         return response
 
 def get_default_logger():

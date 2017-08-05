@@ -220,8 +220,21 @@ class Classifier:
         self.config = config
         self.timezone = tzone
 
+    def detect_mode(self, request, session, connection=None):
+        """ Detect the topic from what user is saying
+        :param request: Request message
+        :type request: Message
+        :param session: Session
+        :type session: Session
+        :param connection: Connection
+        :type connection: Connection
+        :return: mode
+        :rtype: (str, object)
+        """
+        return session.mode, session.data
+
     def classify(self, request, session, connection=None):
-        """ Detect the topic from what user is saying and return DialogService suitable for it
+        """ Return DialogService suitable for the topic
         :param request: Request message
         :type request: Message
         :param session: Session
