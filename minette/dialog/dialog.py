@@ -164,46 +164,64 @@ class MessageLogger:
 
 
 class DialogService:
-    def __init__(self, request, session, logger=None, config=None, tzone=None, connection=None):
+    def __init__(self, logger=None, config=None, tzone=None):
         """
-        :param request: Request message
-        :type request: Message
-        :param session: Session
-        :type session: Session
         :param logger: Logger
         :type logger: logging.Logger
         :param config: ConfigParser
         :type config: ConfigParser
         :param tzone: Timezone
         :type tzone: timezone
-        :param connection: Connection
-        :type connection: Connection
         """
-        self.request = request
-        self.session = session
         self.logger = logger
         self.timezone = tzone
         self.config = config
-        self.connection = connection
 
-    def decode_data(self):
-        """ Restore data from JSON to your own data objects """
+    def decode_data(self, request, session, connection=None):
+        """ Restore data from JSON to your own data objects
+        :param request: Request message
+        :type request: Message
+        :param session: Session
+        :type session: Session
+        :param connection: Connection
+        :type connection: Connection
+        """
         pass
 
-    def encode_data(self):
-        """ Serialize your own data objects to JSON """
+    def encode_data(self, request, session, connection=None):
+        """ Serialize your own data objects to JSON
+        :param request: Request message
+        :type request: Message
+        :param session: Session
+        :type session: Session
+        :param connection: Connection
+        :type connection: Connection
+        """
         pass
 
-    def process_request(self):
-        """ Process your bot's functions/skills and setup session data """
+    def process_request(self, request, session, connection=None):
+        """ Process your bot's functions/skills and setup session data
+        :param request: Request message
+        :type request: Message
+        :param session: Session
+        :type session: Session
+        :param connection: Connection
+        :type connection: Connection
+        """
         pass
 
-    def compose_response(self):
+    def compose_response(self, request, session, connection=None):
         """ Compose the response messages using session data
+        :param request: Request message
+        :type request: Message
+        :param session: Session
+        :type session: Session
+        :param connection: Connection
+        :type connection: Connection
         :return: Response message
         :rtype: Message
         """
-        return self.request.get_reply_message("You said: " + self.request.text)
+        return request.get_reply_message("You said: " + request.text)
 
 
 class Classifier:
@@ -250,4 +268,4 @@ class Classifier:
         if self.default_dialog_service:
             return self.default_dialog_service
         else:
-            return DialogService(request=request, session=session, logger=self.logger, config=self.config, tzone=self.timezone, connection=connection)
+            return DialogService(logger=self.logger, config=self.config, tzone=self.timezone)

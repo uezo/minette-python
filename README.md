@@ -84,9 +84,9 @@ import minette
 from minette.dialog import Message, DialogService, Classifier
 
 class RateDialogService(DialogService):
-    def compose_response(self):
-        yen = int(self.request.text) * 100
-        return self.request.get_reply_message("$" + self.request.text + " = ¥" + str(yen))
+    def compose_response(self, request, session, connection):
+        yen = int(request.text) * 100
+        return request.get_reply_message("$" + request.text + " = ¥" + str(yen))
 
 class MyClassifier(Classifier):
     def classify(self, request, session, connection):
@@ -119,10 +119,11 @@ minette> You said: hello
 ```
 
 ## Built-in Chatting (Japanese Only)
-Minette has a DialogService for Japanese chatting using docomo API. All you have to do is adding a rule to the classifier!
+Minette has a DialogService for Japanese chatting using docomo API. All you have to do is just adding 2 lines in config file! (minette.ini)
 ```python
-from minette.dialog.chat_dialog import ChatDialogService
-return ChatDialogService(request=request, session=session, logger=self.logger, api_key="your api key")
+[minette]
+default_dialog_service = minette.dialog.chat_dialog.ChatDialogService
+chatting_api_key = YOUR_API_KEY
 ```
 
 ## License
@@ -158,7 +159,7 @@ import minette
 from minette.dialog import Message, DialogService, Classifier
 
 class GreetingDialogService(DialogService):
-    def compose_response(self):
+    def compose_response(self, request, session, connection):
         now = datetime.now()
         if now.hour < 12:
             phrase = "Good morning"
@@ -166,15 +167,11 @@ class GreetingDialogService(DialogService):
             phrase = "Hello"
         else:
             phrase = "Good evening"
-        return self.request.get_reply_message(text=phrase)
-
-class MyClassifier(Classifier):
-    def classify(self, request, session, connection):
-        return GreetingDialogService
+        return request.get_reply_message(text=phrase)
 
 if __name__ == "__main__":
     # create bot
-    bot = minette.create(classifier=MyClassifier)
+    bot = minette.create(default_dialog_service=GreetingDialogService)
     # start conversation
     while True:
         req = input("user> ")
@@ -195,24 +192,20 @@ import minette
 from minette.dialog import Message, DialogService, Classifier
 
 class DiceDialogService(DialogService):
-    def process_request(self):
-        self.session.data = {
+    def process_request(self, request, session, connection):
+        session.data = {
             "dice1": random.randint(1, 6),
             "dice2": random.randint(1, 6)
         }
 
-    def compose_response(self):
-        dice1 = str(self.session.data["dice1"])
-        dice2 = str(self.session.data["dice2"])
-        return self.request.get_reply_message(text="Dice1:" + dice1 + " / Dice2:" + dice2)
-
-class MyClassifier(Classifier):
-    def classify(self, request, session, connection):
-        return DiceDialogService
+    def compose_response(self, request, session, connection):
+        dice1 = str(session.data["dice1"])
+        dice2 = str(session.data["dice2"])
+        return request.get_reply_message(text="Dice1:" + dice1 + " / Dice2:" + dice2)
 
 if __name__ == "__main__":
     # create bot
-    bot = minette.create(classifier=MyClassifier)
+    bot = minette.create(default_dialog_service=DiceDialogService)
     # start conversation
     while True:
         req = input("user> ")
@@ -231,7 +224,7 @@ import minette
 from minette.dialog import Message, DialogService, Classifier
 
 class GreetingDialogService(DialogService):
-    def compose_response(self):
+    def compose_response(self, request, session, connection):
         now = datetime.now()
         if now.hour < 12:
             phrase = "Good morning"
@@ -239,19 +232,19 @@ class GreetingDialogService(DialogService):
             phrase = "Hello"
         else:
             phrase = "Good evening"
-        return self.request.get_reply_message(text=phrase)
+        return request.get_reply_message(text=phrase)
 
 class DiceDialogService(DialogService):
-    def process_request(self):
-        self.session.data = {
+    def process_request(self, request, session, connection):
+        session.data = {
             "dice1": random.randint(1, 6),
             "dice2": random.randint(1, 6)
         }
 
-    def compose_response(self):
-        dice1 = str(self.session.data["dice1"])
-        dice2 = str(self.session.data["dice2"])
-        return self.request.get_reply_message(text="Dice1:" + dice1 + " / Dice2:" + dice2)
+    def compose_response(self, request, session, connection):
+        dice1 = str(session.data["dice1"])
+        dice2 = str(session.data["dice2"])
+        return request.get_reply_message(text="Dice1:" + dice1 + " / Dice2:" + dice2)
 
 class MyClassifier(Classifier):
     def classify(self, request, session, connection):
@@ -289,24 +282,20 @@ import minette
 from minette.dialog import Message, DialogService, Classifier
 
 class TranslationDialogService(DialogService):
-    def process_request(self):
+    def process_request(self, request, session, connection):
         res = requests.post("https://translation.googleapis.com/language/translate/v2", data={
             "key": "YOUR_API_KEY",
-            "q": self.request.text,
+            "q": request.text,
             "target": "en"
         }).json()
-        self.session.data = res["data"]["translations"][0]["translatedText"].replace("&#39;", "'")
+        session.data = res["data"]["translations"][0]["translatedText"].replace("&#39;", "'")
 
-    def compose_response(self):
-        return self.request.get_reply_message("英語に翻訳：" + self.session.data)
-
-class MyClassifier(Classifier):
-    def classify(self, request, session, connection):
-        return TranslationDialogService
+    def compose_response(self, request, session, connection):
+        return request.get_reply_message("英語に翻訳：" + session.data)
 
 if __name__ == "__main__":
     # create bot
-    bot = minette.create(classifier=MyClassifier)
+    bot = minette.create(default_dialog_service=TranslationDialogService)
 
     # start conversation
     while True:
@@ -334,30 +323,30 @@ from minette.dialog.chat_dialog import ChatDialogService
 from minette.session import ModeStatus
 
 class TranslationDialogService(DialogService):
-    def process_request(self):
-        if self.session.mode_status == ModeStatus.Start:
-            self.session.mode = "translation"
+    def process_request(self, request, session, connection):
+        if session.mode_status == ModeStatus.Start:
+            session.mode = "translation"
         else:
-            if self.request.text == "翻訳終わり":
-                self.session.mode_status = ModeStatus.End
+            if request.text == "翻訳終わり":
+                session.mode_status = ModeStatus.End
             else:
                 res = requests.post("https://translation.googleapis.com/language/translate/v2", data={
                     "key": "YOUR_API_KEY",
-                    "q": self.request.text,
+                    "q": request.text,
                     "target": "en"
                 }).json()
-                self.session.data = res["data"]["translations"][0]["translatedText"].replace("&#39;", "'")
+                session.data = res["data"]["translations"][0]["translatedText"].replace("&#39;", "'")
 
-    def compose_response(self):
-        if self.session.mode_status == ModeStatus.Start:
+    def compose_response(self, request, session, connection):
+        if session.mode_status == ModeStatus.Start:
             text = "翻訳したい文章を入力してください。「翻訳終わり」で翻訳モードを終了します"
-            self.session.keep_mode = True
-        elif self.session.mode_status == ModeStatus.Continue:
-            text = "English: " + self.session.data
-            self.session.keep_mode = True
+            session.keep_mode = True
+        elif session.mode_status == ModeStatus.Continue:
+            text = "English: " + session.data
+            session.keep_mode = True
         else:
             text = "はい、翻訳は終わりにします"
-        return self.request.get_reply_message(text)
+        return request.get_reply_message(text)
 
 class MyClassifier(Classifier):
     def classify(self, request, session, connection):

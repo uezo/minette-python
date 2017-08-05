@@ -71,18 +71,18 @@ class Automata:
             dialog_service = self.classifier.classify(request, session, conn)
             ticks.append(("classifier.classify", time() - start_time))
             if isinstance(dialog_service, type):
-                dialog_service = dialog_service(request=request, session=session, logger=self.logger, config=self.config, tzone=self.timezone, connection=conn)
+                dialog_service = dialog_service(logger=self.logger, config=self.config, tzone=self.timezone)
             elif dialog_service is None:
                 self.logger.info("No dialog services")
                 return []
             ticks.append(("dialog_service instancing", time() - start_time))
-            dialog_service.decode_data()
+            dialog_service.decode_data(request=request, session=session, connection=conn)
             ticks.append(("dialog_service.decode_data", time() - start_time))
-            dialog_service.process_request()
+            dialog_service.process_request(request=request, session=session, connection=conn)
             ticks.append(("dialog_service.process_request", time() - start_time))
-            response = dialog_service.compose_response()
+            response = dialog_service.compose_response(request=request, session=session, connection=conn)
             ticks.append(("dialog_service.compose_response", time() - start_time))
-            dialog_service.encode_data()
+            dialog_service.encode_data(request=request, session=session, connection=conn)
             ticks.append(("dialog_service.encode_data", time() - start_time))
         except Exception as ex:
             self.logger.error("Error occured in processing dialog: " + str(ex) + "\n" + traceback.format_exc())
