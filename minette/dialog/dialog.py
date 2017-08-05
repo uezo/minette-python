@@ -3,7 +3,7 @@ from datetime import datetime
 import logging
 from pytz import timezone
 import requests
-from minette.util import date_to_str, date_to_unixtime
+from minette.util import date_to_str, date_to_unixtime, get_class
 from minette.serializer import JsonSerializable
 #for type hinting
 from minette.session import Session
@@ -207,7 +207,7 @@ class DialogService:
 
 
 class Classifier:
-    def __init__(self, logger=None, config=None, tzone=None):
+    def __init__(self, logger=None, config=None, tzone=None, default_dialog_service=None):
         """
         :param logger: Logger
         :type logger: logging.Logger
@@ -215,10 +215,13 @@ class Classifier:
         :type config: ConfigParser
         :param tzone: Timezone
         :type tzone: timezone
+        :param default_dialog_service: Default dialog service
+        :type default_dialog_service: DialogService
         """
         self.logger = logger if logger else logging.getLogger(__name__)
         self.config = config
         self.timezone = tzone
+        self.default_dialog_service = default_dialog_service
 
     def detect_mode(self, request, session, connection=None):
         """ Detect the topic from what user is saying
@@ -244,4 +247,7 @@ class Classifier:
         :return: DialogService
         :rtype: DialogService
         """
-        return DialogService(request=request, session=session, logger=self.logger, config=self.config, tzone=self.timezone, connection=connection)
+        if self.default_dialog_service:
+            return self.default_dialog_service
+        else:
+            return DialogService(request=request, session=session, logger=self.logger, config=self.config, tzone=self.timezone, connection=connection)

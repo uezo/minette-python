@@ -133,7 +133,7 @@ def get_default_logger():
     logger.setLevel(logging.DEBUG)
     formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
     stream_handler = logging.StreamHandler()
-    stream_handler.setLevel(logging.DEBUG)
+    stream_handler.setLevel(logging.INFO)
     stream_handler.setFormatter(formatter)
     logger.addHandler(stream_handler)
     file_handler = logging.FileHandler(filename="./minette.log")
@@ -142,7 +142,7 @@ def get_default_logger():
     logger.addHandler(file_handler)
     return logger
 
-def create(connection_provider=None, session_store=None, user_repository=None, classifier=Classifier, tagger=None, message_logger=None, logger=None, config_file="", prepare_table=True):
+def create(connection_provider=None, session_store=None, user_repository=None, classifier=Classifier, tagger=None, message_logger=None, logger=None, config_file="", prepare_table=True, default_dialog_service=None):
     """
     :param connection_provider: ConnectionProvider
     :type connection_provider: ConnectionProvider
@@ -162,6 +162,8 @@ def create(connection_provider=None, session_store=None, user_repository=None, c
     :type config_file: str
     :param prepare_table: Check and create table if not existing
     :type prepare_table: bool
+    :param default_dialog_service: Default dialog service
+    :type default_dialog_service: DialogService
     """
     #initialize logger and config
     if logger is None:
@@ -210,7 +212,12 @@ def create(connection_provider=None, session_store=None, user_repository=None, c
         user_repository = user_repository(**user_args)
     #classifier
     if isinstance(classifier, type):
-        classifier = classifier(**args)
+        classifier_args = args.copy()
+        if default_dialog_service:
+            classifier_args["default_dialog_service"] = default_dialog_service
+        elif config_minette.get("default_dialog_service", None):
+            classifier_args["default_dialog_service"] = get_class(config_minette.get("default_dialog_service", None))
+        classifier = classifier(**classifier_args)
     #tagger
     if tagger is None:
         tagger_classname = config_minette.get("tagger", "")
