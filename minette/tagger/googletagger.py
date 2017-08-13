@@ -16,15 +16,15 @@ class GoogleTagger(Tagger):
         :type api_key: str
         :param logger: Logger
         :type logger: logging.Logger
-        :param config: ConfigParser
-        :type config: ConfigParser
+        :param config: Config
+        :type config: Config
         :param tzone: Timezone
         :type tzone: timezone
         """
         super().__init__(logger=logger, config=config, tzone=tzone)
         self.api_key = api_key
         if not api_key and config:
-            self.api_key = config["minette"].get("googletagger_api_key", "")
+            self.api_key = config.get("googletagger_api_key")
 
     def parse(self, text, lang="en"):
         """

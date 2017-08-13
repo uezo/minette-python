@@ -6,6 +6,7 @@ import requests
 from minette.util import date_to_str, date_to_unixtime, get_class
 from minette.serializer import JsonSerializable
 #for type hinting
+from minette import Config
 from minette.session import Session
 from minette.user import User
 from minette.tagger import WordNode
@@ -116,8 +117,8 @@ class MessageLogger:
         """
         :param logger: Logger
         :type logger: logging.Logger
-        :param config: ConfigParser
-        :type config: ConfigParser
+        :param config: Config
+        :type config: Config
         :param tzone: Timezone
         :type tzone: timezone
         :param connection_provider_for_prepare: ConnectionProvider to create table if not existing
@@ -168,8 +169,8 @@ class DialogService:
         """
         :param logger: Logger
         :type logger: logging.Logger
-        :param config: ConfigParser
-        :type config: ConfigParser
+        :param config: Config
+        :type config: Config
         :param tzone: Timezone
         :type tzone: timezone
         """
@@ -229,8 +230,8 @@ class Classifier:
         """
         :param logger: Logger
         :type logger: logging.Logger
-        :param config: ConfigParser
-        :type config: ConfigParser
+        :param config: Config
+        :type config: Config
         :param tzone: Timezone
         :type tzone: timezone
         :param default_dialog_service: Default dialog service

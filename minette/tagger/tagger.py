@@ -19,8 +19,8 @@ class Tagger:
         """
         :param logger: Logger
         :type logger: logging.Logger
-        :param config: ConfigParser
-        :type config: ConfigParser
+        :param config: Config
+        :type config: Config
         :param tzone: Timezone
         :type tzone: timezone
         """

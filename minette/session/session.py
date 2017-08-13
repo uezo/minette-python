@@ -37,8 +37,8 @@ class SessionStore:
         :type timeout: int
         :param logger: Logger
         :type logger: logging.Logger
-        :param config: ConfigParser
-        :type config: ConfigParser
+        :param config: Config
+        :type config: Config
         :param tzone: Timezone
         :type tzone: timezone
         :param connection_provider_for_prepare: ConnectionProvider to create table if not existing

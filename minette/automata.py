@@ -2,7 +2,6 @@
 from time import time
 import logging
 import traceback
-from configparser import ConfigParser
 from pytz import timezone
 from minette.database import ConnectionProvider
 from minette.session import SessionStore
@@ -10,6 +9,7 @@ from minette.user import UserRepository
 from minette.tagger import Tagger
 from minette.dialog import Message, MessageLogger, Classifier
 from minette.util import get_class
+from minette.config import Config
 
 class Automata:
     def __init__(self, connection_provider, session_store, user_repository, classifier, tagger, message_logger, logger, config, tzone):
@@ -28,8 +28,8 @@ class Automata:
         :type message_logger: MessageLogger
         :param logger: logging.Logger
         :type logger: logging.Logger
-        :param config: ConfigParser
-        :type config: ConfigParser
+        :param config: Config
+        :type config: Config
         :param tzone: timezone
         :type tzone: timezone
         """
@@ -168,14 +168,13 @@ def create(connection_provider=None, session_store=None, user_repository=None, c
     #initialize logger and config
     if logger is None:
         logger = get_default_logger()
-    config = ConfigParser()
-    config.read(config_file if config_file else "./minette.ini")
-    config_minette = config["minette"]
-    tzone = timezone(config_minette.get("timezone", "UTC"))
+    config = Config(config_file)
+    #timezone
+    tzone = timezone(config.get("timezone", default="UTC"))
     #initialize connection provider
-    connection_str = config_minette.get("connection_str", "")
+    connection_str = config.get("connection_str")
     if connection_provider is None:
-        connection_provider_classname = config_minette.get("connection_provider", "")
+        connection_provider_classname = config.get("connection_provider")
         if connection_provider_classname:
             connection_provider = get_class(connection_provider_classname)
         else:
@@ -186,7 +185,7 @@ def create(connection_provider=None, session_store=None, user_repository=None, c
     args = {"logger":logger, "config":config, "tzone":tzone}
     #session store
     if session_store is None:
-        session_store_classname = config_minette.get("session_store", "")
+        session_store_classname = config.get("session_store")
         if session_store_classname:
             session_store = get_class(session_store_classname)
         else:
@@ -194,12 +193,12 @@ def create(connection_provider=None, session_store=None, user_repository=None, c
     if isinstance(session_store, type):
         session_args = args.copy()
         session_args["connection_provider_for_prepare"] = connection_provider if prepare_table else None
-        session_args["table_name"] = config_minette.get("session_table", "session")
-        session_args["timeout"] = config_minette.getint("session_timeout", 300)
+        session_args["table_name"] = config.get("session_table", default="session")
+        session_args["timeout"] = config.getint("session_timeout", default=300)
         session_store = session_store(**session_args)
     #user repository
     if user_repository is None:
-        user_repository_classname = config_minette.get("user_repository", "")
+        user_repository_classname = config.get("user_repository")
         if user_repository_classname:
             user_repository = get_class(user_repository_classname)
         else:
@@ -207,20 +206,20 @@ def create(connection_provider=None, session_store=None, user_repository=None, c
     if isinstance(user_repository, type):
         user_args = args.copy()
         user_args["connection_provider_for_prepare"] = connection_provider if prepare_table else None
-        user_args["table_user"] = config_minette.get("user_table", "user")
-        user_args["table_uidmap"] = config_minette.get("uidmap_table", "user_id_mapper")
+        user_args["table_user"] = config.get("user_table", default="user")
+        user_args["table_uidmap"] = config.get("uidmap_table", default="user_id_mapper")
         user_repository = user_repository(**user_args)
     #classifier
     if isinstance(classifier, type):
         classifier_args = args.copy()
         if default_dialog_service:
             classifier_args["default_dialog_service"] = default_dialog_service
-        elif config_minette.get("default_dialog_service", None):
-            classifier_args["default_dialog_service"] = get_class(config_minette.get("default_dialog_service", None))
+        elif config.get("default_dialog_service", default=None):
+            classifier_args["default_dialog_service"] = get_class(config.get("default_dialog_service", default=None))
         classifier = classifier(**classifier_args)
     #tagger
     if tagger is None:
-        tagger_classname = config_minette.get("tagger", "")
+        tagger_classname = config.get("tagger")
         if tagger_classname:
             tagger = get_class(tagger_classname)
         else:
@@ -229,7 +228,7 @@ def create(connection_provider=None, session_store=None, user_repository=None, c
         tagger = tagger(**args)
     #message logger
     if message_logger is None:
-        message_logger_classname = config_minette.get("message_logger", "")
+        message_logger_classname = config.get("message_logger")
         if message_logger_classname:
             message_logger = get_class(message_logger_classname)
         else:
@@ -237,7 +236,7 @@ def create(connection_provider=None, session_store=None, user_repository=None, c
     if isinstance(message_logger, type):
         message_args = args.copy()
         message_args["connection_provider_for_prepare"] = connection_provider if prepare_table else None
-        message_args["table_name"] = config_minette.get("messagelog_table", "messagelog")
+        message_args["table_name"] = config.get("messagelog_table", default="messagelog")
         message_logger = message_logger(**message_args)
     #create automata
     return Automata(connection_provider, session_store, user_repository, classifier, tagger, message_logger, logger, config, tzone)

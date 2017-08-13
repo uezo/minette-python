@@ -104,26 +104,52 @@ class TestAutomata(unittest.TestCase):
         self.execute_base("config/minette_test_create_sqldb.ini", "select top 1 * from minette_messagelog where input_text=?", 7, 8)
 
     def test_execute_tagger(self):
-        class MyClassifier(Classifier):
-            def classify(self, request, session, connection=None):
-                return MyDialog
-
         class MyDialog(DialogService):
-            def compose_response(self):
+            def compose_response(self, request, session, connection):
                 words = []
-                for w in self.request.words:
+                for w in request.words:
                     words.append(w.word)
                 return [Message(text="/".join(words))]
 
-        bot = minette.create(config_file="config/minette_test_mecab.ini", classifier=MyClassifier)
+        bot = minette.create(config_file="config/minette_test_mecab.ini", default_dialog_service=MyDialog)
         self.assertIsInstance(bot.tagger, MeCabTagger)
         self.assertEqual("これ/は/テスト/です", bot.execute("これはテストです")[0].text)
         self.assertEqual("", bot.execute("")[0].text)
 
-        bot = minette.create(config_file="config/minette_test_googletagger.ini", classifier=MyClassifier, tagger=GoogleTagger)
+        bot = minette.create(config_file="config/minette_test_googletagger.ini", default_dialog_service=MyDialog, tagger=GoogleTagger)
         self.assertIsInstance(bot.tagger, GoogleTagger)
         self.assertEqual("これ/は/テスト/です", bot.execute("これはテストです")[0].text)
         self.assertEqual("", bot.execute("")[0].text)
 
 if __name__ == '__main__':
+    #prepare mysql
+    from minette.config import Config
+    conf = Config(config_file="config/minette_test_create_mysql.ini")
+    cp = minette.database.MySQLConnectionProvider(conf.get("connection_str"))
+    con = cp.get_connection()
+    cur = con.cursor()
+    try:
+        cur.execute("drop table session")
+        cur.execute("drop table user")
+        cur.execute("drop table user_id_mapper")
+        cur.execute("drop table messagelog")
+    except Exception as ex:
+        print(ex)
+    finally:
+        con.close()
+    #prepare sqldb
+    conf = Config(config_file="config/minette_test_create_sqldb.ini")
+    cp = minette.database.SQLDBConnectionProvider(conf.get("connection_str"))
+    con = cp.get_connection()
+    cur = con.cursor()
+    try:
+        cur.execute("drop table minette_session")
+        cur.execute("drop table minette_user")
+        cur.execute("drop table minette_uidmap")
+        cur.execute("drop table minette_messagelog")
+    except Exception as ex:
+        print(ex)
+    finally:
+        con.close()
+    #test
     unittest.main()

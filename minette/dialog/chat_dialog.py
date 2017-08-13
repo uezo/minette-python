@@ -2,7 +2,6 @@
 import logging
 import traceback
 from time import time
-from configparser import ConfigParser
 import json
 from pytz import timezone
 from datetime import datetime
@@ -15,7 +14,7 @@ class ChatDialogService(DialogService):
         super().__init__(logger=logger, config=config, tzone=tzone)
         self.api_key = api_key
         if not api_key and config:
-            self.api_key = config["minette"].get("chatting_api_key", "")
+            self.api_key = config.get("chatting_api_key")
         self.replace_values = replace_values if replace_values else {}
         self.chat_logger = None
         if chat_logfile:

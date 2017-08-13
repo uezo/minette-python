@@ -7,8 +7,8 @@ bot = minette.create(
     #tagger=minette.tagger.MeCabTagger, #If MeCab is installed, uncomment this line
     #classifier=MyClassifier            #Your own classifier
 )
-channel_secret = bot.config.get("line_bot_api", "channel_secret")
-channel_access_token = bot.config.get("line_bot_api", "channel_access_token")
+channel_secret = bot.config.get(section="line_bot_api", key="channel_secret")
+channel_access_token = bot.config.get(section="line_bot_api", key="channel_access_token")
 worker = LineWorkerThread(bot=bot, channel_secret=channel_secret, channel_access_token=channel_access_token)
 worker.start()
 parser = LineRequestParser(worker, channel_secret)
