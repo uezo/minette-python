@@ -1,1 +1,1 @@
-from minette.channel.line_adapter import LineWorkerThread, LineRequestParser
+from minette.channel.line import LineWorkerThread, LineRequestParser
