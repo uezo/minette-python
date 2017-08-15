@@ -3,7 +3,7 @@ from datetime import datetime
 import logging
 from pytz import timezone
 import requests
-from minette.util import date_to_str, date_to_unixtime, get_class
+from minette.util import date_to_str, str_to_date, date_to_unixtime, get_class
 from minette.serializer import JsonSerializable
 #for type hinting
 from minette import Config
@@ -111,6 +111,18 @@ class Message(JsonSerializable):
         message.payloads = payloads if payloads else []
         return message
 
+    @classmethod
+    def from_dict(cls, data, as_args=False):
+        """
+        :param data: JSON serializable dictionary of this object
+        :type data: dict
+        :return: Instance of this class
+        :rtype: object
+        """
+        msg = super().from_dict(data, as_args)
+        msg.timestamp = str_to_date(msg.timestamp)
+        msg.payloads = Payload.from_dict_list(msg.payloads)
+        return msg
 
 class MessageLogger:
     def __init__(self, logger=None, config=None, tzone=None, connection_provider_for_prepare=None, table_name="messagelog"):

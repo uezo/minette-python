@@ -5,7 +5,10 @@ import json
 class DateTimeJSONEncoder(json.JSONEncoder):
     def default(self, obj):
         if isinstance(obj, datetime):
-            return obj.isoformat()
+            if obj.tzinfo:
+                return obj.strftime("%Y-%m-%d %H:%M:%S %z")
+            else:
+                return obj.strftime("%Y-%m-%d %H:%M:%S")
         return super().default(obj)
 
 def encode_json(obj):
