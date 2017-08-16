@@ -70,7 +70,6 @@ class UserRepository:
             "prepare_create_user": "create table {0} (user_id TEXT primary key, timestamp TEXT, name TEXT, nickname TEXT, data TEXT)".format(table_user),
             "prepare_check_uidmap": "select * from sqlite_master where type='table' and name='{0}'".format(table_uidmap),
             "prepare_create_uidmap": "create table {0} (channel TEXT, channel_user TEXT, user_id TEXT, timestamp TEXT, primary key(channel, channel_user))".format(table_uidmap),
-            #todo subquery before innner join
             "get_user": "select * from {0} inner join {1} on ({0}.user_id = {1}.user_id) where {1}.channel=? and {1}.channel_user=? limit 1".format(table_user, table_uidmap),
             "add_user": "insert into {0} (user_id, timestamp, name, nickname, data) values (?,?,?,?,?)".format(table_user),
             "add_uidmap": "insert into {0} (channel, channel_user, user_id, timestamp) values (?,?,?,?)".format(table_uidmap),

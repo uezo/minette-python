@@ -4,11 +4,13 @@ import unittest
 import logging
 from datetime import datetime
 import minette
-from minette.database import ConnectionProvider, MySQLConnectionProvider, SQLDBConnectionProvider
-from minette.dialog import Classifier, DialogService, Message, MessageLogger, MySQLMessageLogger, SQLDBMessageLogger
-from minette.session import Session, SessionStore, MySQLSessionStore, SQLDBSessionStore
-from minette.user import User, UserRepository, MySQLUserRepository, SQLDBUserRepository
+from minette.database import ConnectionProvider
+from minette.dialog import Classifier, DialogService, Message, MessageLogger
+from minette.session import Session, SessionStore
+from minette.user import User, UserRepository
 from minette.tagger import MeCabTagger, GoogleTagger
+from minette.database.mysql import MySQLConnectionProvider, MySQLSessionStore, MySQLUserRepository, MySQLMessageLogger
+from minette.database.sqldb import SQLDBConnectionProvider, SQLDBSessionStore, SQLDBUserRepository, SQLDBMessageLogger
 
 class TestAutomata(unittest.TestCase):
     def create_base(self, config_file, cp, ss, ur, ml):
@@ -125,7 +127,7 @@ if __name__ == '__main__':
     #prepare mysql
     from minette.config import Config
     conf = Config(config_file="config/minette_test_create_mysql.ini")
-    cp = minette.database.MySQLConnectionProvider(conf.get("connection_str"))
+    cp = MySQLConnectionProvider(conf.get("connection_str"))
     con = cp.get_connection()
     cur = con.cursor()
     try:
@@ -139,7 +141,7 @@ if __name__ == '__main__':
         con.close()
     #prepare sqldb
     conf = Config(config_file="config/minette_test_create_sqldb.ini")
-    cp = minette.database.SQLDBConnectionProvider(conf.get("connection_str"))
+    cp = SQLDBConnectionProvider(conf.get("connection_str"))
     con = cp.get_connection()
     cur = con.cursor()
     try:
