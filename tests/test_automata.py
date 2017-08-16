@@ -8,7 +8,8 @@ from minette.database import ConnectionProvider
 from minette.dialog import Classifier, DialogService, Message, MessageLogger
 from minette.session import Session, SessionStore
 from minette.user import User, UserRepository
-from minette.tagger import MeCabTagger, GoogleTagger
+from minette.tagger.mecab import MeCabTagger
+from minette.tagger.google import GoogleTagger
 from minette.database.mysql import MySQLConnectionProvider, MySQLSessionStore, MySQLUserRepository, MySQLMessageLogger
 from minette.database.sqldb import SQLDBConnectionProvider, SQLDBSessionStore, SQLDBUserRepository, SQLDBMessageLogger
 

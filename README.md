@@ -8,7 +8,8 @@ $ git clone https://github.com/uezo/minette-python.git
 ```
 
 ## Running the echo bot
-Make example.py and run.
+Code like below and run.
+
 ```python
 import minette
 
@@ -24,7 +25,9 @@ while True:
 ```
 
 ```
-$ python example.py
+$ python echo.py
+user> hello
+minette> You said: hello
 ```
 
 ## Session management
@@ -41,7 +44,7 @@ GoogleTagger uses Cloud Natural Language API. This separates text into words and
 
 #### Usase
 ```python
-from minette.tagger import GoogleTagger
+from minette.tagger.google import GoogleTagger
 bot = minette.create(
     tagger=GoogleTagger(api_key="your api key")
 )
@@ -68,7 +71,7 @@ pip install mecab-python3
 
 #### Usase
 ```python
-from minette.tagger import MeCabTagger
+from minette.tagger.mecab import MeCabTagger
 bot = minette.create(
     tagger=MeCabTagger
 )
