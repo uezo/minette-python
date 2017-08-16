@@ -1,11 +1,14 @@
 """ LINE endpoint example """
+import sys
+sys.path.append("../../")
 from flask import Flask, request, abort
 import minette
 from minette.channel import LineWorkerThread, LineRequestParser
 
 bot = minette.create(
     #tagger=minette.tagger.MeCabTagger, #If MeCab is installed, uncomment this line
-    #classifier=MyClassifier            #Your own classifier
+    #classifier=MyClassifier,           #Your own classifier
+    config_file="../minette.ini"
 )
 channel_secret = bot.config.get(section="line_bot_api", key="channel_secret")
 channel_access_token = bot.config.get(section="line_bot_api", key="channel_access_token")

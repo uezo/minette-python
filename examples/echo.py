@@ -1,4 +1,6 @@
 """ Console BOT example """
+import sys, os
+sys.path.append(os.pardir)
 import minette
 
 #Create an instance of Automata
