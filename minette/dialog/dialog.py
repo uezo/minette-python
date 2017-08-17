@@ -190,8 +190,8 @@ class DialogService:
         self.timezone = tzone
         self.config = config
 
-    def decode_data(self, request, session, connection=None):
-        """ Restore data from JSON to your own data objects
+    def prepare_data(self, request, session, connection=None):
+        """ Deserialize or initialize Session/User data
         :param request: Request message
         :type request: Message
         :param session: Session
@@ -201,8 +201,8 @@ class DialogService:
         """
         pass
 
-    def encode_data(self, request, session, connection=None):
-        """ Serialize your own data objects to JSON
+    def serialize_data(self, request, session, connection=None):
+        """ Serialize Session/User data to JSON
         :param request: Request message
         :type request: Message
         :param session: Session
