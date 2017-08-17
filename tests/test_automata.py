@@ -12,6 +12,7 @@ from minette.tagger.mecab import MeCabTagger
 from minette.tagger.google import GoogleTagger
 from minette.database.mysql import MySQLConnectionProvider, MySQLSessionStore, MySQLUserRepository, MySQLMessageLogger
 from minette.database.sqldb import SQLDBConnectionProvider, SQLDBSessionStore, SQLDBUserRepository, SQLDBMessageLogger
+from minette.serializer import JsonSerializable
 
 class TestAutomata(unittest.TestCase):
     def create_base(self, config_file, cp, ss, ur, ml):
@@ -89,7 +90,7 @@ class TestAutomata(unittest.TestCase):
         self.assertEqual(message_str, row[input_key])
         self.assertEqual("You said: " + message_str, row[output_key])
         # using custom classifier
-        bot_clsfr = minette.create(config_file="config/minette_test_create.ini", classifier=MyClassifier)
+        bot_clsfr = minette.create(config_file=config_file, classifier=MyClassifier)
         self.assertEqual("You said: Hello", bot_clsfr.execute(Message(text="Hello"))[0].text)
         self.assertEqual("You said: Get type", bot_clsfr.execute(Message(text="Get type"))[0].text)
         self.assertListEqual([], bot_clsfr.execute(Message(text="Get None")))
@@ -123,6 +124,47 @@ class TestAutomata(unittest.TestCase):
         self.assertIsInstance(bot.tagger, GoogleTagger)
         self.assertEqual("これ/は/テスト/です", bot.execute("これはテストです")[0].text)
         self.assertEqual("", bot.execute("")[0].text)
+
+    def test_serializer(self):
+        class TestSerializeMemberClass(JsonSerializable):
+            def __init__(self, strvalue="no value"):
+                self.strvalue = strvalue
+                self.intvalue = 7890
+                self.nullvalue = None
+
+        class TestSerializeClass(JsonSerializable):
+            def __init__(self):
+                self.strvalue = "テスト"
+                self.intvalue = 123456
+                self.dtvalue = datetime.now()
+                self.objvalue = TestSerializeMemberClass("objvalue")
+                self.nullvalue = None
+                self.listvalue = ["a", "b", "c"]
+                self.dictvalue = {"k1":"v1", "k2":"v2", "k3":"v3", "k4":"v4"}
+                self.obj_list = [TestSerializeMemberClass("obj_list1"), TestSerializeMemberClass("obj_list2"), TestSerializeMemberClass("obj_list3")]
+                self.obj_dict = {"dict1": TestSerializeMemberClass("obj_dict1"), "dict2": TestSerializeMemberClass("obj_dict2"), "dict3": TestSerializeMemberClass("obj_dict3")}
+
+            @classmethod
+            def from_dict(cls, data, as_args=False):
+                tsc = super().from_dict(data, as_args)
+                tsc.objvalue = TestSerializeMemberClass.from_dict(tsc.objvalue)
+                tsc.obj_list = TestSerializeMemberClass.from_dict_list(tsc.obj_list)
+                tsc.obj_dict = TestSerializeMemberClass.from_dict_dict(tsc.obj_dict)
+                return tsc
+
+        tsc = TestSerializeClass()
+        tsc_dict = tsc.to_dict()
+        tsc_json = tsc.to_json()
+        tsc_restore = TestSerializeClass.from_json(tsc_json)
+
+        self.assertIsInstance(tsc_dict, dict)
+        self.assertIsInstance(tsc_json, str)
+        self.assertIsInstance(tsc_restore, TestSerializeClass)
+        self.assertIsInstance(tsc_restore.objvalue, TestSerializeMemberClass)
+        self.assertEqual(123456, tsc_dict["intvalue"])
+        self.assertEqual("obj_list2", tsc_dict["obj_list"][1]["strvalue"])
+        self.assertEqual("テスト", tsc_restore.strvalue)
+        self.assertEqual("obj_dict1", tsc_restore.obj_dict["dict1"].strvalue)
 
 if __name__ == '__main__':
     #prepare mysql
