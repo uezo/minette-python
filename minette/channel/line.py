@@ -134,7 +134,7 @@ class LineWorkerThread(Thread):
                 send_messages.append(TemplateSendMessage(alt_text=msg.text, template=msg.payloads[0].content))
         return send_messages
 
-class LineRequestParser:
+class LineAdapter:
     def __init__(self, worker, channel_secret):
         """
         :param worker: WorkerThread
@@ -151,7 +151,7 @@ class LineRequestParser:
         :return: HTTP Status code
         :rtype: int
         """
-        signature = request.headers['X-Line-Signature']
+        signature = request.headers["X-Line-Signature"]
         body = request.get_data(as_text=True)
         try:
             events = self.parser.parse(body, signature)

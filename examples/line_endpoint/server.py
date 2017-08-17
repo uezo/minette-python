@@ -3,7 +3,7 @@ import sys
 sys.path.append("../../")
 from flask import Flask, request, abort
 import minette
-from minette.channel import LineWorkerThread, LineRequestParser
+from minette.channel import LineWorkerThread, LineAdapter
 
 bot = minette.create(
     #tagger=minette.tagger.MeCabTagger, #If MeCab is installed, uncomment this line
@@ -14,7 +14,7 @@ channel_secret = bot.config.get(section="line_bot_api", key="channel_secret")
 channel_access_token = bot.config.get(section="line_bot_api", key="channel_access_token")
 worker = LineWorkerThread(bot=bot, channel_secret=channel_secret, channel_access_token=channel_access_token)
 worker.start()
-parser = LineRequestParser(worker, channel_secret)
+parser = LineAdapter(worker, channel_secret)
 
 app = Flask(__name__)
 
