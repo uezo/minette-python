@@ -8,7 +8,7 @@ class Config:
     
     def get(self, key, section="", default=""):
         ret = self.confg_parser[section if section else "minette"].get(key, default)
-        if isinstance(ret, str) and ret.startswith("ENV::"):
+        if str(ret).startswith("ENV::"):
             env_key = ret[5:]
             if env_key in os.environ:
                 ret = os.environ[env_key]

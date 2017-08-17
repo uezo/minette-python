@@ -9,7 +9,7 @@ import requests
 from minette.session import Session
 from minette.dialog import Message, DialogService
 
-class ChatDialogService(DialogService):
+class ChatDialogService(DialogService, object):
     def __init__(self, logger=None, config=None, tzone=None, api_key="", replace_values=None, chat_logfile=""):
         super().__init__(logger=logger, config=config, tzone=tzone)
         self.api_key = api_key
@@ -42,7 +42,7 @@ class ChatDialogService(DialogService):
         chat_res = requests.post("https://api.apigw.smt.docomo.ne.jp/dialogue/v1/dialogue?APIKEY=" + self.api_key, json.dumps(chat_req)).json()
         session.chat_context = chat_res["context"]
         session.mode = chat_res["mode"] if chat_res["mode"] == "srtr" else ""
-        chat_str = str(chat_res["utt"])
+        chat_str = chat_res["utt"]
         for k, v in self.replace_values.items():
             chat_str = chat_str.replace(k, v)
         session.data = chat_str
@@ -54,4 +54,4 @@ class ChatDialogService(DialogService):
 
     def compose_response(self, request, session, connection):
         session.keep_mode = True if session.mode == "srtr" else False
-        return request.get_reply_message(str(session.data))
+        return request.get_reply_message(session.data)

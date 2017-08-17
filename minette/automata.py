@@ -7,7 +7,7 @@ from minette.database import ConnectionProvider
 from minette.session import SessionStore
 from minette.user import UserRepository
 from minette.tagger import Tagger
-from minette.dialog import Message, MessageLogger, Classifier
+from minette.dialog import Message, DialogService, MessageLogger, Classifier
 from minette.util import get_class
 from minette.config import Config
 
@@ -55,8 +55,8 @@ class Automata:
         #processing dialog
         try:
             #initialize response message
-            if isinstance(request, str):
-                request = Message(text=request)
+            if not isinstance(request, Message):
+                request = Message(text=str(request))
             response = [request.get_reply_message("?")]
             conn = self.connection_provider.get_connection()
             ticks.append(("get_connection", time() - start_time))
@@ -70,7 +70,7 @@ class Automata:
             ticks.append(("classifier.detect_mode", time() - start_time))
             dialog_service = self.classifier.classify(request, session, conn)
             ticks.append(("classifier.classify", time() - start_time))
-            if isinstance(dialog_service, type):
+            if not isinstance(dialog_service, DialogService):
                 dialog_service = dialog_service(logger=self.logger, config=self.config, tzone=self.timezone)
             elif dialog_service is None:
                 self.logger.info("No dialog services")
@@ -142,7 +142,7 @@ def get_default_logger():
     logger.addHandler(file_handler)
     return logger
 
-def create(connection_provider=None, session_store=None, user_repository=None, classifier=Classifier, tagger=None, message_logger=None, logger=None, config_file="", prepare_table=True, default_dialog_service=None):
+def create(connection_provider=None, session_store=None, user_repository=None, classifier=None, tagger=None, message_logger=None, logger=None, config_file="", prepare_table=True, default_dialog_service=None):
     """
     :param connection_provider: ConnectionProvider
     :type connection_provider: ConnectionProvider
@@ -173,67 +173,62 @@ def create(connection_provider=None, session_store=None, user_repository=None, c
     tzone = timezone(config.get("timezone", default="UTC"))
     #initialize connection provider
     connection_str = config.get("connection_str")
-    if connection_provider is None:
+    if not isinstance(connection_provider, ConnectionProvider):
         connection_provider_classname = config.get("connection_provider")
         if connection_provider_classname:
             connection_provider = get_class(connection_provider_classname)
         else:
             connection_provider = ConnectionProvider
-    if isinstance(connection_provider, type):
         connection_provider = connection_provider(connection_str)
     #initialize default components
     args = {"logger":logger, "config":config, "tzone":tzone}
     #session store
-    if session_store is None:
+    if not isinstance(session_store, SessionStore):
         session_store_classname = config.get("session_store")
         if session_store_classname:
             session_store = get_class(session_store_classname)
         else:
             session_store = SessionStore
-    if isinstance(session_store, type):
         session_args = args.copy()
         session_args["connection_provider_for_prepare"] = connection_provider if prepare_table else None
         session_args["table_name"] = config.get("session_table", default="session")
         session_args["timeout"] = config.getint("session_timeout", default=300)
         session_store = session_store(**session_args)
     #user repository
-    if user_repository is None:
+    if not isinstance(user_repository, UserRepository):
         user_repository_classname = config.get("user_repository")
         if user_repository_classname:
             user_repository = get_class(user_repository_classname)
         else:
             user_repository = UserRepository
-    if isinstance(user_repository, type):
         user_args = args.copy()
         user_args["connection_provider_for_prepare"] = connection_provider if prepare_table else None
         user_args["table_user"] = config.get("user_table", default="user")
         user_args["table_uidmap"] = config.get("uidmap_table", default="user_id_mapper")
         user_repository = user_repository(**user_args)
     #classifier
-    if isinstance(classifier, type):
+    if not isinstance(classifier, Classifier):
         classifier_args = args.copy()
         if default_dialog_service:
             classifier_args["default_dialog_service"] = default_dialog_service
         elif config.get("default_dialog_service", default=None):
             classifier_args["default_dialog_service"] = get_class(config.get("default_dialog_service", default=None))
-        classifier = classifier(**classifier_args)
+        classifier = Classifier(**classifier_args)
     #tagger
-    if tagger is None:
+    if not isinstance(tagger, Tagger):
         tagger_classname = config.get("tagger")
         if tagger_classname:
             tagger = get_class(tagger_classname)
         else:
             tagger = Tagger
-    if isinstance(tagger, type):
         tagger = tagger(**args)
     #message logger
-    if message_logger is None:
+    if not isinstance(message_logger, MessageLogger):
         message_logger_classname = config.get("message_logger")
         if message_logger_classname:
             message_logger = get_class(message_logger_classname)
         else:
             message_logger = MessageLogger
-    if isinstance(message_logger, type):
         message_args = args.copy()
         message_args["connection_provider_for_prepare"] = connection_provider if prepare_table else None
         message_args["table_name"] = config.get("messagelog_table", default="messagelog")
