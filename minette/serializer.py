@@ -74,6 +74,8 @@ class JsonSerializable:
         """
         :param data: JSON serializable dictionary of this object
         :type data: dict
+        :param as_args: Set data to object as arguments of __init__()
+        :type as_args: bool
         :return: Instance of this class
         :rtype: object
         """
@@ -89,6 +91,8 @@ class JsonSerializable:
         """
         :param data: Dictionary of JSON serializable dictionaries of this object
         :type data: dict
+        :param as_args: Set data to object as arguments of __init__()
+        :type as_args: bool
         :return: Instance of this class
         :rtype: object
         """
@@ -100,6 +104,8 @@ class JsonSerializable:
         """
         :param data: List of JSON serializable dictionaries of this object
         :type data: dict
+        :param as_args: Set data to object as arguments of __init__()
+        :type as_args: bool
         :return: Instance of this class
         :rtype: object
         """
@@ -111,6 +117,8 @@ class JsonSerializable:
         """
         :param json_str: JSON string of this object
         :type json_str: str
+        :param as_args: Set data to object as arguments of __init__()
+        :type as_args: bool
         :return: Instance of this class
         :rtype: object
         """
