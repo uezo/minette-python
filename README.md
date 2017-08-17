@@ -2,9 +2,11 @@
 Minette is a micro Bot framework. Session and user management, Natural language analyzing and architecture for multi-skill/character bot are ready-to-use.
 
 ## Installation
-`git clone` or download this project and set path. We are preparing for `pip`.
+
+To install minette, simply:
+
 ```
-$ git clone https://github.com/uezo/minette-python.git
+$ pip install minette
 ```
 
 ## Running the echo bot
