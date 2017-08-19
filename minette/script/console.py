@@ -11,7 +11,7 @@ class ConsoleApp:
     def start(self):
         while True:
             req = input("user> ")
-            res = bot.execute(req)
+            res = self.bot.execute(req)
             for message in res:
                 print("minette> " + message.text)
 
