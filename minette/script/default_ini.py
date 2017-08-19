@@ -19,6 +19,9 @@ timezone = ENV::MINETTE_TIMEZONE
 ; Connection strings
 connection_str = ENV::MINETTE_CONSTR
 
+; Default DialogService
+default_dialog_service = ENV::MINETTE_DEFAULT_DIALOG_SERVICE
+
 ; Chatting
 chatting_api_key = ENV::CHAT_API_KEY
 
