@@ -13,6 +13,11 @@ setup(
     packages=find_packages(exclude=["imoutobot*", "examples*", "tests*"]),
     install_requires=["requests", "pytz"],
     license="Apache v2",
+    entry_points={
+        "console_scripts": [
+            "minette=minette.script.console:main",
+        ],
+    },
     classifiers=[
         "Programming Language :: Python :: 3"
     ]

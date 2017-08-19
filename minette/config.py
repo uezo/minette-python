@@ -13,7 +13,7 @@ class Config:
             if env_key in os.environ:
                 ret = os.environ[env_key]
             else:
-                ret = ""
+                ret = default
         return ret
 
     def getint(self, key, section="", default=0):
