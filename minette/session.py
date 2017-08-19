@@ -104,7 +104,7 @@ class SessionStore:
             if row is not None:
                 record = self.map_record(row)
                 last_access = record["timestamp"]
-                last_access = last_access.replace(tzinfo=self.timezone)
+                last_access = self.timezone.localize(last_access)
                 if (datetime.now(self.timezone) - last_access).total_seconds() <= self.timeout:
                     sess.mode = record["mode"]
                     sess.dialog_status = record["dialog_status"]
