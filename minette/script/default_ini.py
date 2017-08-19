@@ -19,6 +19,9 @@ timezone = ENV::MINETTE_TIMEZONE
 ; Connection strings
 connection_str = ENV::MINETTE_CONSTR
 
+; Default Classifier
+default_classifier = ENV::MINETTE_DEFAULT_CLASSIFIER
+
 ; Default DialogService
 default_dialog_service = ENV::MINETTE_DEFAULT_DIALOG_SERVICE
 

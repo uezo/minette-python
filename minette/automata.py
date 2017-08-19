@@ -210,7 +210,11 @@ def create(connection_provider=None, session_store=None, user_repository=None, c
         user_repository = user_repository(**user_args)
     #classifier
     if classifier is None:
-        classifier = Classifier
+        classifier_classname = config.get("default_classifier")
+        if classifier_classname:
+            classifier = get_class(classifier_classname)
+        else:
+            classifier = Classifier
     if isinstance(classifier, type):
         classifier_args = args.copy()
         if default_dialog_service:
