@@ -14,6 +14,15 @@ from minette.database.mysql import MySQLConnectionProvider, MySQLSessionStore, M
 from minette.database.sqldb import SQLDBConnectionProvider, SQLDBSessionStore, SQLDBUserRepository, SQLDBMessageLogger
 from minette.serializer import JsonSerializable
 
+class MyDefaultClassifier(Classifier):
+    def __init__(self, logger=None, config=None, tzone=None, default_dialog_service=None):
+        super().__init__(logger, config, tzone, default_dialog_service)
+        self.my_value = "default_classifier_value"
+
+class MyDefaultDialogService(DialogService):
+    def compose_response(self, request, session, connection):
+        return request.get_reply_message("default_dialog_value")
+
 class TestAutomata(unittest.TestCase):
     def create_base(self, config_file, cp, ss, ur, ml):
         channel = "TEST"
@@ -124,6 +133,11 @@ class TestAutomata(unittest.TestCase):
         self.assertIsInstance(bot.tagger, GoogleTagger)
         self.assertEqual("これ/は/テスト/です", bot.execute("これはテストです")[0].text)
         self.assertEqual("", bot.execute("")[0].text)
+
+    def test_default_classifier_dialog(self):
+        bot = minette.create(config_file="config/minette_test_create_classifier_dialog.ini")
+        self.assertEqual("default_classifier_value", bot.classifier.my_value)
+        self.assertEqual("default_dialog_value", bot.execute("test")[0].text)
 
     def test_serializer(self):
         class TestSerializeMemberClass(JsonSerializable):
