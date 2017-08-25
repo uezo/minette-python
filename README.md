@@ -10,7 +10,16 @@ $ pip install minette
 ```
 
 ## Running the echo bot
-Code like below and run.
+
+Just `minette` to run the echo bot.
+
+```
+$ minette
+user> hello minette
+minette> You said: hello minette
+```
+
+Or code like below and run.
 
 ```python
 import minette
