@@ -32,6 +32,14 @@ user> hello
 minette> You said: hello
 ```
 
+## Architecture of Minette
+
+To create a bot, developers just implement `classify` to detect the topic, `process_request` to process the application logic and `compose_response` to create response messages to the user. 
+
+[![Architecture](http://uezo.net/img/minette_arc.png)](http://uezo.net/img/minette_arc.png)
+
+Any other common operations (e.g. session management) are done by Minette framework.
+
 ## Session management
 Minette provides a data store that enables your bot to continue conversasion accross the requests like HTTP Session. Default SessionStore uses Sqlite but you can make custom SessionStore and change to any database you like.
 
