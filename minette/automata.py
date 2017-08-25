@@ -171,14 +171,20 @@ def create(connection_provider=None, session_store=None, user_repository=None, c
     config = Config(config_file)
     #timezone
     tzone = timezone(config.get("timezone", default="UTC"))
+    #get database presets
+    database_presets = config.get("database_presets")
+    if database_presets:
+        get_presets = get_class("{}.get_presets".format(database_presets))
+        connection_provider, session_store, user_repository, message_logger = get_presets()
     #initialize connection provider
     connection_str = config.get("connection_str")
-    if not isinstance(connection_provider, ConnectionProvider):
+    if connection_provider is None:
         connection_provider_classname = config.get("connection_provider")
         if connection_provider_classname:
             connection_provider = get_class(connection_provider_classname)
         else:
             connection_provider = ConnectionProvider
+    if isinstance(connection_provider, type):
         connection_provider = connection_provider(connection_str)
     #initialize default components
     args = {"logger":logger, "config":config, "tzone":tzone}

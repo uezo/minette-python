@@ -138,3 +138,6 @@ class SQLDBMessageLogger(MessageLogger):
             "prepare_create": "create table {0} (timestamp DATETIME2, unixtime INT, channel NVARCHAR(20), totaltick INT, user_id NVARCHAR(100), user_name NVARCHAR(100), message_type NVARCHAR(100), input_text NVARCHAR(4000), output_text NVARCHAR(4000))".format(table_name),
             "write": "insert into {0} (timestamp, unixtime, channel, totaltick, user_id, user_name, message_type, input_text, output_text) values (?,?,?,?,?,?,?,?,?)".format(table_name)
         }
+
+def get_presets():
+    return SQLDBConnectionProvider, SQLDBSessionStore, SQLDBUserRepository, SQLDBMessageLogger

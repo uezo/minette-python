@@ -110,11 +110,20 @@ class TestAutomata(unittest.TestCase):
     def test_execute(self):
         self.execute_base("config/minette_test_create.ini", "select * from messagelog where input_text=? limit 1", "input_text", "output_text")
 
+    def test_execute_without_config(self):
+        self.execute_base(None, "select * from messagelog where input_text=? limit 1", "input_text", "output_text")
+
     def test_execute_mysql(self):
         self.execute_base("config/minette_test_create_mysql.ini", "select * from messagelog where input_text=%s limit 1", "input_text", "output_text")
 
+    def test_execute_mysql_preset(self):
+        self.execute_base("config/minette_test_create_mysql_preset.ini", "select * from messagelog where input_text=%s limit 1", "input_text", "output_text")
+
     def test_execute_sqldb(self):
         self.execute_base("config/minette_test_create_sqldb.ini", "select top 1 * from minette_messagelog where input_text=?", 7, 8)
+
+    def test_execute_sqldb_preset(self):
+        self.execute_base("config/minette_test_create_sqldb_preset.ini", "select top 1 * from minette_messagelog where input_text=?", 7, 8)
 
     def test_execute_tagger(self):
         class MyDialog(DialogService):
