@@ -7,6 +7,8 @@ class Config:
         self.confg_parser.read(config_file if config_file else "./minette.ini")
         if not self.confg_parser.has_section("minette"):
             self.confg_parser.add_section("minette")
+            self.confg_parser.set("minette", "timezone", "ENV::MINETTE_TIMEZONE")
+            self.confg_parser.set("minette", "connection_str", "ENV::MINETTE_CONNECTION_STR")
             self.confg_parser.set("minette", "default_classifier", "ENV::DEFAULT_CLASSIFIER")
             self.confg_parser.set("minette", "default_dialog_service", "ENV::DEFAULT_DIALOG_SERVICE")
             self.confg_parser.set("minette", "chatting_api_key", "ENV::CHAT_API_KEY")

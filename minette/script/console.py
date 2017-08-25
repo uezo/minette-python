@@ -17,14 +17,14 @@ class ConsoleApp:
 
 def main(args=sys.argv):
     #default
-    config_file = os.path.join(os.path.dirname(__file__), "default_ini.py")
+    config_file = ""
     port = 5050
     #get arguments
     usage = "Usage: python {} [--config <config_file>] [--web|--line <port_number>] [--help]".format(__file__)
     argparser = ArgumentParser(usage=usage)
-    argparser.add_argument('-c', '--config', dest='config_file', help="Path to configuration file. (path/to/minette.ini)")
-    argparser.add_argument('-w', '--web', nargs="?", type=int, const=5050, help="Start as Web endpoint. Port number is 5050 as default")
-    argparser.add_argument('-l', '--line', nargs="?", type=int, const=5050, help="Start as LINE endpoint. Port number is 5050 as default")
+    argparser.add_argument("-c", "--config", dest="config_file", help="Path to configuration file. (path/to/minette.ini)")
+    argparser.add_argument("-w", "--web", nargs="?", type=int, const=5050, help="Start as Web endpoint. Port number is 5050 as default")
+    argparser.add_argument("-l", "--line", nargs="?", type=int, const=5050, help="Start as LINE endpoint. Port number is 5050 as default")
     args = argparser.parse_args()
     #setup app
     if args.config_file:
