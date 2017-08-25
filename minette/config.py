@@ -7,7 +7,13 @@ class Config:
         self.confg_parser.read(config_file if config_file else "./minette.ini")
         if not self.confg_parser.has_section("minette"):
             self.confg_parser.add_section("minette")
-    
+            self.confg_parser.set("minette", "chatting_api_key", "ENV::CHAT_API_KEY")
+            self.confg_parser.set("minette", "google_api_key", "ENV::GOOGLE_API_KEY")
+        if not self.confg_parser.has_section("line_bot_api"):
+            self.confg_parser.add_section("line_bot_api")
+            self.confg_parser.set("line_bot_api", "channel_secret", "ENV::LINE_CHANNEL_SECRET")
+            self.confg_parser.set("line_bot_api", "channel_access_token", "ENV::LINE_ACCESS_TOKEN")
+
     def get(self, key, section="", default=""):
         ret = self.confg_parser[section if section else "minette"].get(key, default)
         if str(ret).startswith("ENV::"):
