@@ -5,6 +5,8 @@ class Config:
     def __init__(self, config_file=""):
         self.confg_parser = ConfigParser()
         self.confg_parser.read(config_file if config_file else "./minette.ini")
+        if not self.confg_parser.has_section("minette"):
+            self.confg_parser.add_section("minette")
     
     def get(self, key, section="", default=""):
         ret = self.confg_parser[section if section else "minette"].get(key, default)
