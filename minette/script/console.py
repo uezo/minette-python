@@ -25,7 +25,7 @@ def main(args=sys.argv):
     argparser.add_argument("-c", "--config", dest="config_file", help="Path to configuration file. (path/to/minette.ini)")
     argparser.add_argument("-w", "--web", nargs="?", type=int, const=5050, help="Start as Web endpoint. Default port number is 5050")
     argparser.add_argument("-l", "--line", nargs="?", type=int, const=5050, help="Start as LINE endpoint. Default port number is 5050")
-    argparser.add_argument("-p", "--path", nargs="?", const="/api", help="Path to access the endpoint. Default path is /api")
+    argparser.add_argument("-p", "--path", nargs="?", type=str, default="/api", help="Path to access the endpoint. Default path is /api")
     args = argparser.parse_args()
     #setup app
     if args.config_file:

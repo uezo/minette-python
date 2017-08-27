@@ -3,7 +3,7 @@ from minette.serializer import encode_json
 from minette.channel.line import LineAdapter, LineWorkerThread
 
 class LineEndpoint:
-    def __init__(self, bot, port):
+    def __init__(self, bot, port, path):
         self.bot = bot
         self.port = port
         self.path = path
