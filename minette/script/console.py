@@ -5,7 +5,7 @@ import importlib
 import minette
 
 class ConsoleApp:
-    def __init__(self, bot, _):
+    def __init__(self, bot, _, __):
         self.bot = bot
     
     def start(self):
@@ -23,8 +23,9 @@ def main(args=sys.argv):
     usage = "Usage: python {} [--config <config_file>] [--web|--line <port_number>] [--help]".format(__file__)
     argparser = ArgumentParser(usage=usage)
     argparser.add_argument("-c", "--config", dest="config_file", help="Path to configuration file. (path/to/minette.ini)")
-    argparser.add_argument("-w", "--web", nargs="?", type=int, const=5050, help="Start as Web endpoint. Port number is 5050 as default")
-    argparser.add_argument("-l", "--line", nargs="?", type=int, const=5050, help="Start as LINE endpoint. Port number is 5050 as default")
+    argparser.add_argument("-w", "--web", nargs="?", type=int, const=5050, help="Start as Web endpoint. Default port number is 5050")
+    argparser.add_argument("-l", "--line", nargs="?", type=int, const=5050, help="Start as LINE endpoint. Default port number is 5050")
+    argparser.add_argument("-p", "--path", nargs="?", const="/api", help="Path to access the endpoint. Default path is /api")
     args = argparser.parse_args()
     #setup app
     if args.config_file:
@@ -36,15 +37,17 @@ def main(args=sys.argv):
         m = importlib.import_module("minette.script.web")
         app_class = m.WebEndpoint
         port = args.web
+        path = args.path
     elif args.line:
         m = importlib.import_module("minette.script.line")
         app_class = m.LineEndpoint
         port = args.line
+        path = args.path
     else:
         app_class = ConsoleApp
     #start bot
     bot = minette.create(config_file=config_file)
-    app = app_class(bot, port)
+    app = app_class(bot, port, path)
     app.start()
 
 if __name__ == "__main__":

@@ -3,13 +3,14 @@ from minette.serializer import encode_json
 from minette.channel import WebAdapter
 
 class WebEndpoint:
-    def __init__(self, bot, port):
+    def __init__(self, bot, port, path):
         self.bot = bot
         self.port = port
+        self.path = path
         self.adapter = WebAdapter()
         self.app = Flask(__name__)
 
-        @self.app.route("/callback", methods=["GET", "POST"])
+        @self.app.route(self.path, methods=["GET", "POST"])
         def callback():
             req = self.adapter.parse_request(request)
             res = self.bot.execute(req)

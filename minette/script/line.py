@@ -6,6 +6,7 @@ class LineEndpoint:
     def __init__(self, bot, port):
         self.bot = bot
         self.port = port
+        self.path = path
         channel_secret = self.bot.config.get(section="line_bot_api", key="channel_secret")
         channel_access_token = self.bot.config.get(section="line_bot_api", key="channel_access_token")
         worker = LineWorkerThread(bot=bot, channel_secret=channel_secret, channel_access_token=channel_access_token)
@@ -13,7 +14,7 @@ class LineEndpoint:
         self.adapter = LineAdapter(worker, channel_secret)
         self.app = Flask(__name__)
 
-        @self.app.route("/callback", methods=["GET", "POST"])
+        @self.app.route(self.path, methods=["GET", "POST"])
         def callback():
             code = self.adapter.parse_request(request)
             if code != 200:
