@@ -143,7 +143,6 @@ class MessageLogger:
         self.config = config
         self.timezone = tzone
         if connection_provider_for_prepare:
-            self.logger.warn("DB preparation for MessageLogger is ON. Turn off if this bot is runnning in production environment.")
             connection_provider_for_prepare.prepare_table(self.sqls["prepare_check"], self.sqls["prepare_create"])
 
     def get_sqls(self, table_name):

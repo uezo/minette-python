@@ -52,7 +52,6 @@ class UserRepository:
         self.config = config
         self.timezone = tzone
         if connection_provider_for_prepare:
-            self.logger.warn("DB preparation for UserRepository is ON. Turn off if this bot is runnning in production environment.")
             connection_provider_for_prepare.prepare_table(self.sqls["prepare_check_user"], self.sqls["prepare_create_user"])
             connection_provider_for_prepare.prepare_table(self.sqls["prepare_check_uidmap"], self.sqls["prepare_create_uidmap"])
 
