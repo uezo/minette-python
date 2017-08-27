@@ -2,7 +2,7 @@ import sys, os
 sys.path.append(os.pardir)
 import random
 import minette
-from minette.dialog import Message, DialogService, Classifier
+from minette.dialog import DialogService
 
 class DiceDialogService(DialogService):
     def process_request(self, request, session, connection):
