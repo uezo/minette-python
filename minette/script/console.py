@@ -19,6 +19,7 @@ def main(args=sys.argv):
     #default
     config_file = ""
     port = 5050
+    path = ""
     #get arguments
     usage = "Usage: python {} [--config <config_file>] [--web|--line <port_number>] [--help]".format(__file__)
     argparser = ArgumentParser(usage=usage)
