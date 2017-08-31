@@ -1,5 +1,7 @@
 from setuptools import setup, find_packages
-from minette import __version__
+
+with open("./minette/version.py") as f:
+    exec(f.read())
 
 setup(
     name="minette",

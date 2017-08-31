@@ -1,4 +1,3 @@
 from minette.config import Config
 from minette.automata import Automata, create, get_default_logger
-
-__version__ = "0.1.dev23"
+from minette.version import __version__
