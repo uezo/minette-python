@@ -4,7 +4,7 @@ import logging
 import traceback
 from pytz import timezone
 from minette.database import ConnectionProvider
-from minette.session import SessionStore
+from minette.session import SessionStore, ModeStatus
 from minette.user import UserRepository
 from minette.tagger import Tagger
 from minette.dialog import Message, DialogService, MessageLogger, Classifier
@@ -66,7 +66,15 @@ class Automata:
             ticks.append(("get_user", time() - start_time))
             session = self.session_store.get_session(request.channel, request.channel_user, conn)
             ticks.append(("get_session", time() - start_time))
-            session.mode, session.data = self.classifier.detect_mode(request, session, conn)
+            mode_info = self.classifier.detect_mode(request, session, conn)
+            if mode_info:
+                if not isinstance(mode_info, tuple):
+                    mode_info = (mode_info, {})
+                if mode_info[0] != session.mode:
+                    session.mode = mode_info[0]
+                    session.mode_status = ModeStatus.Start
+            else:
+                mode_info = (session.mode, {})
             ticks.append(("classifier.detect_mode", time() - start_time))
             dialog_service = self.classifier.classify(request, session, conn)
             ticks.append(("classifier.classify", time() - start_time))
@@ -76,8 +84,11 @@ class Automata:
                 self.logger.info("No dialog services")
                 return []
             ticks.append(("dialog_service instancing", time() - start_time))
-            dialog_service.prepare_data(request=request, session=session, connection=conn)
-            ticks.append(("dialog_service.prepare_data", time() - start_time))
+            if session.mode_status == ModeStatus.Start:
+                dialog_service.init_data(request=request, session=session, connection=conn)
+                for k, v in mode_info[1].items():
+                    session.data[k] = v
+            ticks.append(("dialog_service.init_data", time() - start_time))
             dialog_service.process_request(request=request, session=session, connection=conn)
             ticks.append(("dialog_service.process_request", time() - start_time))
             response = dialog_service.compose_response(request=request, session=session, connection=conn)

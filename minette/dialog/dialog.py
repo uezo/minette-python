@@ -189,8 +189,8 @@ class DialogService:
         self.timezone = tzone
         self.config = config
 
-    def prepare_data(self, request, session, connection=None):
-        """ Deserialize or initialize Session/User data
+    def init_data(self, request, session, connection=None):
+        """ Initialize Session data
         :param request: Request message
         :type request: Message
         :param session: Session
