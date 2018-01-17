@@ -81,9 +81,15 @@ class TestAutomata(unittest.TestCase):
                     return DialogService
                 if request.text == "Get None":
                     return None
+                if request.text == "Get no response":
+                    return MyDialog
                 if request.text == "Raise exception":
                     return 1 / 0
                 return super().classify(request, session, connection)
+
+        class MyDialog(DialogService):
+            def compose_response(self, request, session, connection):
+                return
 
         # default
         bot = minette.create(config_file=config_file)
@@ -103,6 +109,7 @@ class TestAutomata(unittest.TestCase):
         self.assertEqual("You said: Hello", bot_clsfr.execute(Message(text="Hello"))[0].text)
         self.assertEqual("You said: Get type", bot_clsfr.execute(Message(text="Get type"))[0].text)
         self.assertListEqual([], bot_clsfr.execute(Message(text="Get None")))
+        self.assertListEqual([], bot_clsfr.execute(Message(text="Get no response")))
         self.assertEqual("?", bot_clsfr.execute(Message(text="Raise exception"))[0].text)
         bot_clsfr.message_logger = None
         self.assertEqual("You said: Hello", bot_clsfr.execute(Message(text="Hello"))[0].text)

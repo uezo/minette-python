@@ -52,85 +52,91 @@ class Automata:
         """
         start_time = time()
         ticks = []
-        #processing dialog
         try:
-            #initialize response message
-            if not isinstance(request, Message):
-                request = Message(text=str(request))
-            response = [request.get_reply_message("?")]
             conn = self.connection_provider.get_connection()
-            ticks.append(("get_connection", time() - start_time))
-            request.words = self.tagger.parse(request.text)
-            ticks.append(("tagger.parse", time() - start_time))
-            request.user = self.user_repository.get_user(request.channel, request.channel_user, conn)
-            ticks.append(("get_user", time() - start_time))
-            session = self.session_store.get_session(request.channel, request.channel_user, conn)
-            ticks.append(("get_session", time() - start_time))
-            mode_info = self.classifier.detect_mode(request, session, conn)
-            if mode_info:
-                if not isinstance(mode_info, tuple):
-                    mode_info = (mode_info, {})
-                if mode_info[0] != session.mode:
-                    session.mode = mode_info[0]
-                    session.mode_status = ModeStatus.Start
-            else:
-                mode_info = (session.mode, {})
-            ticks.append(("classifier.detect_mode", time() - start_time))
-            dialog_service = self.classifier.classify(request, session, conn)
-            ticks.append(("classifier.classify", time() - start_time))
-            if isinstance(dialog_service, type):
-                dialog_service = dialog_service(logger=self.logger, config=self.config, tzone=self.timezone)
-            elif dialog_service is None:
-                self.logger.info("No dialog services")
-                return []
-            ticks.append(("dialog_service instancing", time() - start_time))
-            if session.mode_status == ModeStatus.Start:
-                dialog_service.init_data(request=request, session=session, connection=conn)
-                for k, v in mode_info[1].items():
-                    session.data[k] = v
-            ticks.append(("dialog_service.init_data", time() - start_time))
-            dialog_service.process_request(request=request, session=session, connection=conn)
-            ticks.append(("dialog_service.process_request", time() - start_time))
-            response = dialog_service.compose_response(request=request, session=session, connection=conn)
-            ticks.append(("dialog_service.compose_response", time() - start_time))
-            dialog_service.serialize_data(request=request, session=session, connection=conn)
-            ticks.append(("dialog_service.serialize_data", time() - start_time))
+            #processing dialog
+            try:
+                #initialize response message
+                if not isinstance(request, Message):
+                    request = Message(text=str(request))
+                response = [request.get_reply_message("?")]
+                ticks.append(("get_connection", time() - start_time))
+                request.words = self.tagger.parse(request.text)
+                ticks.append(("tagger.parse", time() - start_time))
+                request.user = self.user_repository.get_user(request.channel, request.channel_user, conn)
+                ticks.append(("get_user", time() - start_time))
+                session = self.session_store.get_session(request.channel, request.channel_user, conn)
+                ticks.append(("get_session", time() - start_time))
+                mode_info = self.classifier.detect_mode(request, session, conn)
+                if mode_info:
+                    if not isinstance(mode_info, tuple):
+                        mode_info = (mode_info, {})
+                    if mode_info[0] != session.mode:
+                        session.mode = mode_info[0]
+                        session.mode_status = ModeStatus.Start
+                else:
+                    mode_info = (session.mode, {})
+                ticks.append(("classifier.detect_mode", time() - start_time))
+                dialog_service = self.classifier.classify(request, session, conn)
+                ticks.append(("classifier.classify", time() - start_time))
+                if isinstance(dialog_service, type):
+                    dialog_service = dialog_service(logger=self.logger, config=self.config, tzone=self.timezone)
+                elif dialog_service is None:
+                    self.logger.info("No dialog services")
+                    return []
+                ticks.append(("dialog_service instancing", time() - start_time))
+                if session.mode_status == ModeStatus.Start:
+                    dialog_service.init_data(request=request, session=session, connection=conn)
+                    for k, v in mode_info[1].items():
+                        session.data[k] = v
+                ticks.append(("dialog_service.init_data", time() - start_time))
+                dialog_service.process_request(request=request, session=session, connection=conn)
+                ticks.append(("dialog_service.process_request", time() - start_time))
+                response = dialog_service.compose_response(request=request, session=session, connection=conn)
+                ticks.append(("dialog_service.compose_response", time() - start_time))
+                dialog_service.serialize_data(request=request, session=session, connection=conn)
+                ticks.append(("dialog_service.serialize_data", time() - start_time))
+                if not response:
+                    self.logger.info("No response")
+                    return []
+            except Exception as ex:
+                self.logger.error("Error occured in processing dialog: " + str(ex) + "\n" + traceback.format_exc())
+                session.keep_mode = False
+            #session and user
+            try:
+                #clear session
+                if session.keep_mode is False:
+                    session.mode = ""
+                    session.dialog_status = ""
+                    session.data = None
+                self.session_store.save_session(session, conn)
+                ticks.append(("save_session", time() - start_time))
+                self.user_repository.save_user(request.user, conn)
+                ticks.append(("save_user", time() - start_time))
+            except Exception as ex:
+                self.logger.error("Error occured in saving session/user: " + str(ex) + "\n" + traceback.format_exc())
+            #message log
+            try:
+                if not isinstance(response, list):
+                    response = [response]
+                total_ms = int((time() - start_time) * 1000)
+                outtexts = [r.text for r in response]
+                self.message_logger.write(request, " / ".join(outtexts), total_ms, conn)
+                ticks.append(("message_logger.write", time() - start_time))
+            except Exception as ex:
+                self.logger.error("Error occured in logging message: " + str(ex) + "\n" + traceback.format_exc())
+            #performance log
+            ticks_sum = 0
+            performance_info = "Performance info:\nuser> " + request.text + "\n"
+            performance_info += "minette> " + response[0].text + "\n"
+            for i, v in enumerate(ticks):
+                performance_info += v[0] + ":" + str(int((v[1] - ticks_sum) * 1000)) + "\n"
+                ticks_sum = v[1]
+            self.logger.debug(performance_info)
         except Exception as ex:
-            self.logger.error("Error occured in processing dialog: " + str(ex) + "\n" + traceback.format_exc())
-            session.keep_mode = False
-        #session and user
-        try:
-            #clear session
-            if session.keep_mode is False:
-                session.mode = ""
-                session.dialog_status = ""
-                session.data = None
-            self.session_store.save_session(session, conn)
-            ticks.append(("save_session", time() - start_time))
-            self.user_repository.save_user(request.user, conn)
-            ticks.append(("save_user", time() - start_time))
-        except Exception as ex:
-            self.logger.error("Error occured in saving session/user: " + str(ex) + "\n" + traceback.format_exc())
-        #message log
-        try:
-            if not isinstance(response, list):
-                response = [response]
-            total_ms = int((time() - start_time) * 1000)
-            outtexts = [r.text for r in response]
-            self.message_logger.write(request, " / ".join(outtexts), total_ms, conn)
-            ticks.append(("message_logger.write", time() - start_time))
-        except Exception as ex:
-            self.logger.error("Error occured in logging message: " + str(ex) + "\n" + traceback.format_exc())
+            self.logger.error("Error occured in preparing or finalizing: " + str(ex) + "\n" + traceback.format_exc())
         finally:
             conn.close()
-        #performance log
-        ticks_sum = 0
-        performance_info = "Performance info:\nuser> " + request.text + "\n"
-        performance_info += "minette> " + response[0].text + "\n"
-        for i, v in enumerate(ticks):
-            performance_info += v[0] + ":" + str(int((v[1] - ticks_sum) * 1000)) + "\n"
-            ticks_sum = v[1]
-        self.logger.debug(performance_info)
         return response
 
 def get_default_logger():
