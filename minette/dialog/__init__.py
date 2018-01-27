@@ -1,1 +1,1 @@
-from minette.dialog.dialog import Payload, Message, MessageLogger, DialogService, Classifier
+from minette.dialog.dialog import Payload, Message, Group, MessageLogger, DialogService, Classifier
