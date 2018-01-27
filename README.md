@@ -9,6 +9,12 @@ To install minette, simply:
 $ pip install minette
 ```
 
+If you want to get the newest version, install from this Github repository.
+
+```
+$ pip install git+https://github.com/uezo/minette-python
+```
+
 ## Running the echo bot
 
 Just `minette` to run the echo bot.
