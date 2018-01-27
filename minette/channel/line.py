@@ -2,7 +2,7 @@
 from threading import Thread
 from queue import Queue
 import traceback
-from minette.dialog import Message, Payload
+from minette.dialog import Message, Payload, Group
 from linebot import LineBotApi, WebhookParser
 from linebot.exceptions import InvalidSignatureError
 from linebot.models import (
@@ -57,6 +57,14 @@ class LineWorkerThread(Thread):
             channel="LINE",
             channel_user=ev.source.user_id,
             channel_message=ev)
+        if ev.source.type in ["group", "room"]:
+            group = Group(type=ev.source.type)
+            if ev.source.type == "group":
+                group.id = ev.source.group_id
+            elif ev.source.type == "room":
+                msg.channel_group = ev.source.room_id
+            if group.id:
+                msg.group = group
         if isinstance(ev, MessageEvent):
             msg.message_id = ev.message.id
             msg.type = ev.message.type

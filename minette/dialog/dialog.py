@@ -11,6 +11,17 @@ from minette.session import Session
 from minette.user import User
 from minette.tagger import WordNode
 
+class Group(JsonSerializable):
+    def __init__(self, group_id="", group_type=""):
+        """
+        :param group_id: ID of group
+        :type group_id: str
+        :param group_type: Type of group
+        :type group_type: str
+        """
+        self.id = group_id
+        self.type = group_type
+
 class Payload(JsonSerializable):
     def __init__(self, content_type="image", url="", thumb="", headers=None, content=None):
         """
@@ -51,7 +62,7 @@ class Payload(JsonSerializable):
             f.write(data)
 
 class Message(JsonSerializable):
-    def __init__(self, message_id="", message_type="message", timestamp=None, channel="[NOT_SPECIFIED]", channel_user="[ANONYMOUS]", channel_message=None, token="", text="", words=None, payloads=None, is_private=True, user=None):
+    def __init__(self, message_id="", message_type="message", timestamp=None, channel="[NOT_SPECIFIED]", channel_user="[ANONYMOUS]", channel_message=None, token="", text="", words=None, payloads=None, is_private=True, user=None, group=None):
         """
         :param message_id: ID of message
         :type message_id: str
@@ -76,6 +87,8 @@ class Message(JsonSerializable):
         :type is_private: bool
         :param user: User
         :type user: User
+        :param group: Group
+        :type group: Group
         """
         self.message_id = message_id
         self.type = message_type
@@ -89,6 +102,7 @@ class Message(JsonSerializable):
         self.words = words if words else []
         self.payloads = payloads if payloads else []
         self.is_private = is_private
+        self.group = group
 
     def get_reply_message(self, text="", message_type="text", payloads=None):
         """
