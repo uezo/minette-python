@@ -58,11 +58,11 @@ class LineWorkerThread(Thread):
             channel_user=ev.source.user_id,
             channel_message=ev)
         if ev.source.type in ["group", "room"]:
-            group = Group(type=ev.source.type)
+            group = Group(group_type=ev.source.type)
             if ev.source.type == "group":
                 group.id = ev.source.group_id
             elif ev.source.type == "room":
-                msg.channel_group = ev.source.room_id
+                group.id = ev.source.room_id
             if group.id:
                 msg.group = group
         if isinstance(ev, MessageEvent):
