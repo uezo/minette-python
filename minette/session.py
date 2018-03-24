@@ -124,6 +124,8 @@ class SessionStore:
         :param connection: Connection
         :type connection: Connection
         """
+        if not session.channel_user:
+            return
         if session.data:
             session_dict = session.to_dict()
             serialized_data = encode_json(session_dict["data"])
