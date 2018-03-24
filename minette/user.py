@@ -20,7 +20,7 @@ class User(JsonSerializable):
         self.name = ""
         self.nickname = ""
         self.channel = channel
-        self.channel_user = channel_user
+        self.channel_user = channel_user if isinstance(channel_user, str) else ""
         self.channel_user_data = channel_user_data
         self.data = {}
         self.__repository = repository
@@ -101,6 +101,8 @@ class UserRepository:
         :rtype: User
         """
         user = User(channel=channel, channel_user=channel_user, repository=self, connection=connection)
+        if not channel_user:
+            return user
         try:
             cursor = connection.cursor()
             cursor.execute(self.sqls["get_user"], (channel, channel_user))

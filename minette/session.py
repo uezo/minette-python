@@ -96,6 +96,8 @@ class SessionStore:
         """
         sess = Session(channel, channel_user)
         sess.timestamp = datetime.now(self.timezone)
+        if not channel_user:
+            return sess
         try:
             cursor = connection.cursor()
             cursor.execute(self.sqls["get_session"], (channel, channel_user))
