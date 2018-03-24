@@ -97,7 +97,8 @@ class LineWorkerThread(Thread):
         elif isinstance(ev, PostbackEvent):
             msg.payloads.append(
                 Payload(content_type="postback", content={
-                    "data": ev.postback.data
+                    "data": ev.postback.data,
+                    "params": ev.postback.params
                 })
             )
         elif isinstance(ev, FollowEvent):
