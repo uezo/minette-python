@@ -4,7 +4,8 @@ import MeCab
 from minette.tagger import WordNode, Tagger
 
 class MeCabNode(WordNode):
-    def __init__(self, features):
+    def __init__(self, surface, features):
+        self.surface = surface
         self.part = features[0] if features[0] != "*" else ""
         self.part_detail1 = features[1] if features[1] != "*" else ""
         self.part_detail2 = features[2] if features[2] != "*" else ""
@@ -33,7 +34,7 @@ class MeCabTagger(Tagger):
             while node:
                 features = node.feature.split(",")
                 if features[0] != "BOS/EOS":
-                    ret.append(MeCabNode(features))
+                    ret.append(MeCabNode(node.surface, features))
                 node = node.next
         except Exception as ex:
             self.logger.error("MeCab parsing error: " + str(ex) + "\n" + traceback.format_exc())
