@@ -172,12 +172,12 @@ class MessageLogger:
             "write": "insert into {0} (timestamp, unixtime, channel, totaltick, user_id, user_name, message_type, input_text, output_text) values (?,?,?,?,?,?,?,?,?)".format(table_name)
         }
 
-    def write(self, request, output_text, total_ms, connection):
+    def write(self, request, response, total_ms, connection):
         """
         :param request: Request message
         :type request: Message
-        :param output_text: Body of response message
-        :type output_text: str
+        :param response: response messages
+        :type response: [Message]
         :param total_ms: Response time (milliseconds)
         :type total_ms: int
         :param connection: Connection
@@ -185,9 +185,9 @@ class MessageLogger:
         """
         now = datetime.now(self.timezone)
         cursor = connection.cursor()
-        cursor.execute(self.sqls["write"], (date_to_str(now), date_to_unixtime(now), request.channel, total_ms, request.user.user_id, request.user.name, request.type, request.text, output_text))
-        connection.commit()
-
+        for res in response:
+            cursor.execute(self.sqls["write"], (date_to_str(now), date_to_unixtime(now), request.channel, total_ms, request.user.user_id, request.user.name, request.type, request.text, res.text if res.text else ""))
+            connection.commit()
 
 class DialogService:
     def __init__(self, logger=None, config=None, tzone=None):

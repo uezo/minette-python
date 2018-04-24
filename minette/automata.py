@@ -120,8 +120,7 @@ class Automata:
                 if not isinstance(response, list):
                     response = [response]
                 total_ms = int((time() - start_time) * 1000)
-                outtexts = [r.text for r in response]
-                self.message_logger.write(request, " / ".join(outtexts), total_ms, conn)
+                self.message_logger.write(request, response, total_ms, conn)
                 ticks.append(("message_logger.write", time() - start_time))
             except Exception as ex:
                 self.logger.error("Error occured in logging message: " + str(ex) + "\n" + traceback.format_exc())
