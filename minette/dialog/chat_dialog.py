@@ -6,6 +6,7 @@ import json
 from pytz import timezone
 from datetime import datetime
 import requests
+import base64
 from minette.session import Session
 from minette.dialog import Message, DialogService
 
@@ -31,18 +32,39 @@ class ChatDialogService(DialogService, object):
             logger.addHandler(file_handler)
             self.chat_logger = logger
 
-    def process_request(self, request, session, connection):
-        chat_req = {
-            "utt": request.text,
-            "context": session.chat_context,
-            "mode": "srtr" if session.mode == "srtr" else "",
+    @classmethod
+    def extract_mode(cls, b64string):
+        decoded_string = base64.b64decode(b64string).decode("utf-8")
+        command = json.loads(decoded_string)
+        return command["mode"]
+
+    def get_app_id(self):
+        reg_req = {
+            "botId": "Chatting",
+            "appKind": "minette_chat_dialog",
             }
+        reg_res = requests.post("https://api.apigw.smt.docomo.ne.jp/naturalChatting/v1/registration?APIKEY=" + self.api_key, json.dumps(reg_req)).json()
+        return reg_res["appId"]
+
+    def process_request(self, request, session, connection):
+        session.chat_context = session.chat_context if session.chat_context else self.get_app_id()
+        chat_req = {
+            "language": "ja-JP",
+            "botId": "Chatting",
+            "appId": session.chat_context,
+            "voiceText": request.text,
+            "clientData":{
+                "option":{
+                    "mode": "srtr" if session.mode == "srtr" else "",
+                }
+            }
+        }
         if request.user.nickname != "":
-            chat_req["nickname"] = request.user.nickname
-        chat_res = requests.post("https://api.apigw.smt.docomo.ne.jp/dialogue/v1/dialogue?APIKEY=" + self.api_key, json.dumps(chat_req)).json()
-        session.chat_context = chat_res["context"]
-        session.mode = chat_res["mode"] if chat_res["mode"] == "srtr" else ""
-        chat_str = chat_res["utt"]
+            chat_req["clientData"]["option"]["nickname"] = request.user.nickname
+        chat_res = requests.post("https://api.apigw.smt.docomo.ne.jp/naturalChatting/v1/dialogue?APIKEY=" + self.api_key, json.dumps(chat_req)).json()
+        chat_mode = self.extract_mode(chat_res["command"])
+        session.mode = chat_mode if chat_mode == "srtr" else ""
+        chat_str = chat_res["systemText"]["utterance"]
         for k, v in self.replace_values.items():
             chat_str = chat_str.replace(k, v)
         session.data = chat_str
