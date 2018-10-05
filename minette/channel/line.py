@@ -8,7 +8,7 @@ from linebot.exceptions import InvalidSignatureError
 from linebot.models import (
     BeaconEvent, FollowEvent, JoinEvent, LeaveEvent, MessageEvent, PostbackEvent, UnfollowEvent,
     TextMessage, ImageMessage, AudioMessage, VideoMessage, LocationMessage, StickerMessage,
-    TextSendMessage, ImageSendMessage, AudioSendMessage, VideoSendMessage, LocationSendMessage, StickerSendMessage, ImagemapSendMessage, TemplateSendMessage
+    TextSendMessage, ImageSendMessage, AudioSendMessage, VideoSendMessage, LocationSendMessage, StickerSendMessage, ImagemapSendMessage, TemplateSendMessage, FlexSendMessage
 )
 
 class LineWorkerThread(Thread):
@@ -141,6 +141,8 @@ class LineWorkerThread(Thread):
                 send_messages.append(ImagemapSendMessage(alt_text=msg.text, base_url=msg.payloads[0].url, base_size=msg.payloads[0].content["base_size"], actions=msg.payloads[0].content["actions"]))
             elif msg.type == "template":
                 send_messages.append(TemplateSendMessage(alt_text=msg.text, template=msg.payloads[0].content))
+            elif msg.type == "flex":
+                send_messages.append(FlexSendMessage(alt_text=msg.text, contents=msg.payloads[0].content))
         return send_messages
 
 class LineAdapter:
