@@ -65,7 +65,10 @@ class Automata:
                 ticks.append(("tagger.parse", time() - start_time))
                 request.user = self.user_repository.get_user(request.channel, request.channel_user, conn)
                 ticks.append(("get_user", time() - start_time))
-                session = self.session_store.get_session(request.channel, request.channel_user, conn)
+                if request.group:
+                    session = self.session_store.get_session(request.channel, request.group.id, conn)
+                else:
+                    session = self.session_store.get_session(request.channel, request.channel_user, conn)
                 ticks.append(("get_session", time() - start_time))
                 mode_info = self.classifier.detect_mode(request, session, conn)
                 if mode_info:
