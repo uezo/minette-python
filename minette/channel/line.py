@@ -124,25 +124,27 @@ class LineWorkerThread(Thread):
         """
         send_messages = []
         for msg in messages:
+            payload = next(iter([p for p in msg.payloads if p.content_type != "quick_reply"]), None)
+            quick_reply = next(iter([p.content for p in msg.payloads if p.content_type == "quick_reply"]), None)
             if msg.type == "text":
-                send_messages.append(TextSendMessage(text=msg.text))
+                send_messages.append(TextSendMessage(text=msg.text, quick_reply=quick_reply))
             elif msg.type == "image":
-                send_messages.append(ImageSendMessage(original_content_url=msg.payloads[0].url, preview_image_url=msg.payloads[0].thumb))
+                send_messages.append(ImageSendMessage(original_content_url=payload.url, preview_image_url=payload.thumb, quick_reply=quick_reply))
             elif msg.type == "audio":
-                send_messages.append(AudioSendMessage(original_content_url=msg.payloads[0].url, duration=msg.payloads[0].content["duration"]))
+                send_messages.append(AudioSendMessage(original_content_url=payload.url, duration=payload.content["duration"], quick_reply=quick_reply))
             elif msg.type == "video":
-                send_messages.append(VideoSendMessage(original_content_url=msg.payloads[0].url, preview_image_url=msg.payloads[0].thumb))
+                send_messages.append(VideoSendMessage(original_content_url=payload.url, preview_image_url=payload.thumb, quick_reply=quick_reply))
             elif msg.type == "location":
-                cont = msg.payloads[0].content
-                send_messages.append(LocationSendMessage(title=cont["title"], address=cont["address"], latitude=cont["latitude"], longitude=cont["longitude"]))
+                cont = payload.content
+                send_messages.append(LocationSendMessage(title=cont["title"], address=cont["address"], latitude=cont["latitude"], longitude=cont["longitude"], quick_reply=quick_reply))
             elif msg.type == "sticker":
-                send_messages.append(StickerSendMessage(package_id=msg.payloads[0].content["package_id"], sticker_id=msg.payloads[0].content["sticker_id"]))
+                send_messages.append(StickerSendMessage(package_id=payload.content["package_id"], sticker_id=payload.content["sticker_id"], quick_reply=quick_reply))
             elif msg.type == "imagemap":
-                send_messages.append(ImagemapSendMessage(alt_text=msg.text, base_url=msg.payloads[0].url, base_size=msg.payloads[0].content["base_size"], actions=msg.payloads[0].content["actions"]))
+                send_messages.append(ImagemapSendMessage(alt_text=msg.text, base_url=payload.url, base_size=payload.content["base_size"], actions=payload.content["actions"], quick_reply=quick_reply))
             elif msg.type == "template":
-                send_messages.append(TemplateSendMessage(alt_text=msg.text, template=msg.payloads[0].content))
+                send_messages.append(TemplateSendMessage(alt_text=msg.text, template=payload.content, quick_reply=quick_reply))
             elif msg.type == "flex":
-                send_messages.append(FlexSendMessage(alt_text=msg.text, contents=msg.payloads[0].content))
+                send_messages.append(FlexSendMessage(alt_text=msg.text, contents=payload.content, quick_reply=quick_reply))
         return send_messages
 
 class LineAdapter:
