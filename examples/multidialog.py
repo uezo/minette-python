@@ -1,11 +1,14 @@
-import sys, os
+import sys
+import os
 sys.path.append(os.pardir)
 import random
 from datetime import datetime
-import minette
-from minette.dialog import Message, DialogService, Classifier
+from minette import Minette
+from minette.dialog import DialogRouter, DialogService, EchoDialogService
+
 
 class GreetingDialogService(DialogService):
+    # Compose response message
     def compose_response(self, request, session, connection):
         now = datetime.now()
         phrase = "It's " + now.strftime("%H:%M") + " now. "
@@ -15,33 +18,44 @@ class GreetingDialogService(DialogService):
             phrase += "Hello"
         else:
             phrase += "Good evening"
-        return request.get_reply_message(text=phrase)
+        return phrase
+
 
 class DiceDialogService(DialogService):
+    # Process logic and build session data
     def process_request(self, request, session, connection):
         session.data = {
             "dice1": random.randint(1, 6),
             "dice2": random.randint(1, 6)
         }
 
+    # Compose response message using session data
     def compose_response(self, request, session, connection):
-        dice1 = str(session.data["dice1"])
-        dice2 = str(session.data["dice2"])
-        return request.get_reply_message(text="Dice1:" + dice1 + " / Dice2:" + dice2)
+        return "Dice1:{} / Dice2:{}".format(str(session.data["dice1"]), str(session.data["dice2"]))
 
-class MyClassifier(Classifier):
-    def classify(self, request, session, connection):
+
+class MyDialogRouter(DialogRouter):
+    # Configure intent->dialog routing table
+    def configure(self):
+        self.intent_resolver = {
+            "DiceIntent": DiceDialogService, 
+            "GreetingIntent": GreetingDialogService
+        }
+
+    # Set DiceIntent when user says "dice" or GreetingIntent when user says "hello"
+    def extract_intent(self, request, session, connection):
         if request.text.lower() == "dice":
-            return DiceDialogService
-        else:
-            return GreetingDialogService
+            return "DiceIntent"
+        elif request.text.lower() == "hello":
+            return "GreetingIntent"
+
 
 if __name__ == "__main__":
-    # create bot
-    bot = minette.create(classifier=MyClassifier)
-    # start conversation
+    # Create bot
+    bot = Minette.create(dialog_router=MyDialogRouter, default_dialog_service=EchoDialogService)
+    # Start conversation
     while True:
         req = input("user> ")
-        res = bot.execute(req)
-        for message in res:
+        res = bot.chat(req)
+        for message in res.messages:
             print("minette> " + message.text)

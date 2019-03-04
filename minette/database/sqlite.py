@@ -1,18 +1,33 @@
 """ Connection provider using SQLite """
 import sqlite3
 
+
 class ConnectionProvider:
-    def __init__(self, connection_str=""):
+    """
+    Connection provider for SQLite
+
+    Attributes
+    ----------
+    connection_str : str
+        Connection string
+    """
+    def __init__(self, connection_str):
         """
-        :param connection_str: Connection string
-        :type connection_str: str
+        Parameters
+        ----------
+        connection_str : str
+            Connection string
         """
-        self.connection_str = connection_str if connection_str else "./minette.db"
+        self.connection_str = connection_str
 
     def get_connection(self):
         """
-        :return: Database connection
-        :rtype: (Connection, Cursor)
+        Get connection
+
+        Returns
+        -------
+        connection : Connection
+            Database connection
         """
         connection = sqlite3.connect(self.connection_str)
         connection.row_factory = sqlite3.Row
@@ -20,18 +35,22 @@ class ConnectionProvider:
 
     def prepare_table(self, check_sql, create_sql, query_params=tuple()):
         """
-        :param check_sql: SQL to check the table is existing
-        :type check_sql: str
-        :param create_sql: SQL to create the table
-        :type create_sql: str
-        :param query_params: Query parameters for checking table
-        :type query_params: tuple
+        Check and create table if not exist
+
+        Parameters
+        ----------
+        check_sql : str
+            SQL to check the table is existing
+        create_sql : str
+            SQL to create the table
+        query_params : tuple, default tuple()
+            Query parameters for checking table
         """
         try:
             connection = self.get_connection()
             cursor = connection.cursor()
             cursor.execute(check_sql, query_params)
-            if cursor.fetchone() is None:
+            if not cursor.fetchone():
                 cursor.execute(create_sql)
                 connection.commit()
         finally:

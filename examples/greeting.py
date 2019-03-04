@@ -1,10 +1,14 @@
-import sys, os
+import sys
+import os
 sys.path.append(os.pardir)
 from datetime import datetime
-import minette
-from minette.dialog import Message, DialogService, Classifier
+from minette import Minette
+from minette.dialog import DialogService
 
+
+# Custom dialog service
 class GreetingDialogService(DialogService):
+    # Compose response message
     def compose_response(self, request, session, connection):
         now = datetime.now()
         phrase = "It's " + now.strftime("%H:%M") + " now. "
@@ -14,14 +18,15 @@ class GreetingDialogService(DialogService):
             phrase += "Hello"
         else:
             phrase += "Good evening"
-        return request.get_reply_message(text=phrase)
+        return phrase
+
 
 if __name__ == "__main__":
-    # create bot
-    bot = minette.create(default_dialog_service=GreetingDialogService)
-    # start conversation
+    # Create bot
+    bot = Minette.create(default_dialog_service=GreetingDialogService)
+    # Start conversation
     while True:
         req = input("user> ")
-        res = bot.execute(req)
-        for message in res:
+        res = bot.chat(req)
+        for message in res.messages:
             print("minette> " + message.text)

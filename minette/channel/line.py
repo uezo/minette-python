@@ -1,129 +1,200 @@
 """ Adapter for LINE """
+from logging import Logger
+import traceback
 from threading import Thread
 from queue import Queue
-import traceback
-from minette.dialog import Message, Payload, Group
+from minette import Minette
+from minette.message import Message, Payload, Group, Response
+from minette.channel import Adapter
 from linebot import LineBotApi, WebhookParser
 from linebot.exceptions import InvalidSignatureError
 from linebot.models import (
-    BeaconEvent, FollowEvent, JoinEvent, LeaveEvent, MessageEvent, PostbackEvent, UnfollowEvent,
-    TextMessage, ImageMessage, AudioMessage, VideoMessage, LocationMessage, StickerMessage,
-    TextSendMessage, ImageSendMessage, AudioSendMessage, VideoSendMessage, LocationSendMessage, StickerSendMessage, ImagemapSendMessage, TemplateSendMessage, FlexSendMessage
+    Event, BeaconEvent, FollowEvent, JoinEvent, LeaveEvent, MessageEvent,
+    PostbackEvent, UnfollowEvent,
+    TextMessage, ImageMessage, AudioMessage, VideoMessage, LocationMessage,
+    StickerMessage, TextSendMessage, ImageSendMessage, AudioSendMessage,
+    VideoSendMessage, LocationSendMessage, StickerSendMessage,
+    ImagemapSendMessage, TemplateSendMessage, FlexSendMessage
 )
 
-class LineWorkerThread(Thread):
-    def __init__(self, bot, channel_secret, channel_access_token):
+
+class WorkerThread(Thread):
+    """
+    Worker for processing queued requests
+
+    Attributes
+    ----------
+    adapter : LineAdapter
+        Adapter for LINE Messaging API
+    queue : Queue
+        Request queue
+    """
+
+    def __init__(self, adapter):
         """
-        :param bot: Bot
-        :type bot: minette.Automata
-        :param channel_secret: channel_secret
-        :type channel_secret: str
-        :param channel_access_token: channel_access_token
-        :type channel_access_token: str
+        Parameters
+        ----------
+        adapter : LineAdapter
+            Adapter for LINE Messaging API
         """
-        super(LineWorkerThread, self).__init__()
-        self.bot = bot
-        self.api = LineBotApi(channel_access_token)
+        super().__init__()
+        self.adapter = adapter
         self.queue = Queue()
-        self.channel_access_token = channel_access_token
-        self.logger = bot.logger
 
     def run(self):
-        """ Start worker thread """
+        """
+        Run the loop for processing queued requests
+        """
         while True:
             try:
-                event = self.queue.get()
-                req = self.map_request(event)
-                res = self.bot.execute(req)
-                for message in res:
-                    print("minette> " + message.text)
-                send_messages = self.map_response(res)
-                if send_messages:
-                    self.api.reply_message(event.reply_token, send_messages)
+                message = self.queue.get()
+                response = self.adapter.minette.chat(message)
+                self.adapter.send(self.adapter.format_response(response))
             except Exception as ex:
-                self.logger.error("Error occured in replying message: " + str(ex) + "\n" + traceback.format_exc())
+                self.minette.logger.error("Error occured in processing queue message: " + str(ex) + "\n" + traceback.format_exc())
 
-    def map_request(self, ev):
+
+class LineAdapter(Adapter):
+    """
+    Adapter for LINE Messaging API
+
+    Attributes
+    ----------
+    minette : Minette
+        Instance of Minette
+    line_bot_api : LineBotApi
+        LINE Messaging API
+    worker : WorkerThread
+        Worker for processing queued requests
+    logger : Logger
+        Logger
+    debug : bool
+        Debug mode
+    """
+
+    def __init__(self, minette, channel_secret=None, 
+                 channel_access_token=None, logger=None, debug=False):
         """
-        :param ev: Event
-        :type ev: Event
-        :return: Message
-        :rtype: Message
+        Parameters
+        ----------
+        minette : Minette
+            Instance of Minette
+        channel_secret : str or None, default None
+            Channel Secret for your LINE Bot
+        channel_access_token : str or None, default None
+            Channel Access Token for your LINE Bot
+        logger : Logger, default None
+            Logger
+        debug : bool, default False
+            Debug mode
         """
-        self.bot.logger.debug(ev)
+        super().__init__(minette, logger, debug)
+        self.parser = WebhookParser(
+            channel_secret if channel_secret else minette.config.get(section="line_bot_api", key="channel_secret"))
+        self.line_bot_api = LineBotApi(
+            channel_access_token if channel_access_token else minette.config.get(section="line_bot_api", key="channel_access_token"))
+        self.worker = WorkerThread(self)
+        self.worker.start()
+
+    def parse_request(self, event):
+        """
+        Parse event to Message object
+
+        Parameters
+        ----------
+        event : Event
+            Event from LINE Messaging API
+
+        Returns
+        -------
+        message : Message
+            Request converted into Message object
+        """
+        if self.debug:
+            self.logger.info(event)
         msg = Message(
-            message_type=ev.type,
-            token=ev.reply_token,
+            type=event.type,
+            token=event.reply_token,
             channel="LINE",
-            channel_user=ev.source.user_id,
-            channel_message=ev)
-        if ev.source.type in ["group", "room"]:
-            group = Group(group_type=ev.source.type)
-            if ev.source.type == "group":
-                group.id = ev.source.group_id
-            elif ev.source.type == "room":
-                group.id = ev.source.room_id
-            if group.id:
-                msg.group = group
-        if isinstance(ev, MessageEvent):
-            msg.message_id = ev.message.id
-            msg.type = ev.message.type
-            if isinstance(ev.message, TextMessage):
-                msg.text = ev.message.text
-            elif isinstance(ev.message, (ImageMessage, VideoMessage, AudioMessage)):
+            channel_detail="Messaging",
+            channel_user_id=event.source.user_id,
+            channel_message=event)
+        if event.source.type in ["group", "room"]:
+            # group = Group(group_type=event.source.type)
+            if event.source.type == "group":
+                # group.id = event.source.group_id
+                msg.group = Group(id=event.source.group_id, type="group")
+            elif event.source.type == "room":
+                # group.id = event.source.room_id
+                msg.group = Group(id=event.source.room_id, type="room")
+            # if group.id:
+            #     msg.group = group
+        if isinstance(event, MessageEvent):
+            msg.id = event.message.id
+            msg.type = event.message.type
+            if isinstance(event.message, TextMessage):
+                msg.text = event.message.text
+            elif isinstance(event.message, (ImageMessage, VideoMessage, AudioMessage)):
                 msg.payloads.append(
-                    Payload(content_type=ev.message.type,
-                            url="https://api.line.me/v2/bot/message/%s/content" % ev.message.id,
+                    Payload(content_type=event.message.type,
+                            url="https://api.line.me/v2/bot/message/%s/content" % event.message.id,
                             headers={
                                 "Authorization": "Bearer {%s}" % self.channel_access_token
                             })
                 )
-            elif isinstance(ev.message, LocationMessage):
+            elif isinstance(event.message, LocationMessage):
                 msg.payloads.append(
-                    Payload(content_type=ev.message.type, content={
-                        "title": ev.message.title,
-                        "address": ev.message.address,
-                        "latitude": ev.message.latitude,
-                        "longitude": ev.message.longitude
+                    Payload(content_type=event.message.type, content={
+                        "title": event.message.title,
+                        "address": event.message.address,
+                        "latitude": event.message.latitude,
+                        "longitude": event.message.longitude
                     })
                 )
-            elif isinstance(ev.message, StickerMessage):
+            elif isinstance(event.message, StickerMessage):
                 msg.payloads.append(
-                    Payload(content_type=ev.message.type, content={
-                        "package_id": ev.message.package_id,
-                        "sticker_id": ev.message.sticker_id,
+                    Payload(content_type=event.message.type, content={
+                        "package_id": event.message.package_id,
+                        "sticker_id": event.message.sticker_id,
                     })
                 )
-        elif isinstance(ev, PostbackEvent):
+        elif isinstance(event, PostbackEvent):
             msg.payloads.append(
                 Payload(content_type="postback", content={
-                    "data": ev.postback.data,
-                    "params": ev.postback.params
+                    "data": event.postback.data,
+                    "params": event.postback.params
                 })
             )
-        elif isinstance(ev, FollowEvent):
+        elif isinstance(event, FollowEvent):
             pass
-        elif isinstance(ev, UnfollowEvent):
+        elif isinstance(event, UnfollowEvent):
             pass
-        elif isinstance(ev, JoinEvent):
+        elif isinstance(event, JoinEvent):
             pass
-        elif isinstance(ev, LeaveEvent):
+        elif isinstance(event, LeaveEvent):
             pass
-        elif isinstance(ev, BeaconEvent):
+        elif isinstance(event, BeaconEvent):
             pass
         else:
             pass
         return msg
 
-    def map_response(self, messages):
+    def format_response(self, response):
         """
-        :param messages: Messages
-        :type messages: [Message]
-        :return: SendMessages
-        :rtype: [SendMessage]
+        Set LINE Messaging API formatted response to `for_channel` attribute
+
+        Parameters
+        ----------
+        response : Response
+            Response from chatbot
+
+        Returns
+        -------
+        response : Response
+            Response with LINE Messaging API formatted response
         """
         send_messages = []
-        for msg in messages:
+        for msg in response.messages:
             payload = next(iter([p for p in msg.payloads if p.content_type != "quick_reply"]), None)
             quick_reply = next(iter([p.content for p in msg.payloads if p.content_type == "quick_reply"]), None)
             if msg.type == "text":
@@ -145,34 +216,53 @@ class LineWorkerThread(Thread):
                 send_messages.append(TemplateSendMessage(alt_text=msg.text, template=payload.content, quick_reply=quick_reply))
             elif msg.type == "flex":
                 send_messages.append(FlexSendMessage(alt_text=msg.text, contents=payload.content, quick_reply=quick_reply))
-        return send_messages
+        response.for_channel = send_messages
+        response.headers = {"reply_token": response.messages[0].token if response.messages else ""}
+        return response
 
-class LineAdapter:
-    def __init__(self, worker, channel_secret):
+    def chat(self, request_data_as_text, request_headers):
         """
-        :param worker: WorkerThread
-        :type worker: WorkerThread
-        :param channel_secret: channel_secret
-        :type channel_secret: str
-        """
-        self.worker = worker
-        self.parser = WebhookParser(channel_secret)
+        Interface to chat with LINE Bot
 
-    def parse_request(self, request):
+        Parameters
+        ----------
+        request_data_as_text : str
+            Request from LINE Messaging API as string
+
+        Returns
+        -------
+        response : Response
+            Response that shows queued status. The response from chatbot will be sent by worker thread
         """
-        :param request: Flask HTTP Request
-        :return: HTTP Status code
-        :rtype: int
-        """
-        signature = request.headers["X-Line-Signature"]
-        body = request.get_data(as_text=True)
         try:
-            events = self.parser.parse(body, signature)
-            for event in events:
-                self.worker.queue.put(event)
+            messages = []
+            signature = request_headers["X-Line-Signature"]
+            events = self.parser.parse(request_data_as_text, signature)
+            for ev in events:
+                messages.append(self.parse_request(ev))
+            for message in messages:
+                self.worker.queue.put(message)
+            return Response(messages=[Message(text="queued", type="system")], for_channel="queued")
         except InvalidSignatureError:
-            return 400
+            self.logger.error("Request signiture is invalid: " + str(ex) + "\n" + traceback.format_exc())
+            return Response(messages=[Message(text="invalid signiture", type="system")], for_channel="invalid signiture")
         except Exception as ex:
-            self.worker.logger.error("Request parsing error: " + str(ex) + "\n" + traceback.format_exc())
-            return 500
-        return 200
+            self.logger.error("Request parsing error: " + str(ex) + "\n" + traceback.format_exc())
+            return Response(messages=[Message(text="failure in parsing request", type="system")], for_channel="failure in parsing request")
+
+    def send(self, response):
+        """
+        Send response from chatbot to Reply API
+
+        Parameters
+        ----------
+        response : Response
+            Response with LINE Messaging API formatted response
+        """
+        if response.messages:
+            for msg in response.for_channel:
+                if self.debug:
+                    self.logger.info(msg)
+                else:
+                    self.logger.info("Minette> {}".format(msg.text if hasattr(msg, "text") else msg.alt_text if hasattr(msg, "alt_text") else msg.type)) 
+            self.line_bot_api.reply_message(response.headers["reply_token"], response.for_channel)

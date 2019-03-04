@@ -3,8 +3,43 @@ import traceback
 import MeCab
 from minette.tagger import WordNode, Tagger
 
+
 class MeCabNode(WordNode):
+    """
+    Parsed word by MeCab
+
+    Attributes
+    ----------
+    surface : str
+        Surface of the word
+    part : str
+        Part of the word
+    part_detail1 : str
+        Detail1 of part
+    part_detail2 : str
+        Detail2 of part
+    part_detail3 : str
+        Detail3 of part
+    stem_type : str
+        Stem type
+    stem_form : str
+        Stem form
+    word : str
+        Word itself
+    kana : str
+        Japanese kana of the word
+    pronunciation : str
+        Pronunciation of the word
+    """
     def __init__(self, surface, features):
+        """
+        Parameters
+        ----------
+        surface : str
+            Surface of the word
+        features : list
+            Features analyzed by MeCab
+        """
         self.surface = surface
         self.part = features[0] if features[0] != "*" else ""
         self.part_detail1 = features[1] if features[1] != "*" else ""
@@ -16,20 +51,42 @@ class MeCabNode(WordNode):
         self.kana = features[7] if len(features) > 7 else ""
         self.pronunciation = features[8] if len(features) > 8 else ""
 
+
 class MeCabTagger(Tagger):
+    """
+    Word tagger using MeCab
+
+    Attributes
+    ----------
+    logger : Logger
+        Logger
+    config : Config
+        Configuration of this chatbot
+    timezone : timezone
+        Timezone of this chatbot
+    """
+
     def parse(self, text):
         """
-        :param text: Text to analyze
-        :type text: str
-        :return: MeCabNodes
-        :rtype: [MeCabNode]
+        Analyze and parse text
+
+        Parameters
+        ----------
+        text : str
+            Text to analyze
+
+        Returns
+        -------
+        words : [MeCabNode]
+            MeCab word nodes
         """
         ret = []
-        if text == "":
+        if not text:
             return ret
         try:
             m = MeCab.Tagger("-Ochasen")
-            m.parse("") #m.parse("") before m.parseToNode(text) against the bug that node.surface is not set
+            # m.parse("") before m.parseToNode(text) against the bug that node.surface is not set
+            m.parse("")
             node = m.parseToNode(text)
             while node:
                 features = node.feature.split(",")

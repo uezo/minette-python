@@ -1,17 +1,17 @@
 """ Console BOT example """
-import sys, os
+import sys
+import os
 sys.path.append(os.pardir)
-import minette
+from minette import Minette
+from minette.dialog import EchoDialogService
 
-#Create an instance of Automata
-bot = minette.create(
-    #tagger=minette.tagger.MeCabTagger, #If MeCab is installed, uncomment this line
-    #classifier=MyClassifier            #Your own classifier
-)
 
-#Send and receive messages
+# Create an instance of Minette with EchoDialogService
+bot = Minette.create(default_dialog_service=EchoDialogService)
+
+# Send and receive messages
 while True:
     req = input("user> ")
-    res = bot.execute(req)
-    for message in res:
+    res = bot.chat(req)
+    for message in res.messages:
         print("minette> " + message.text)

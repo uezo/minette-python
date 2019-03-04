@@ -2,27 +2,24 @@
 import sys
 sys.path.append("../../")
 from flask import Flask, request, abort
-import minette
+from minette import Minette
+from minette.dialog import EchoDialogService
 from minette.serializer import encode_json
-from minette.channel import WebAdapter
+from minette.channel.web import WebAdapter
 
-bot = minette.create(
-    #tagger=minette.tagger.MeCabTagger, #If MeCab is installed, uncomment this line
-    #classifier=MyClassifier,           #Your own classifier
-    config_file="../minette.ini"
-)
-adapter = WebAdapter()
-
+bot = Minette.create(default_dialog_service=EchoDialogService)
+web_adapter = WebAdapter(bot)
 app = Flask(__name__)
+
 
 @app.route("/callback", methods=["GET", "POST"])
 def callback():
     """
     http(s)://your.domain/callback is the endpoint url
     """
-    req = adapter.parse_request(request)
-    res = bot.execute(req)
-    return adapter.serialize_response(res)
+    res = web_adapter.chat(request).json
+    print(res)
+    return res
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5002)

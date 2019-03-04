@@ -1,1 +1,1 @@
-from minette.channel.web import WebAdapter
+from minette.channel.adapter import Adapter

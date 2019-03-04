@@ -2,6 +2,7 @@
 from datetime import datetime
 import json
 
+
 class DateTimeJSONEncoder(json.JSONEncoder):
     def default(self, obj):
         if isinstance(obj, datetime):
@@ -11,33 +12,60 @@ class DateTimeJSONEncoder(json.JSONEncoder):
                 return obj.strftime("%Y-%m-%d %H:%M:%S")
         return super().default(obj)
 
+
 def encode_json(obj):
     """
-    :param obj: Object to encode
-    :return: JSON string
-    :rtype: str
+    Encode object to JSON
+
+    Parameters
+    ----------
+    obj : object
+        Object to encode
+
+    Returns
+    -------
+    json_string : str
+        JSON string
     """
     if obj is None:
         return ""
     return json.dumps(obj, cls=DateTimeJSONEncoder)
 
+
 def decode_json(json_string):
     """
-    :param obj: JSON string to decode
-    :return: JSON dict
+    Decode JSON to dict
+
+    Parameters
+    ----------
+    json_string : str
+        JSON string to decode
+
+    Returns
+    -------
+    json_dict : dict
+        JSON dict
     """
     if json_string is None or json_string == "":
         return None
     return json.loads(json_string)
 
+
 class JsonSerializable:
+    """
+    Base class of JSON Serializable object
+    """
     def __init__(self, **kwargs):
         pass
 
     def to_dict(self):
         """
-        :return: Object as dict
-        :rtype: dict
+        Convert this object to dict
+
+        Returns
+        -------
+        object_dict : dict
+            Object as dict
         """
         data = {}
         for key in self.__dict__.keys():
@@ -64,20 +92,31 @@ class JsonSerializable:
 
     def to_json(self):
         """
-        :return: Object as Json string
-        :rtype: str
+        Convert this object to JSON
+
+        Returns
+        -------
+        object_json : str
+            Object as JSON string
         """
         return encode_json(self.to_dict())
 
     @classmethod
     def from_dict(cls, data, as_args=False):
         """
-        :param data: JSON serializable dictionary of this object
-        :type data: dict
-        :param as_args: Set data to object as arguments of __init__()
-        :type as_args: bool
-        :return: Instance of this class
-        :rtype: object
+        Create object from dict
+
+        Parameters
+        ----------
+        data : dict
+            JSON serializable dictionary of this object
+        as_args : bool, default False
+            Set data to object as arguments of __init__()
+
+        Returns
+        -------
+        object : JsonSerializable
+            Instance of JsonSerializable
         """
         if as_args:
             return cls(**data)
@@ -89,12 +128,19 @@ class JsonSerializable:
     @classmethod
     def from_dict_dict(cls, data, as_args=False):
         """
-        :param data: Dictionary of JSON serializable dictionaries of this object
-        :type data: dict
-        :param as_args: Set data to object as arguments of __init__()
-        :type as_args: bool
-        :return: Instance of this class
-        :rtype: object
+        Create dictionary from dictionaries of JSON serializable object
+
+        Parameters
+        ----------
+        data : dict
+            JSON serializable dictionary of this object
+        as_args : bool, default False
+            Set data to object as arguments of __init__()
+
+        Returns
+        -------
+        dict_of_jsonserializable : dict
+            Dictionary of JSON serializable objects
         """
         ret = {k: cls.from_dict(v, as_args) for k, v in data.items()}
         return ret
@@ -102,12 +148,19 @@ class JsonSerializable:
     @classmethod
     def from_dict_list(cls, data, as_args=False):
         """
-        :param data: List of JSON serializable dictionaries of this object
-        :type data: dict
-        :param as_args: Set data to object as arguments of __init__()
-        :type as_args: bool
-        :return: Instance of this class
-        :rtype: object
+        Create list from dictionaries of JSON serializable object
+
+        Parameters
+        ----------
+        data : dict
+            JSON serializable dictionary of this object
+        as_args : bool, default False
+            Set data to object as arguments of __init__()
+
+        Returns
+        -------
+        list_of_jsonserializable : list
+            List of JSON serializable objects
         """
         ret = [cls.from_dict(v, as_args) for i, v in enumerate(data)]
         return ret
@@ -115,12 +168,19 @@ class JsonSerializable:
     @classmethod
     def from_json(cls, json_str, as_args=False):
         """
-        :param json_str: JSON string of this object
-        :type json_str: str
-        :param as_args: Set data to object as arguments of __init__()
-        :type as_args: bool
-        :return: Instance of this class
-        :rtype: object
+        Create object from JSON
+
+        Parameters
+        ----------
+        json_str : str
+            JSON string of this object
+        as_args : bool, default False
+            Set data to object as arguments of __init__()
+
+        Returns
+        -------
+        object : JsonSerializable
+            Instance of JsonSerializable
         """
         data = decode_json(json_str)
         return cls.from_dict(data, as_args)

@@ -1,27 +1,31 @@
-import sys, os
+import sys
+import os
 sys.path.append(os.pardir)
 import random
-import minette
+from minette import Minette
 from minette.dialog import DialogService
 
+
+# Custom dialog service
 class DiceDialogService(DialogService):
+    # Process logic and build session data
     def process_request(self, request, session, connection):
         session.data = {
             "dice1": random.randint(1, 6),
             "dice2": random.randint(1, 6)
         }
 
+    # Compose response message using session data
     def compose_response(self, request, session, connection):
-        dice1 = str(session.data["dice1"])
-        dice2 = str(session.data["dice2"])
-        return request.get_reply_message(text="Dice1:" + dice1 + " / Dice2:" + dice2)
+        return "Dice1:{} / Dice2:{}".format(str(session.data["dice1"]), str(session.data["dice2"]))
+
 
 if __name__ == "__main__":
-    # create bot
-    bot = minette.create(default_dialog_service=DiceDialogService)
-    # start conversation
+    # Create bot
+    bot = Minette.create(default_dialog_service=DiceDialogService)
+    # Start conversation
     while True:
         req = input("user> ")
-        res = bot.execute(req)
-        for message in res:
+        res = bot.chat(req)
+        for message in res.messages:
             print("minette> " + message.text)
