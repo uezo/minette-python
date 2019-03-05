@@ -37,11 +37,10 @@ class Config:
             self.confg_parser.set("line_bot_api", "channel_access_token", "ENV::LINE_ACCESS_TOKEN")
 
     def get(self, key, section=None, default=None):
-        ret = self.confg_parser[section if section else "minette"].get(key, default)
+        if section in self.confg_parser.sections():
+            ret = self.confg_parser[section].get(key, default)
+        else:
+            ret = default
         if str(ret).startswith("ENV::"):
-            env_key = ret[5:]
-            if env_key in os.environ:
-                ret = os.environ[env_key]
-            else:
-                ret = default
+            ret = os.environ.get(ret[5:], default)
         return ret
