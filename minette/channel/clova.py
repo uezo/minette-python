@@ -1,9 +1,10 @@
 """ Adapter for Clova Extensions Kit """
 from logging import Logger
-from cek import Clova, URL
+from cek import Clova, URL, Request
 from minette import Minette
 from minette.message import Message, Response
 from minette.channel import Adapter
+from minette.serializer import encode_json
 
 
 class ClovaAdapter(Adapter):
@@ -14,6 +15,10 @@ class ClovaAdapter(Adapter):
     ----------
     minette : Minette
         Instance of Minette
+    application_id : str
+        Application ID of Clova Skill
+    default_language : str
+        Default language of Clova Skill
     clova : Clova
         Clova Extensions Kit API
     logger : Logger
@@ -39,18 +44,22 @@ class ClovaAdapter(Adapter):
             Debug mode
         """
         super().__init__(minette, logger, debug)
-        self.clova = Clova(
-            application_id=application_id if application_id else minette.config.get(section="clova_api", key="application_id"),
-            default_language=default_language if default_language else minette.config.get(section="clova_api", key="default_language", default="ja"),
-            debug_mode=debug)
+        self.application_id = application_id if application_id else minette.config.get(section="clova_api", key="application_id")
+        self.default_language = default_language if default_language else minette.config.get(section="clova_api", key="default_language", default="ja")
+        self.clova = Clova(application_id=self.application_id, default_language=self.default_language, debug_mode=debug)
 
-    def parse_request(self, request_json):
+        # handler for all types of request
+        @self.clova.handle.default
+        def default(clova_request):
+            return clova_request
+
+    def parse_request(self, clova_request):
         """
-        Parse JSON from clova to Message object
+        Parse request from clova to Message object
 
         Parameters
         ----------
-        request : dict
+        clova_request : Request
             Request from clova
 
         Returns
@@ -59,18 +68,19 @@ class ClovaAdapter(Adapter):
             Request converted into Message object
         """
         if self.debug:
-            self.logger.info(request_json)
+            self.logger.info(clova_request.__dict__)
         msg = Message(
-            type=request_json["request"]["type"],
+            type=clova_request.request_type,
             channel="LINE",
             channel_detail="Clova",
-            channel_user_id=request_json["session"]["user"]["userId"],
-            channel_message=request_json
+            channel_user_id=clova_request.user_id,
+            channel_message=clova_request
         )
-        if msg.type == "IntentRequest":
-            msg.intent = request_json["request"]["intent"]["name"]
-            if request_json["request"]["intent"]["slots"]:
-                msg.entities = request_json["request"]["intent"]["slots"]
+        if clova_request.is_intent:
+            msg.intent = clova_request.intent_name
+            # if clova_request.slots_dict: <- Error occures when no slot values
+            if clova_request._request["intent"]["slots"]:
+                msg.entities = clova_request.slots_dict
         return msg
 
     def format_response(self, response):
@@ -99,18 +109,21 @@ class ClovaAdapter(Adapter):
         response.for_channel = clova_res
         return response
 
-    def chat(self, request_json):
+    def chat(self, request_data, request_headers):
         """
         Interface to chat with Clova Skill
 
         Parameters
         ----------
-        request_json : dict
-            JSON(dict) formatted request from Clova
+        request_data : bytes
+            Request data from Clova as bytes
+        request_headers : dict
+            Request headers from Clova as dict
 
         Returns
         -------
         response : Response
             Response from chatbot. Send back `json` attribute to Clova API
         """
-        return super().chat(request_json)
+        clova_request = self.clova.route(request_data, request_headers)
+        return super().chat(clova_request)
