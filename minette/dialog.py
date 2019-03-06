@@ -254,7 +254,7 @@ class DialogRouter:
         response : (str, dict)
             Intent and entities
         """
-        return "", {}
+        return request.intent, request.entities
 
     def before_route(self, request, session, connection):
         """
