@@ -227,7 +227,9 @@ class LineAdapter(Adapter):
         Parameters
         ----------
         request_data_as_text : str
-            Request from LINE Messaging API as string
+            Request data from LINE Messaging API as string
+        request_headers : dict
+            Request headers from LINE Messaging API as dict
 
         Returns
         -------
