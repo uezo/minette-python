@@ -36,7 +36,7 @@ class Config:
             self.confg_parser.set("line_bot_api", "channel_secret", "ENV::LINE_CHANNEL_SECRET")
             self.confg_parser.set("line_bot_api", "channel_access_token", "ENV::LINE_ACCESS_TOKEN")
 
-    def get(self, key, section=None, default=None):
+    def get(self, key, default=None, section="minette"):
         if section in self.confg_parser.sections():
             ret = self.confg_parser[section].get(key, default)
         else:
