@@ -247,9 +247,9 @@ class SQLDBMessageLogger(MessageLogger):
         """
         return {
             "prepare_check": "select id from dbo.sysobjects where id = object_id('{0}')".format(table_name),
-            "prepare_create": "create table {0} (timestamp DATETIME2, unixtime INT, channel NVARCHAR(20), channel_detail NVARCHAR(100), totaltick INT, user_id NVARCHAR(100), user_name NVARCHAR(100), message_type NVARCHAR(100), topic_name NVARCHAR(100), topic_status NVARCHAR(100), topic_is_new NVARCHAR(10), topic_keep_on NVARCHAR(10), topic_priority INT, is_adhoc NVARCHAR(10), input_text NVARCHAR(4000), intent NVARCHAR(100), intent_priority INT, entities NVARCHAR(4000), output_text NVARCHAR(4000), error_info NVARCHAR(4000))".format(table_name),
-            "write": "insert into {0} (timestamp, unixtime, channel, channel_detail, totaltick, user_id, user_name, message_type, topic_name, topic_status, topic_is_new, topic_keep_on, topic_priority, is_adhoc, input_text, intent, intent_priority, entities, output_text, error_info) values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)".format(table_name),
-            "get_recent_log": "select timestamp, unixtime, channel, channel_detail, totaltick, user_id, user_name, message_type, topic_name, topic_status, topic_is_new, topic_keep_on, topic_priority, is_adhoc, input_text, intent, intent_priority, entities, output_text, error_info from {0} where timestamp > ? order by timestamp desc".format(table_name)
+            "prepare_create": "create table {0} (timestamp DATETIME2, channel NVARCHAR(20), channel_detail NVARCHAR(100), channel_user_id NVARCHAR(100), totaltick INT, user_id NVARCHAR(100), user_name NVARCHAR(100), message_type NVARCHAR(100), topic_name NVARCHAR(100), topic_status NVARCHAR(100), topic_is_new NVARCHAR(10), topic_keep_on NVARCHAR(10), topic_priority INT, is_adhoc NVARCHAR(10), input_text NVARCHAR(4000), intent NVARCHAR(100), intent_priority INT, entities NVARCHAR(4000), output_text NVARCHAR(4000), error_info NVARCHAR(4000))".format(table_name),
+            "write": "insert into {0} (timestamp, channel, channel_detail, channel_user_id, totaltick, user_id, user_name, message_type, topic_name, topic_status, topic_is_new, topic_keep_on, topic_priority, is_adhoc, input_text, intent, intent_priority, entities, output_text, error_info) values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)".format(table_name),
+            "get_recent_log": "select timestamp, channel, channel_detail, channel_user_id, totaltick, user_id, user_name, message_type, topic_name, topic_status, topic_is_new, topic_keep_on, topic_priority, is_adhoc, input_text, intent, intent_priority, entities, output_text, error_info from {0} where timestamp > ? order by timestamp desc".format(table_name)
         }
 
     def map_record(self, row):
@@ -268,9 +268,9 @@ class SQLDBMessageLogger(MessageLogger):
         """
         return {
             "timestamp": str_to_date(row[0]),
-            "unixtime": row[1],
-            "channel": str(row[2]),
-            "channel_detail": str(row[3]),
+            "channel": str(row[1]),
+            "channel_detail": str(row[2]),
+            "channel_user_id": str(row[3]),
             "totaltick": row[4],
             "user_id": str(row[5]),
             "user_name": str(row[6]),

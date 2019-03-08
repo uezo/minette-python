@@ -328,9 +328,9 @@ class MessageLogger:
         """
         return {
             "prepare_check": "select * from sqlite_master where type='table' and name='{0}'".format(table_name),
-            "prepare_create": "create table {0} (timestamp TEXT, unixtime INTEGER, channel TEXT, channel_detail TEXT, totaltick INTEGER, user_id TEXT, user_name TEXT, message_type TEXT, topic_name TEXT, topic_status TEXT, topic_is_new TEXT, topic_keep_on TEXT, topic_priority INTEGER, is_adhoc TEXT, input_text TEXT, intent TEXT, intent_priority INTEGER, entities TEXT, output_text TEXT, error_info Text)".format(table_name),
-            "write": "insert into {0} (timestamp, unixtime, channel, channel_detail, totaltick, user_id, user_name, message_type, topic_name, topic_status, topic_is_new, topic_keep_on, topic_priority, is_adhoc, input_text, intent, intent_priority, entities, output_text, error_info) values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)".format(table_name),
-            "get_recent_log": "select timestamp, unixtime, channel, channel_detail, totaltick, user_id, user_name, message_type, topic_name, topic_status, topic_is_new, topic_keep_on, topic_priority, is_adhoc, input_text, intent, intent_priority, entities, output_text, error_info from {0} where timestamp > ? order by timestamp desc".format(table_name)
+            "prepare_create": "create table {0} (timestamp TEXT, channel TEXT, channel_detail TEXT, channel_user_id TEXT, totaltick INTEGER, user_id TEXT, user_name TEXT, message_type TEXT, topic_name TEXT, topic_status TEXT, topic_is_new TEXT, topic_keep_on TEXT, topic_priority INTEGER, is_adhoc TEXT, input_text TEXT, intent TEXT, intent_priority INTEGER, entities TEXT, output_text TEXT, error_info Text)".format(table_name),
+            "write": "insert into {0} (timestamp, channel, channel_detail, channel_user_id, totaltick, user_id, user_name, message_type, topic_name, topic_status, topic_is_new, topic_keep_on, topic_priority, is_adhoc, input_text, intent, intent_priority, entities, output_text, error_info) values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)".format(table_name),
+            "get_recent_log": "select timestamp, channel, channel_detail, channel_user_id, totaltick, user_id, user_name, message_type, topic_name, topic_status, topic_is_new, topic_keep_on, topic_priority, is_adhoc, input_text, intent, intent_priority, entities, output_text, error_info from {0} where timestamp > ? order by timestamp desc".format(table_name)
         }
 
     def write(self, request, response, session, total_ms, connection):
@@ -356,7 +356,7 @@ class MessageLogger:
         if not res_texts:
             res_texts = [""]
         for res_text in res_texts:
-            cursor.execute(self.sqls["write"], (date_to_str(now), date_to_unixtime(now), request.channel, request.channel_detail, total_ms, request.user.id, request.user.name, request.type, session.topic.name, session.topic.status, session.topic.is_new, session.topic.keep_on, session.topic.priority, request.is_adhoc, request.text, request.intent, request.intent_priority, encode_json(request.entities), res_text, encode_json(session.error)))
+            cursor.execute(self.sqls["write"], (date_to_str(now), request.channel, request.channel_detail, request.channel_user_id, total_ms, request.user.id, request.user.name, request.type, session.topic.name, session.topic.status, session.topic.is_new, session.topic.keep_on, session.topic.priority, request.is_adhoc, request.text, request.intent, request.intent_priority, encode_json(request.entities), res_text, encode_json(session.error)))
             connection.commit()
 
     def map_record(self, row):
@@ -375,9 +375,9 @@ class MessageLogger:
         """
         return {
             "timestamp": str_to_date(str(row["timestamp"])),
-            "unixtime": row["unixtime"],
             "channel": str(row["channel"]),
             "channel_detail": str(row["channel_detail"]),
+            "channel_user_id": str(row["channel_user_id"]),
             "totaltick": row["totaltick"],
             "user_id": str(row["user_id"]),
             "user_name": str(row["user_name"]),
@@ -396,7 +396,7 @@ class MessageLogger:
             "error_info": encode_json(str(row["error_info"])),
         }
 
-    def get_recent_log(self, connection):
+    def get_recent_log(self, connection, with_column=False):
         """
         Get recent message log
 
