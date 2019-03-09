@@ -11,6 +11,8 @@ class Task:
 
     Attributes
     ----------
+    helpers : dict
+        Helper objects and functions
     logger : Logger
         Logger
     config : Config
@@ -20,10 +22,12 @@ class Task:
     connection_provider : ConnectionProvider
         Connection provider to use database in each tasks
     """
-    def __init__(self, logger, config, timezone, connection_provider):
+    def __init__(self, helpers, logger, config, timezone, connection_provider):
         """
         Parameters
         ----------
+        helpers : dict
+            Helper objects and functions
         logger : Logger
             Logger
         config : Config
@@ -33,6 +37,7 @@ class Task:
         connection_provider : ConnectionProvider
             Connection provider to use database in each tasks
         """
+        self.helpers = helpers
         self.logger = logger
         self.config = config
         self.timezone = timezone
@@ -70,6 +75,8 @@ class Scheduler(Thread):
 
     Attributes
     ----------
+    helpers : dict
+        Helper objects and functions
     logger : Logger
         Logger
     config : Config
@@ -81,10 +88,12 @@ class Scheduler(Thread):
     schedule : schedule
         schedule module
     """
-    def __init__(self, logger=None, config=None, timezone=None, connection_provider=None):
+    def __init__(self, helpers=None, logger=None, config=None, timezone=None, connection_provider=None):
         """
         Parameters
         ----------
+        helpers : dict, default None
+            Helper objects and functions
         logger : Logger, default None
             Logger
         config : Config, default None
@@ -95,6 +104,7 @@ class Scheduler(Thread):
             Connection provider to use database in each tasks
         """
         super().__init__()
+        self.helpers = helpers if helpers else {}
         self.logger = logger
         self.config = config
         self.timezone = timezone
@@ -115,7 +125,7 @@ class Scheduler(Thread):
         task_main_method : function
             Callable interface of task
         """
-        return task_class(self.logger, self.config, self.timezone, self.connection_provider).main
+        return task_class(self.helpers, self.logger, self.config, self.timezone, self.connection_provider).main
 
     def register_tasks(self):
         """
