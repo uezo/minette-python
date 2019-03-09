@@ -132,13 +132,13 @@ class MySQLUserRepository(UserRepository):
         """
         return {
             "prepare_check_user": "select * from information_schema.TABLES where TABLE_NAME='{0}' and TABLE_SCHEMA=%s".format(table_user),
-            "prepare_create_user": "create table {0} (user_id VARCHAR(100) primary key, timestamp DATETIME, name VARCHAR(100), nickname VARCHAR(100), data VARCHAR(4000))".format(table_user),
+            "prepare_create_user": "create table {0} (user_id VARCHAR(100) primary key, timestamp DATETIME, name VARCHAR(100), nickname VARCHAR(100), profile_image_url VARCHAR(500), data VARCHAR(4000))".format(table_user),
             "prepare_check_uidmap": "select * from information_schema.TABLES where TABLE_NAME='{0}' and TABLE_SCHEMA=%s".format(table_uidmap),
             "prepare_create_uidmap": "create table {0} (channel VARCHAR(20), channel_user_id VARCHAR(100), user_id VARCHAR(100), timestamp DATETIME, primary key(channel, channel_user_id))".format(table_uidmap),
-            "get_user": "select {0}.user_id, {0}.timestamp, {0}.name, {0}.nickname, {0}.data from {0} inner join {1} on ({0}.user_id = {1}.user_id) where {1}.channel=%s and {1}.channel_user_id=%s limit 1".format(table_user, table_uidmap),
-            "add_user": "insert into {0} (user_id, timestamp, name, nickname, data) values (%s,%s,%s,%s,%s)".format(table_user),
+            "get_user": "select {0}.user_id, {0}.timestamp, {0}.name, {0}.nickname, {0}.profile_image_url, {0}.data from {0} inner join {1} on ({0}.user_id = {1}.user_id) where {1}.channel=%s and {1}.channel_user_id=%s limit 1".format(table_user, table_uidmap),
+            "add_user": "insert into {0} (user_id, timestamp, name, nickname, profile_image_url, data) values (%s,%s,%s,%s,%s,%s)".format(table_user),
             "add_uidmap": "insert into {0} (channel, channel_user_id, user_id, timestamp) values (%s,%s,%s,%s)".format(table_uidmap),
-            "save_user": "update {0} set timestamp=%s, name=%s, nickname=%s, data=%s where user_id=%s".format(table_user),
+            "save_user": "update {0} set timestamp=%s, name=%s, nickname=%s, profile_image_url=%s, data=%s where user_id=%s".format(table_user),
         }
 
 

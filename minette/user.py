@@ -41,6 +41,7 @@ class User(JsonSerializable):
         self.nickname = ""
         self.channel = channel
         self.channel_user_id = channel_user_id if isinstance(channel_user_id, str) else ""
+        self.profile_image_url = ""
         self.data = {}
 
 
@@ -104,13 +105,13 @@ class UserRepository:
         """
         return {
             "prepare_check_user": "select * from sqlite_master where type='table' and name='{0}'".format(table_user),
-            "prepare_create_user": "create table {0} (user_id TEXT primary key, timestamp TEXT, name TEXT, nickname TEXT, data TEXT)".format(table_user),
+            "prepare_create_user": "create table {0} (user_id TEXT primary key, timestamp TEXT, name TEXT, nickname TEXT, profile_image_url TEXT, data TEXT)".format(table_user),
             "prepare_check_uidmap": "select * from sqlite_master where type='table' and name='{0}'".format(table_uidmap),
             "prepare_create_uidmap": "create table {0} (channel TEXT, channel_user_id TEXT, user_id TEXT, timestamp TEXT, primary key(channel, channel_user_id))".format(table_uidmap),
-            "get_user": "select {0}.user_id, {0}.timestamp, {0}.name, {0}.nickname, {0}.data from {0} inner join {1} on ({0}.user_id = {1}.user_id) where {1}.channel=? and {1}.channel_user_id=? limit 1".format(table_user, table_uidmap),
-            "add_user": "insert into {0} (user_id, timestamp, name, nickname, data) values (?,?,?,?,?)".format(table_user),
+            "get_user": "select {0}.user_id, {0}.timestamp, {0}.name, {0}.nickname, {0}.profile_image_url, {0}.data from {0} inner join {1} on ({0}.user_id = {1}.user_id) where {1}.channel=? and {1}.channel_user_id=? limit 1".format(table_user, table_uidmap),
+            "add_user": "insert into {0} (user_id, timestamp, name, nickname, profile_image_url, data) values (?,?,?,?,?,?)".format(table_user),
             "add_uidmap": "insert into {0} (channel, channel_user_id, user_id, timestamp) values (?,?,?,?)".format(table_uidmap),
-            "save_user": "update {0} set timestamp=?, name=?, nickname=?, data=? where user_id=?".format(table_user),
+            "save_user": "update {0} set timestamp=?, name=?, nickname=?, profile_image_url=?, data=? where user_id=?".format(table_user),
         }
 
     def map_record(self, row):
@@ -131,6 +132,7 @@ class UserRepository:
             "user_id": str(row["user_id"]),
             "name": str(row["name"]),
             "nickname": str(row["nickname"]),
+            "profile_image_url": str(row["profile_image_url"]),
             "data": decode_json(row["data"])
         }
 
@@ -164,10 +166,11 @@ class UserRepository:
                 user.id = record["user_id"]
                 user.name = record["name"]
                 user.nickname = record["nickname"]
+                user.profile_image_url = record["profile_image_url"]
                 user.data = record["data"] if record["data"] else {}
             else:
                 now = date_to_str(datetime.now(self.timezone))
-                cursor.execute(self.sqls["add_user"], (user.id, now, user.name, user.nickname, None))
+                cursor.execute(self.sqls["add_user"], (user.id, now, user.name, user.nickname, user.profile_image_url, None))
                 cursor.execute(self.sqls["add_uidmap"], (channel, channel_user_id, user.id, now))
                 connection.commit()
         except Exception as ex:
@@ -188,5 +191,5 @@ class UserRepository:
         user_dict = user.to_dict()
         serialized_data = encode_json(user_dict["data"])
         cursor = connection.cursor()
-        cursor.execute(self.sqls["save_user"], (date_to_str(datetime.now(self.timezone)), user.name, user.nickname, serialized_data, user.id))
+        cursor.execute(self.sqls["save_user"], (date_to_str(datetime.now(self.timezone)), user.name, user.nickname, user.profile_image_url, serialized_data, user.id))
         connection.commit()
