@@ -1,11 +1,13 @@
 """ Adapter for LINE """
 from logging import Logger
 import traceback
+from time import time
 from threading import Thread
 from queue import Queue
 from minette import Minette
 from minette.message import Message, Payload, Group, Response
 from minette.channel import Adapter
+from minette.session import Session
 from linebot import LineBotApi, WebhookParser
 from linebot.exceptions import InvalidSignatureError
 from linebot.models import (
@@ -95,6 +97,7 @@ class LineAdapter(Adapter):
             channel_access_token if channel_access_token else minette.config.get(section="line_bot_api", key="channel_access_token"))
         self.worker = WorkerThread(self)
         self.worker.start()
+        self.minette.task_scheduler.helpers["line_adapter"] = self
 
     def parse_request(self, event):
         """
@@ -268,3 +271,42 @@ class LineAdapter(Adapter):
                 else:
                     self.logger.info("Minette> {}".format(msg.text if hasattr(msg, "text") else msg.alt_text if hasattr(msg, "alt_text") else msg.type)) 
             self.line_bot_api.reply_message(response.headers["reply_token"], response.for_channel)
+
+    def push(self, channel_user_id, messages, formatted=False):
+        """
+        Interface to push messages to user
+
+        Parameters
+        ----------
+        channel_user_id : str
+            Destination user
+        messages : Message
+            Message to user
+        formatted : bool, default False
+            Messages are already formatted for LINE Messaging API
+
+        Returns
+        -------
+        success : bool
+            Message pushed successfully or not
+        """
+        success = False
+        try:
+            start_time = time()
+            connection = self.minette.connection_provider.get_connection()
+            push_request = Message(type="push", text="", channel="LINE", channel_detail="Messaging", channel_user_id=channel_user_id)
+            push_request.user = self.minette.user_repository.get_user(channel="LINE", channel_user_id=channel_user_id, connection=connection)
+            session = Session(channel="LINE", channel_user_id=channel_user_id)
+            if formatted:
+                texts = [msg.text if hasattr(msg, "text") else msg.alt_text if hasattr(msg, "alt_text") else msg.type for msg in messages]
+                response = Response(messages=[Message(text=text) for text in texts])
+                response.for_channel = messages
+            else:
+                response = Response(messages=[Message(text=messages)] if isinstance(messages, str) else [messages] if isinstance(messages, Message) else messages)
+                response = self.format_response(response)
+            self.line_bot_api.push_message(to=channel_user_id, messages=response.for_channel)
+            success = True
+            self.minette.message_logger.write(push_request, response, session, int((time() - start_time) * 1000), connection)
+        except Exception as ex:
+            self.logger.error("Error occured in pushing message: " + str(ex) + "\n" + traceback.format_exc())
+        return success
