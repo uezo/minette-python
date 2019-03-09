@@ -196,12 +196,14 @@ class DialogRouter:
         Timezone
     default_dialog_service : DialogService
         Default dialog service for unhandled request
+    helpers : dict
+        Helper objects and functions
     intent_resolver : dict
         Resolver for intent to dialog
     topic_resolver : dict
         Resolver for topic to dialog
     """
-    def __init__(self, logger=None, config=None, timezone=None, default_dialog_service=None):
+    def __init__(self, logger=None, config=None, timezone=None, default_dialog_service=None, helpers=None):
         """
         Parameters
         ----------
@@ -213,11 +215,14 @@ class DialogRouter:
             Timezone
         default_dialog_service : DialogService, default None
             Default dialog service for unhandled request
+        helpers : dict, default None
+            Helper objects and functions
         """
         self.logger = logger if logger else logging.getLogger(__name__)
         self.config = config
         self.timezone = timezone
         self.default_dialog_service = default_dialog_service or DialogService
+        self.helpers = helpers if helpers else {}
         self.intent_resolver = {}
         self.topic_resolver = {}
 
