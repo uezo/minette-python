@@ -97,6 +97,7 @@ class LineAdapter(Adapter):
             channel_access_token if channel_access_token else minette.config.get(section="line_bot_api", key="channel_access_token"))
         self.worker = WorkerThread(self)
         self.worker.start()
+        self.minette.dialog_router.helpers["line_adapter"] = self
         self.minette.task_scheduler.helpers["line_adapter"] = self
 
     def parse_request(self, event):
@@ -310,3 +311,21 @@ class LineAdapter(Adapter):
         except Exception as ex:
             self.logger.error("Error occured in pushing message: " + str(ex) + "\n" + traceback.format_exc())
         return success
+
+    def update_profile(self, user):
+        """
+        Update user profile by LINE Messaging API
+
+        Parameters
+        ----------
+        user : User
+            User to update
+        """
+        if not user.channel_user_id:
+            return
+        try:
+            profile = self.line_bot_api.get_profile(user.channel_user_id)
+            user.name = profile.display_name
+            user.profile_image_url = profile.picture_url
+        except Exception as ex:
+            self.logger.error("Error occured in updating profile: " + str(ex) + "\n" + traceback.format_exc())
