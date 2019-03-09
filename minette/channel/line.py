@@ -98,7 +98,8 @@ class LineAdapter(Adapter):
         self.worker = WorkerThread(self)
         self.worker.start()
         self.minette.dialog_router.helpers["line_adapter"] = self
-        self.minette.task_scheduler.helpers["line_adapter"] = self
+        if self.minette.task_scheduler:
+            self.minette.task_scheduler.helpers["line_adapter"] = self
 
     def parse_request(self, event):
         """
