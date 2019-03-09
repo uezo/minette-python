@@ -353,7 +353,7 @@ class Minette:
             # message log
             try:
                 total_ms = int((time() - start_time) * 1000)
-                self.message_logger.write(request, response.messages, session, total_ms, conn)
+                self.message_logger.write(request, response, session, total_ms, conn)
                 ticks.append(("message_logger.write", time() - start_time))
             except Exception as ex:
                 self.logger.error("Error occured in logging message: " + str(ex) + "\n" + traceback.format_exc())

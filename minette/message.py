@@ -352,7 +352,7 @@ class MessageLogger:
         """
         now = datetime.now(self.timezone)
         cursor = connection.cursor()
-        res_texts = [res.text if res.text else "" for res in response]
+        res_texts = [res.text if res.text else "" for res in response.messages]
         if not res_texts:
             res_texts = [""]
         for res_text in res_texts:
