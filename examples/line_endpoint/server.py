@@ -1,7 +1,7 @@
 """ LINE endpoint example """
 import sys
 sys.path.append("../../")
-from flask import Flask, request
+from flask import Flask, request, abort, render_template
 from minette import Minette
 from minette.dialog import EchoDialogService
 from minette.channel.line import LineAdapter
@@ -18,6 +18,17 @@ def line_endpoint():
     """
     line_adapter.chat(request.get_data(as_text=True), request.headers)
     return "ok"
+
+
+# message log handler
+@app.route("/messagelog", methods=["GET", "POST"])
+def messagelog():
+    # authorize
+    if request.args.get("key", "") != "<PASSWORD YOU LIKE>":
+        abort(401)
+    # show message log
+    ml = bot.get_message_log(count=int(request.args.get("count", 20)))
+    return render_template("messagelog.html", ml=ml)
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5001)
