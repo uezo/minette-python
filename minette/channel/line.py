@@ -74,7 +74,7 @@ class LineAdapter(Adapter):
         Debug mode
     """
 
-    def __init__(self, minette, channel_secret=None, 
+    def __init__(self, minette, channel_secret=None,
                  channel_access_token=None, logger=None, debug=False):
         """
         Parameters
@@ -271,7 +271,7 @@ class LineAdapter(Adapter):
                 if self.debug:
                     self.logger.info(msg)
                 else:
-                    self.logger.info("Minette> {}".format(msg.text if hasattr(msg, "text") else msg.alt_text if hasattr(msg, "alt_text") else msg.type)) 
+                    self.logger.info("Minette> {}".format(msg.text if hasattr(msg, "text") else msg.alt_text if hasattr(msg, "alt_text") else msg.type))
             self.line_bot_api.reply_message(response.headers["reply_token"], response.for_channel)
 
     def push(self, channel_user_id, messages, formatted=False):
@@ -307,8 +307,9 @@ class LineAdapter(Adapter):
                 response = Response(messages=[Message(text=messages)] if isinstance(messages, str) else [messages] if isinstance(messages, Message) else messages)
                 response = self.format_response(response)
             self.line_bot_api.push_message(to=channel_user_id, messages=response.for_channel)
+            response.milliseconds = int((time() - start_time) * 1000)
             success = True
-            self.minette.message_logger.write(push_request, response, session, int((time() - start_time) * 1000), connection)
+            self.minette.message_logger.write(push_request, response, session, connection)
         except Exception as ex:
             self.logger.error("Error occured in pushing message: " + str(ex) + "\n" + traceback.format_exc())
         return success
