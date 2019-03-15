@@ -248,9 +248,9 @@ class SQLDBMessageLogger(MessageLogger):
         """
         return {
             "prepare_check": "select id from dbo.sysobjects where id = object_id('{0}')".format(table_name),
-            "prepare_create": "create table {0} (timestamp DATETIME2, channel NVARCHAR(20), channel_detail NVARCHAR(100), channel_user_id NVARCHAR(100), totaltick INT, user_id NVARCHAR(100), user_name NVARCHAR(100), message_type NVARCHAR(100), topic_name NVARCHAR(100), topic_status NVARCHAR(100), topic_is_new NVARCHAR(10), topic_keep_on NVARCHAR(10), topic_priority INT, is_adhoc NVARCHAR(10), input_text NVARCHAR(4000), intent NVARCHAR(100), intent_priority INT, entities NVARCHAR(4000), output_text NVARCHAR(4000), error_info NVARCHAR(4000))".format(table_name),
-            "write": "insert into {0} (timestamp, channel, channel_detail, channel_user_id, totaltick, user_id, user_name, message_type, topic_name, topic_status, topic_is_new, topic_keep_on, topic_priority, is_adhoc, input_text, intent, intent_priority, entities, output_text, error_info) values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)".format(table_name),
-            "get_recent_log": "select timestamp, channel, channel_detail, channel_user_id, totaltick, user_id, user_name, message_type, topic_name, topic_status, topic_is_new, topic_keep_on, topic_priority, is_adhoc, input_text, intent, intent_priority, entities, output_text, error_info from {0} where timestamp > ? order by timestamp desc".format(table_name)
+            "prepare_create": "create table {0} (id INT primary key identity, timestamp DATETIME2, request_id NVARCHAR(100), channel NVARCHAR(20), channel_detail NVARCHAR(100), channel_user_id NVARCHAR(100), request_json NVARCHAR(MAX), response_json NVARCHAR(MAX), session_json NVARCHAR(MAX))".format(table_name),
+            "write": "insert into {0} (timestamp, request_id, channel, channel_detail, channel_user_id, request_json, response_json, session_json) values (?,?,?,?,?,?,?,?)".format(table_name),
+            "get_recent_log": "declare @max_id INT = ? select top (?) timestamp, request_id, channel, channel_detail, channel_user_id, request_json, response_json, session_json from {0} where id <= @max_id order by id desc".format(table_name)
         }
 
     def map_record(self, row):
@@ -269,25 +269,13 @@ class SQLDBMessageLogger(MessageLogger):
         """
         return {
             "timestamp": str_to_date(row[0]),
-            "channel": str(row[1]),
-            "channel_detail": str(row[2]),
-            "channel_user_id": str(row[3]),
-            "totaltick": row[4],
-            "user_id": str(row[5]),
-            "user_name": str(row[6]),
-            "message_type": str(row[7]),
-            "topic_name": str(row[8]),
-            "topic_status": str(row[9]),
-            "topic_is_new": row[10],
-            "topic_keep_on": row[11],
-            "topic_priority": row[12],
-            "is_adhoc": row[13],
-            "input_text": str(row[14]),
-            "intent": str(row[15]),
-            "intent_priority": str(row[16]),
-            "entities": encode_json(str(row[17])),
-            "output_text": str(row[18]),
-            "error_info": encode_json(str(row[19])),
+            "request_id": str(row[1]),
+            "channel": str(row[2]),
+            "channel_detail": str(row[3]),
+            "channel_user_id": str(row[4]),
+            "request": decode_json(str(row[5])),
+            "response": decode_json(str(row[6])),
+            "session": decode_json(str(row[7]))
         }
 
 

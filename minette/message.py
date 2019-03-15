@@ -5,7 +5,7 @@ from pytz import timezone as tz
 import requests
 import copy
 from minette.util import date_to_str, str_to_date, date_to_unixtime, get_class
-from minette.serializer import JsonSerializable, encode_json
+from minette.serializer import JsonSerializable, encode_json, decode_json
 from minette.session import Priority
 
 
@@ -170,7 +170,7 @@ class Message(JsonSerializable):
         payloads : [Payload], default None
             Payloads
         """
-        self.id = id
+        self.id = id if id else ""
         self.type = type
         self.timestamp = datetime.now(tz("UTC"))
         self.channel = channel
@@ -218,6 +218,20 @@ class Message(JsonSerializable):
         message.is_adhoc = False
         return message
 
+    def to_dict(self):
+        """
+        Convert Message object to dict
+
+        Returns
+        -------
+        message_dict : dict
+            Message dictionary
+        """
+        message_dict = super().to_dict()
+        # channel_message is not JSON serializable
+        message_dict["channel_message"] = str(message_dict["channel_message"])
+        return message_dict
+
     @classmethod
     def from_dict(cls, data):
         """
@@ -254,7 +268,7 @@ class Response(JsonSerializable):
     json : str
         JSON encoded response for channels
     """
-    def __init__(self, messages=None, headers=None, for_channel=None):
+    def __init__(self, messages=None, headers=None, for_channel=None, milliseconds=0):
         """
         Parameters
         ----------
@@ -264,15 +278,31 @@ class Response(JsonSerializable):
             Response header
         for_channel : Any, default None
             Formetted response for channels
+        milliseconds : int, default 0
+            Total processing time in milliseconds
         """
         self.messages = messages if messages else []
         self.headers = headers if headers else {}
         self.for_channel = for_channel
+        self.milliseconds = milliseconds
 
     @property
     def json(self):
         return encode_json(self.for_channel)
 
+    def to_dict(self):
+        """
+        Convert Response object to dict
+
+        Returns
+        -------
+        response_dict : dict
+            Response dictionary
+        """
+        response_dict = super().to_dict()
+        # for_channel is not JSON serializable
+        response_dict["for_channel"] = str(response_dict["for_channel"])
+        return response_dict
 
 class MessageLogger:
     """
@@ -328,12 +358,12 @@ class MessageLogger:
         """
         return {
             "prepare_check": "select * from sqlite_master where type='table' and name='{0}'".format(table_name),
-            "prepare_create": "create table {0} (timestamp TEXT, channel TEXT, channel_detail TEXT, channel_user_id TEXT, totaltick INTEGER, user_id TEXT, user_name TEXT, message_type TEXT, topic_name TEXT, topic_status TEXT, topic_is_new TEXT, topic_keep_on TEXT, topic_priority INTEGER, is_adhoc TEXT, input_text TEXT, intent TEXT, intent_priority INTEGER, entities TEXT, output_text TEXT, error_info Text)".format(table_name),
-            "write": "insert into {0} (timestamp, channel, channel_detail, channel_user_id, totaltick, user_id, user_name, message_type, topic_name, topic_status, topic_is_new, topic_keep_on, topic_priority, is_adhoc, input_text, intent, intent_priority, entities, output_text, error_info) values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)".format(table_name),
-            "get_recent_log": "select timestamp, channel, channel_detail, channel_user_id, totaltick, user_id, user_name, message_type, topic_name, topic_status, topic_is_new, topic_keep_on, topic_priority, is_adhoc, input_text, intent, intent_priority, entities, output_text, error_info from {0} where timestamp > ? order by timestamp desc".format(table_name)
+            "prepare_create": "create table {0} (id INTEGER PRIMARY KEY, timestamp TEXT, request_id TEXT, channel TEXT, channel_detail TEXT, channel_user_id TEXT, request_json TEXT, response_json TEXT, session_json TEXT)".format(table_name),
+            "write": "insert into {0} (timestamp, request_id, channel, channel_detail, channel_user_id, request_json, response_json, session_json) values (?,?,?,?,?,?,?,?)".format(table_name),
+            "get_recent_log": "select timestamp, request_id, channel, channel_detail, channel_user_id, request_json, response_json, session_json from {0} where id <= ? order by id desc limit ?".format(table_name)
         }
 
-    def write(self, request, response, session, total_ms, connection):
+    def write(self, request, response, session, connection):
         """
         Write message log
 
@@ -352,12 +382,8 @@ class MessageLogger:
         """
         now = datetime.now(self.timezone)
         cursor = connection.cursor()
-        res_texts = [res.text if res.text else "" for res in response.messages]
-        if not res_texts:
-            res_texts = [""]
-        for res_text in res_texts:
-            cursor.execute(self.sqls["write"], (date_to_str(now), request.channel, request.channel_detail, request.channel_user_id, total_ms, request.user.id, request.user.name, request.type, session.topic.name, session.topic.status, session.topic.is_new, session.topic.keep_on, session.topic.priority, request.is_adhoc, request.text, request.intent, request.intent_priority, encode_json(request.entities), res_text, encode_json(session.error)))
-            connection.commit()
+        cursor.execute(self.sqls["write"], (date_to_str(now), request.id, request.channel, request.channel_detail, request.channel_user_id, request.to_json(), response.to_json(), session.to_json()))
+        connection.commit()
 
     def map_record(self, row):
         """
@@ -375,33 +401,25 @@ class MessageLogger:
         """
         return {
             "timestamp": str_to_date(str(row["timestamp"])),
+            "request_id": str(row["request_id"]),
             "channel": str(row["channel"]),
             "channel_detail": str(row["channel_detail"]),
             "channel_user_id": str(row["channel_user_id"]),
-            "totaltick": row["totaltick"],
-            "user_id": str(row["user_id"]),
-            "user_name": str(row["user_name"]),
-            "message_type": str(row["message_type"]),
-            "topic_name": str(row["topic_name"]),
-            "topic_status": str(row["topic_status"]),
-            "topic_is_new": row["topic_is_new"],
-            "topic_keep_on": row["topic_keep_on"],
-            "topic_priority": row["topic_priority"],
-            "is_adhoc": row["is_adhoc"],
-            "input_text": str(row["input_text"]),
-            "intent": str(row["intent"]),
-            "intent_priority": str(row["intent_priority"]),
-            "entities": encode_json(str(row["entities"])),
-            "output_text": str(row["output_text"]),
-            "error_info": encode_json(str(row["error_info"])),
+            "request": decode_json(str(row["request_json"])),
+            "response": decode_json(str(row["response_json"])),
+            "session": decode_json(str(row["session_json"]))
         }
 
-    def get_recent_log(self, connection, with_column=False):
+    def get_recent_log(self, count, max_id, connection):
         """
         Get recent message log
 
         Parameters
         ----------
+        count : int
+            Record count to get
+        max_id : int
+            Max value of id
         connection : Connection
             Connection
 
@@ -410,8 +428,6 @@ class MessageLogger:
         logs : [dict]
             Recent message logs
         """
-        now = datetime.now(self.timezone)
-        dt = now + timedelta(days=-1)
         cursor = connection.cursor()
-        cursor.execute(self.sqls["get_recent_log"], (dt, ))
+        cursor.execute(self.sqls["get_recent_log"], (max_id, count))
         return [self.map_record(r) for r in cursor]

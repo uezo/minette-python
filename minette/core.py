@@ -352,8 +352,8 @@ class Minette:
                 response.messages = [dialog_service.handle_exception(request, session, ex, conn)]
             # message log
             try:
-                total_ms = int((time() - start_time) * 1000)
-                self.message_logger.write(request, response, session, total_ms, conn)
+                response.milliseconds = int((time() - start_time) * 1000)
+                self.message_logger.write(request, response, session, conn)
                 ticks.append(("message_logger.write", time() - start_time))
             except Exception as ex:
                 self.logger.error("Error occured in logging message: " + str(ex) + "\n" + traceback.format_exc())
@@ -380,9 +380,16 @@ class Minette:
             conn.close()
         return response
 
-    def get_message_log(self):
+    def get_message_log(self, count=20, max_id=2147483647):
         """
         Get message logs in 24 hours
+
+        Parameters
+        ----------
+        count : int
+            Record count to get
+        max_id : int
+            Max value of id
 
         Returns
         -------
@@ -392,7 +399,7 @@ class Minette:
         message_logs = []
         connection = self.connection_provider.get_connection()
         try:
-            message_logs = self.message_logger.get_recent_log(connection)
+            message_logs = self.message_logger.get_recent_log(count, max_id, connection)
         except Exception as ex:
             self.logger.error("Error occured in getting message log: " + str(ex) + "\n" + traceback.format_exc())
         finally:

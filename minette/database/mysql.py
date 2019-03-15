@@ -173,9 +173,9 @@ class MySQLMessageLogger(MessageLogger):
         """
         return {
             "prepare_check": "select * from information_schema.TABLES where TABLE_NAME='{0}' and TABLE_SCHEMA=%s".format(table_name),
-            "prepare_create": "create table {0} (timestamp DATETIME, channel VARCHAR(20), channel_detail VARCHAR(100), channel_user_id VARCHAR(100), totaltick INT, user_id VARCHAR(100), user_name VARCHAR(100), message_type VARCHAR(100), topic_name VARCHAR(100), topic_status VARCHAR(100), topic_is_new VARCHAR(10), topic_keep_on VARCHAR(10), topic_priority INT, is_adhoc VARCHAR(10), input_text VARCHAR(4000), intent VARCHAR(100), intent_priority INT, entities VARCHAR(4000), output_text VARCHAR(4000), error_info TEXT)".format(table_name),
-            "write": "insert into {0} (timestamp, channel, channel_detail, channel_user_id, totaltick, user_id, user_name, message_type, topic_name, topic_status, topic_is_new, topic_keep_on, topic_priority, is_adhoc, input_text, intent, intent_priority, entities, output_text, error_info) values (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)".format(table_name),
-            "get_recent_log": "select timestamp, channel, channel_detail, channel_user_id, totaltick, user_id, user_name, message_type, topic_name, topic_status, topic_is_new, topic_keep_on, topic_priority, is_adhoc, input_text, intent, intent_priority, entities, output_text, error_info from {0} where timestamp > %s order by timestamp desc".format(table_name)
+            "prepare_create": "create table {0} (id INT PRIMARY KEY AUTO_INCREMENT, timestamp DATETIME, request_id VARCHAR(100), channel VARCHAR(20), channel_detail VARCHAR(100), channel_user_id VARCHAR(100), request_json JSON, response_json JSON, session_json JSON)".format(table_name),
+            "write": "insert into {0} (timestamp, request_id, channel, channel_detail, channel_user_id, request_json, response_json, session_json) values (%s,%s,%s,%s,%s,%s,%s,%s)".format(table_name),
+            "get_recent_log": "select timestamp, request_id, channel, channel_detail, channel_user_id, request_json, response_json, session_json from {0} where id <= %s order by id desc limit %s".format(table_name)
         }
 
 

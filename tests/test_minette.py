@@ -133,12 +133,9 @@ class TestAutomata(unittest.TestCase):
         # check message logger is working
         message_str = "now: " + date_to_str(datetime.now())
         bot.chat(message_str)
-        conn = bot.connection_provider.get_connection()
-        cur = conn.cursor()
-        cur.execute(message_sql, (message_str, ))
-        row = cur.fetchone()
-        self.assertEqual(message_str, row[input_key])
-        self.assertEqual("You said: " + message_str, row[output_key])
+        messagelogs = bot.get_message_log()
+        self.assertEqual(message_str, messagelogs[0]["request"]["text"])
+        self.assertEqual("You said: " + message_str, messagelogs[0]["response"]["messages"][0]["text"])
         # using custom dialogrouter
         bot_clsfr = Minette.create(config_file=config_file, dialog_router=MyRouter)
         if bot_clsfr.dialog_router.default_dialog_service is DialogService:
