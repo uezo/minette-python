@@ -140,7 +140,7 @@
         {% for m in ml %}
         <div class="message-container">
             <div class="icon">
-                {% if "users" in m.request and m.request.user.profile_image_url %}
+                {% if m.request.user.profile_image_url %}
                 <img src="{{m.request.user.profile_image_url}}" />
                 {% else %}
                 <div class="no-user">{{m.request.user.name[0] if m.request.user.name else "?"}}</div>
