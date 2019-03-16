@@ -2,6 +2,7 @@
 from logging import Logger
 import traceback
 from time import time
+import random
 from threading import Thread
 from queue import Queue
 from minette import Minette
@@ -42,6 +43,7 @@ class WorkerThread(Thread):
         super().__init__()
         self.adapter = adapter
         self.queue = Queue()
+        self.processing = ""
 
     def run(self):
         """
@@ -50,10 +52,13 @@ class WorkerThread(Thread):
         while True:
             try:
                 message = self.queue.get()
+                self.processing = message.channel_user_id
                 response = self.adapter.minette.chat(message)
                 self.adapter.send(self.adapter.format_response(response))
             except Exception as ex:
-                self.minette.logger.error("Error occured in processing queue message: " + str(ex) + "\n" + traceback.format_exc())
+                self.adapter.logger.error("{}: Error occured in processing queue message: ".format(self.name) + str(ex) + "\n" + traceback.format_exc())
+            finally:
+                self.processing = ""
 
 
 class LineAdapter(Adapter):
@@ -66,8 +71,10 @@ class LineAdapter(Adapter):
         Instance of Minette
     line_bot_api : LineBotApi
         LINE Messaging API
-    worker : WorkerThread
-        Worker for processing queued requests
+    threads : int
+        Number of worker thread
+    thread_pool : [WorkerThread]
+        Pool of worker threads for processing queued requests
     logger : Logger
         Logger
     debug : bool
@@ -75,7 +82,7 @@ class LineAdapter(Adapter):
     """
 
     def __init__(self, minette, channel_secret=None,
-                 channel_access_token=None, logger=None, debug=False):
+                 channel_access_token=None, threads=16, logger=None, debug=False):
         """
         Parameters
         ----------
@@ -85,6 +92,8 @@ class LineAdapter(Adapter):
             Channel Secret for your LINE Bot
         channel_access_token : str or None, default None
             Channel Access Token for your LINE Bot
+        threads : int, default 16
+            Number of worker thread
         logger : Logger, default None
             Logger
         debug : bool, default False
@@ -95,11 +104,29 @@ class LineAdapter(Adapter):
             channel_secret if channel_secret else minette.config.get(section="line_bot_api", key="channel_secret"))
         self.line_bot_api = LineBotApi(
             channel_access_token if channel_access_token else minette.config.get(section="line_bot_api", key="channel_access_token"))
-        self.worker = WorkerThread(self)
-        self.worker.start()
+        self.threads = threads
+        self.thread_pool = []
+        self.prepare_thread_pool()
         self.minette.dialog_router.helpers["line_adapter"] = self
         if self.minette.task_scheduler:
             self.minette.task_scheduler.helpers["line_adapter"] = self
+
+    def prepare_thread_pool(self):
+        """
+        Create worker threads and put into thread pool
+        """
+        # remove dead worker threads
+        for t in self.thread_pool[:]:
+            if not t.is_alive():
+                self.thread_pool.remove(t)
+                self.logger.warn("Remove: {} is not alive".format(t.name))
+        # create new worker threads
+        if len(self.thread_pool) < self.threads:
+            self.logger.info("Create {} worker thread(s)".format(str(self.threads - len(self.thread_pool))))
+            for i in range(self.threads - len(self.thread_pool)):
+                worker = WorkerThread(self)
+                worker.start()
+                self.thread_pool.append(worker)
 
     def parse_request(self, event):
         """
@@ -125,15 +152,10 @@ class LineAdapter(Adapter):
             channel_user_id=event.source.user_id,
             channel_message=event)
         if event.source.type in ["group", "room"]:
-            # group = Group(group_type=event.source.type)
             if event.source.type == "group":
-                # group.id = event.source.group_id
                 msg.group = Group(id=event.source.group_id, type="group")
             elif event.source.type == "room":
-                # group.id = event.source.room_id
                 msg.group = Group(id=event.source.room_id, type="room")
-            # if group.id:
-            #     msg.group = group
         if isinstance(event, MessageEvent):
             msg.id = event.message.id
             msg.type = event.message.type
@@ -225,6 +247,38 @@ class LineAdapter(Adapter):
         response.headers = {"reply_token": response.messages[0].token if response.messages else ""}
         return response
 
+    def get_worker(self, channel_user_id):
+        """
+        Get worker thread for user
+
+        Parameters
+        ----------
+        channel_user_id : str
+            LINE User ID
+
+        Returns
+        -------
+        worker : WorkerThread
+            Worker thread to process the user's request
+        """
+        # remove dead workers
+        self.prepare_thread_pool()
+        # get worker that is processing current user's request
+        user_workers = [t for t in self.thread_pool if t.processing == channel_user_id]
+        if user_workers:
+            worker = user_workers[0]
+            self.logger.info("Use {} that is now processing {}'s request".format(worker.name, channel_user_id))
+        else:
+            # use free worker
+            free_workers = [t for t in self.thread_pool if not t.processing]
+            if free_workers:
+                worker = random.choice(free_workers)
+            # choice worker randomly if all workers are busy
+            else:
+                worker = random.choice(self.thread_pool)
+                self.logger.warn("All threads are busy. Use {} to process {}'s request later".format(worker.name, channel_user_id))
+        return worker
+
     def chat(self, request_data_as_text, request_headers):
         """
         Interface to chat with LINE Bot
@@ -248,7 +302,7 @@ class LineAdapter(Adapter):
             for ev in events:
                 messages.append(self.parse_request(ev))
             for message in messages:
-                self.worker.queue.put(message)
+                self.get_worker(message.channel_user_id).queue.put(message)
             return Response(messages=[Message(text="queued", type="system")], for_channel="queued")
         except InvalidSignatureError:
             self.logger.error("Request signiture is invalid: " + str(ex) + "\n" + traceback.format_exc())
