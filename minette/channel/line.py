@@ -69,6 +69,10 @@ class LineAdapter(Adapter):
     ----------
     minette : Minette
         Instance of Minette
+    channel_secret : str
+        Channel Secret for your LINE Bot
+    channel_access_token : str
+        Channel Access Token for your LINE Bot
     line_bot_api : LineBotApi
         LINE Messaging API
     threads : int
@@ -100,10 +104,10 @@ class LineAdapter(Adapter):
             Debug mode
         """
         super().__init__(minette, logger, debug)
-        self.parser = WebhookParser(
-            channel_secret if channel_secret else minette.config.get(section="line_bot_api", key="channel_secret"))
-        self.line_bot_api = LineBotApi(
-            channel_access_token if channel_access_token else minette.config.get(section="line_bot_api", key="channel_access_token"))
+        self.channel_secret = channel_secret if channel_secret else minette.config.get(section="line_bot_api", key="channel_secret")
+        self.channel_access_token = channel_access_token if channel_access_token else minette.config.get(section="line_bot_api", key="channel_access_token")
+        self.parser = WebhookParser(self.channel_secret)
+        self.line_bot_api = LineBotApi(self.channel_access_token)
         self.threads = threads
         self.thread_pool = []
         self.prepare_thread_pool()
