@@ -185,7 +185,7 @@ class SQLDBUserRepository(UserRepository):
         """
         return {
             "prepare_check_user": "select id from dbo.sysobjects where id = object_id('{0}')".format(table_user),
-            "prepare_create_user": "create table {0} (user_id NVARCHAR(100) primary key, timestamp DATETIME2, name NVARCHAR(100), nickname NVARCHAR(100), profile_image_url NVARCHAR(500), data NVARCHAR(4000))".format(table_user),
+            "prepare_create_user": "create table {0} (user_id NVARCHAR(100) primary key, timestamp DATETIME2, name NVARCHAR(100), nickname NVARCHAR(100), profile_image_url NVARCHAR(500), data NVARCHAR(MAX))".format(table_user),
             "prepare_check_uidmap": "select id from dbo.sysobjects where id = object_id('{0}')".format(table_uidmap),
             "prepare_create_uidmap": "create table {0} (channel NVARCHAR(20), channel_user_id NVARCHAR(100), user_id NVARCHAR(100), timestamp DATETIME2, primary key(channel, channel_user_id))".format(table_uidmap),
             "get_user": "select top 1 {0}.user_id, {0}.timestamp, {0}.name, {0}.nickname, {0}.profile_image_url, {0}.data from {0} inner join {1} on ({0}.user_id = {1}.user_id) where {1}.channel=? and {1}.channel_user_id=?".format(table_user, table_uidmap),
