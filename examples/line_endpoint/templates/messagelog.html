@@ -52,6 +52,14 @@
             border-radius:4px;
             background-color:#FFF;
         }
+        div.message-container .error-balloon{
+            margin: 0px 0px 10px 60px;
+            padding:12px;
+            border-radius:4px;
+            background-color:#FFF;
+            font-size:100%;
+            color:#000;
+        }
         .section-main{
             margin:10px 0px;
         }
@@ -77,6 +85,9 @@
         .topic-name-new-marker{
             background-color:#F09;
         }
+        .error-marker{
+            background-color:#F90;
+        }
         .payload-url{
             word-break:break-all;
         }
@@ -100,13 +111,11 @@
             color:#999;
             font-size:70%;
         }
-
         .priority-value{
             color:#666;
             font-size:70%;
             font-weight:bold;
         }
-
         .topic-status{
             color:#666;
             font-size:80%;
@@ -203,6 +212,11 @@
                     <span class="timestamp">{{m.timestamp}}</span>&nbsp;&nbsp;<span class="response-time">{{m.response.milliseconds}}ms</span>
                 </div>
             </div>
+            {% if m.session.error %}
+            <div class="error-balloon">
+                <span><span class="marker error-marker">ERROR</span>&nbsp;{{m.session.error}}</span>
+            </div>
+            {% endif %}
             {% for res in m.response.messages %}
             <div class="bot-balloon">
                 <div>
@@ -224,11 +238,8 @@
                 </div>
             </div>
             {% endfor %}
-            {% if m.session.error %}
-            <div class="body">{{m.session.error}}</div>
-            {% endif %}
         </div>
         {% endfor %}
-        </div>
+    </div>
 </body>
 </html>
