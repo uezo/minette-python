@@ -265,10 +265,14 @@ class Response(JsonSerializable):
         Response header
     for_channel : Any
         Formetted response for channels
+    milliseconds : int
+        Total processing time in milliseconds
+    performance_info : list
+        Ticks of each steps in chat()
     json : str
         JSON encoded response for channels
     """
-    def __init__(self, messages=None, headers=None, for_channel=None, milliseconds=0):
+    def __init__(self, messages=None, headers=None, for_channel=None):
         """
         Parameters
         ----------
@@ -278,13 +282,14 @@ class Response(JsonSerializable):
             Response header
         for_channel : Any, default None
             Formetted response for channels
-        milliseconds : int, default 0
+        milliseconds : int
             Total processing time in milliseconds
         """
         self.messages = messages if messages else []
         self.headers = headers if headers else {}
         self.for_channel = for_channel
-        self.milliseconds = milliseconds
+        self.milliseconds = 0
+        self.performance_info = []
 
     @property
     def json(self):
@@ -303,6 +308,7 @@ class Response(JsonSerializable):
         # for_channel is not JSON serializable
         response_dict["for_channel"] = str(response_dict["for_channel"])
         return response_dict
+
 
 class MessageLogger:
     """

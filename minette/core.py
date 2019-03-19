@@ -350,14 +350,8 @@ class Minette:
             except Exception as ex:
                 self.logger.error("Error occured in dialog_service: " + str(ex) + "\n" + traceback.format_exc())
                 response.messages = [dialog_service.handle_exception(request, session, ex, conn)]
-            # message log
-            try:
-                response.milliseconds = int((time() - start_time) * 1000)
-                self.message_logger.write(request, response, session, conn)
-                ticks.append(("message_logger.write", time() - start_time))
-            except Exception as ex:
-                self.logger.error("Error occured in logging message: " + str(ex) + "\n" + traceback.format_exc())
             # save session and user
+            session_for_log = deepcopy(session)
             try:
                 session.reset(self.config.get("keep_session_data", False))
                 self.session_store.save_session(session, conn)
@@ -366,14 +360,13 @@ class Minette:
                 ticks.append(("save_user", time() - start_time))
             except Exception as ex:
                 self.logger.error("Error occured in saving session/user: " + str(ex) + "\n" + traceback.format_exc())
-            # performance log
-            ticks_sum = 0
-            performance_info = "Performance info:\nuser> " + request.text + "\n"
-            performance_info += "minette> " + response.messages[0].text if response.messages else "" + "\n"
-            for i, v in enumerate(ticks):
-                performance_info += v[0] + ":" + str(int((v[1] - ticks_sum) * 1000)) + "\n"
-                ticks_sum = v[1]
-            self.logger.debug(performance_info)
+            # message log
+            try:
+                response.milliseconds = int(ticks[-1][1] * 1000)
+                response.performance_info = ticks
+                self.message_logger.write(request, response, session_for_log, conn)
+            except Exception as ex:
+                self.logger.error("Error occured in logging message: " + str(ex) + "\n" + traceback.format_exc())
         except Exception as ex:
             self.logger.error("Error occured in preparing or finalizing: " + str(ex) + "\n" + traceback.format_exc())
         finally:
