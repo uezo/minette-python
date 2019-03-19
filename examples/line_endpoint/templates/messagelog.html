@@ -160,6 +160,11 @@
                     <span class="user-name">{{m.request.user.name}}</span>&nbsp;
                     <span class="user-id">{{m.channel_user_id}}</span>
                 </div>
+                {% if m.request.group %}
+                <div class="section-group">
+                    <span class="group-info">{{m.request.group.type}}:&nbsp;{{m.request.group.id}}</span>
+                </div>
+                {% endif %}
                 <div class="section-main">
                     {% if m.request.type != "text" %}
                     <span class="marker message-type-marker">{{m.request.type}}</span>&nbsp;
