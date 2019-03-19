@@ -56,7 +56,7 @@ class WorkerThread(Thread):
                 response = self.adapter.minette.chat(message)
                 self.adapter.send(self.adapter.format_response(response))
             except Exception as ex:
-                self.adapter.logger.error("{}: Error occured in processing queue message: ".format(self.name) + str(ex) + "\n" + traceback.format_exc())
+                self.adapter.logger.error("{}: Error occured in processing queue message: {}: ".format(self.name, message.id) + str(ex) + "\n" + traceback.format_exc())
             finally:
                 self.processing = ""
 
