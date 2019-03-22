@@ -51,8 +51,7 @@ class WorkerThread(Thread):
         """
         while True:
             try:
-                message = self.queue.get()
-                self.processing = message.channel_user_id
+                message, self.processing = self.queue.get()
                 response = self.adapter.minette.chat(message)
                 self.adapter.send(self.adapter.format_response(response))
             except Exception as ex:
@@ -251,27 +250,29 @@ class LineAdapter(Adapter):
         response.headers = {"reply_token": response.messages[0].token if response.messages else ""}
         return response
 
-    def get_worker(self, channel_user_id):
+    def assign_worker(self, message):
         """
-        Get worker thread for user
+        Put message into worker thread's queue
 
         Parameters
         ----------
-        channel_user_id : str
-            LINE User ID
+        message : Message
+            Message to process
 
         Returns
         -------
         worker : WorkerThread
             Worker thread to process the user's request
         """
+        # determine processing key
+        processing_key = message.group.id if message.group else message.channel_user_id
         # remove dead workers
         self.prepare_thread_pool()
-        # get worker that is processing current user's request
-        user_workers = [t for t in self.thread_pool if t.processing == channel_user_id]
+        # get worker that is processing current user's / group's request
+        user_workers = [t for t in self.thread_pool if t.processing == processing_key]
         if user_workers:
             worker = user_workers[0]
-            self.logger.info("Use {} that is now processing {}'s request".format(worker.name, channel_user_id))
+            self.logger.info("Use {} that is now processing {}'s request".format(worker.name, processing_key))
         else:
             # use free worker
             free_workers = [t for t in self.thread_pool if not t.processing]
@@ -280,8 +281,9 @@ class LineAdapter(Adapter):
             # choice worker randomly if all workers are busy
             else:
                 worker = random.choice(self.thread_pool)
-                self.logger.warn("All threads are busy. Use {} to process {}'s request later".format(worker.name, channel_user_id))
-        return worker
+                self.logger.warn("All threads are busy. Use {} to process {}'s request later".format(worker.name, processing_key))
+        # put message into worker's queue
+        worker.queue.put((message, processing_key))
 
     def chat(self, request_data_as_text, request_headers):
         """
@@ -300,13 +302,11 @@ class LineAdapter(Adapter):
             Response that shows queued status. The response from chatbot will be sent by worker thread
         """
         try:
-            messages = []
             signature = request_headers["X-Line-Signature"]
             events = self.parser.parse(request_data_as_text, signature)
             for ev in events:
-                messages.append(self.parse_request(ev))
-            for message in messages:
-                self.get_worker(message.channel_user_id).queue.put(message)
+                message = self.parse_request(ev)
+                self.assign_worker(message)
             return Response(messages=[Message(text="queued", type="system")], for_channel="queued")
         except InvalidSignatureError:
             self.logger.error("Request signiture is invalid: " + str(ex) + "\n" + traceback.format_exc())
