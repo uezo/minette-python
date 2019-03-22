@@ -150,7 +150,7 @@ class LineAdapter(Adapter):
             self.logger.info(event)
         msg = Message(
             type=event.type,
-            token=event.reply_token if hasattr(event, reply_token) else None,
+            token=event.reply_token if hasattr(event, "reply_token") else None,
             channel="LINE",
             channel_detail="Messaging",
             channel_user_id=event.source.user_id,
