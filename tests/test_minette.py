@@ -13,6 +13,7 @@ from minette.message import Message, MessageLogger
 from minette.tagger import Tagger
 from minette.tagger.mecab import MeCabTagger
 from minette.tagger.google import GoogleTagger
+from minette.tagger.mecabservice import MeCabServiceTagger
 from minette.database.mysql import MySQLConnectionProvider, MySQLSessionStore, MySQLUserRepository, MySQLMessageLogger
 from minette.database.sqldb import SQLDBConnectionProvider, SQLDBSessionStore, SQLDBUserRepository, SQLDBMessageLogger
 from minette.serializer import JsonSerializable
@@ -184,6 +185,11 @@ class TestAutomata(unittest.TestCase):
 
         bot = Minette.create(config_file="config/minette_test_googletagger.ini", default_dialog_service=MyDialog, tagger=GoogleTagger)
         self.assertIsInstance(bot.tagger, GoogleTagger)
+        self.assertEqual("これ/は/テスト/です", bot.chat("これはテストです").messages[0].text)
+        self.assertEqual("", bot.chat("").messages[0].text)
+
+        bot = Minette.create(config_file="config/minette_test_mecabservice.ini", default_dialog_service=MyDialog)
+        self.assertIsInstance(bot.tagger, MeCabServiceTagger)
         self.assertEqual("これ/は/テスト/です", bot.chat("これはテストです").messages[0].text)
         self.assertEqual("", bot.chat("").messages[0].text)
 
