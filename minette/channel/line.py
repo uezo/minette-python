@@ -308,8 +308,8 @@ class LineAdapter(Adapter):
                 message = self.parse_request(ev)
                 self.assign_worker(message)
             return Response(messages=[Message(text="queued", type="system")], for_channel="queued")
-        except InvalidSignatureError:
-            self.logger.error("Request signiture is invalid: " + str(ex) + "\n" + traceback.format_exc())
+        except InvalidSignatureError as ise:
+            self.logger.error("Request signiture is invalid: " + str(ise) + "\n" + traceback.format_exc())
             return Response(messages=[Message(text="invalid signiture", type="system")], for_channel="invalid signiture")
         except Exception as ex:
             self.logger.error("Request parsing error: " + str(ex) + "\n" + traceback.format_exc())
