@@ -67,7 +67,7 @@ Users are identified by internal UserIDs which are given at the first access to 
 Built-in task scheduler is ready-to-use. Your chatbot can do regular jobs without cron and the jobs can use chatbot resources like user repository.
 
 ## Natural Language Analyzing
-Taggers are the components for analyzing the text of request and the result will be set to `request.words` property. Minette has two built-in taggers - GoogleTagger and MeCabTagger.
+Taggers are the components for analyzing the text of request and the result will be set to `request.words` property. Minette has 3 built-in taggers - MeCabTagger, JanomeTagger and GoogleTagger.
 
 ### Janome Tagger
 JanomeTagger uses Janome which is Japanese morphological analyzer written in pure Python.
