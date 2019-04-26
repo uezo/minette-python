@@ -14,6 +14,7 @@ from minette.tagger import Tagger
 from minette.tagger.mecab import MeCabTagger
 from minette.tagger.google import GoogleTagger
 from minette.tagger.mecabservice import MeCabServiceTagger
+from minette.tagger.janometagger import JanomeTagger
 from minette.database.mysql import MySQLConnectionProvider, MySQLSessionStore, MySQLUserRepository, MySQLMessageLogger
 from minette.database.sqldb import SQLDBConnectionProvider, SQLDBSessionStore, SQLDBUserRepository, SQLDBMessageLogger
 from minette.serializer import JsonSerializable
@@ -175,22 +176,28 @@ class TestAutomata(unittest.TestCase):
             def compose_response(self, request, session, connection):
                 words = []
                 for w in request.words:
-                    words.append(w.word)
+                    words.append(w.surface)
                 return [Message(text="/".join(words))]
 
         bot = Minette.create(config_file="config/minette_test_mecab.ini", default_dialog_service=MyDialog)
         self.assertIsInstance(bot.tagger, MeCabTagger)
-        self.assertEqual("これ/は/テスト/です", bot.chat("これはテストです").messages[0].text)
+        self.assertEqual("今日/は/東京スカイツリー/に/登り/ます", bot.chat("今日は東京スカイツリーに登ります").messages[0].text)
         self.assertEqual("", bot.chat("").messages[0].text)
 
         bot = Minette.create(config_file="config/minette_test_googletagger.ini", default_dialog_service=MyDialog, tagger=GoogleTagger)
         self.assertIsInstance(bot.tagger, GoogleTagger)
-        self.assertEqual("これ/は/テスト/です", bot.chat("これはテストです").messages[0].text)
+        # Googleは"東京スカイツリー"と識別できない
+        self.assertEqual("今日/は/東京/スカイ/ツリー/に/登り/ます", bot.chat("今日は東京スカイツリーに登ります").messages[0].text)
         self.assertEqual("", bot.chat("").messages[0].text)
 
         bot = Minette.create(config_file="config/minette_test_mecabservice.ini", default_dialog_service=MyDialog)
         self.assertIsInstance(bot.tagger, MeCabServiceTagger)
-        self.assertEqual("これ/は/テスト/です", bot.chat("これはテストです").messages[0].text)
+        self.assertEqual("今日/は/東京スカイツリー/に/登り/ます", bot.chat("今日は東京スカイツリーに登ります").messages[0].text)
+        self.assertEqual("", bot.chat("").messages[0].text)
+
+        bot = Minette.create(config_file="config/minette_test_janome.ini", default_dialog_service=MyDialog)
+        self.assertIsInstance(bot.tagger, JanomeTagger)
+        self.assertEqual("今日/は/東京スカイツリー/に/登り/ます", bot.chat("今日は東京スカイツリーに登ります").messages[0].text)
         self.assertEqual("", bot.chat("").messages[0].text)
 
     def test_default_dialog(self):
