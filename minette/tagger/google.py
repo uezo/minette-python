@@ -37,6 +37,7 @@ class GoogleNode(WordNode):
             Result of each words by Google Cloud Natural Language API
         """
         super().__init__()
+        self.surface = token["text"]["content"]
         self.word = token["text"]["content"]
         self.part = token["partOfSpeech"]["tag"]
 
