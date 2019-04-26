@@ -67,18 +67,33 @@ Users are identified by internal UserIDs which are given at the first access to 
 Built-in task scheduler is ready-to-use. Your chatbot can do regular jobs without cron and the jobs can use chatbot resources like user repository.
 
 ## Natural Language Analyzing
-Taggers are the components for analyzing the text of request and the result will be set to request.words property. Minette has two built-in taggers - GoogleTagger and MeCabTagger.
+Taggers are the components for analyzing the text of request and the result will be set to `request.words` property. Minette has two built-in taggers - GoogleTagger and MeCabTagger.
 
-### Google Tagger
-GoogleTagger uses Cloud Natural Language API. This separates text into words and provides tags for each of them. (e.g. NOUN, VERB, ADJ ...)
+### Janome Tagger
+JanomeTagger uses Janome which is Japanese morphological analyzer written in pure Python.
 
-#### Usase
+#### Install dependency
+```
+$ pip install janome
+```
+
+#### Usage
+
+Just create bot instance with JanomeTagger.
+
 ```python
-from minette.tagger.google import GoogleTagger
+from minette.tagger.janometagger import JanomeTagger
 bot = Minette.create(
-    tagger=GoogleTagger(api_key="your api key")
+    tagger=JanomeTagger
 )
 ```
+
+If you have a user dictionary in MeCab IPADIC format, configure like below in minette.ini.
+
+```ini
+janome_userdic = /path/to/userdic.csv
+```
+
 
 ### MeCab Tagger
 MeCabTagger uses MeCab which is one of the most popular Japanese morphological analyzer. This provides all information of MeCab nodes. To use this tagger, MeCab and its binding for Python are required.
@@ -96,7 +111,7 @@ $ brew install mecab mecab-ipadic git curl xz
 
 #### Installing Binding
 ```
-pip install mecab-python3
+$ pip install mecab-python3
 ```
 
 #### Usase
@@ -104,6 +119,18 @@ pip install mecab-python3
 from minette.tagger.mecab import MeCabTagger
 bot = Minette.create(
     tagger=MeCabTagger
+)
+```
+
+
+### Google Tagger
+GoogleTagger uses Cloud Natural Language API. This separates text into words and provides tags for each of them. (e.g. NOUN, VERB, ADJ ...)
+
+#### Usase
+```python
+from minette.tagger.google import GoogleTagger
+bot = Minette.create(
+    tagger=GoogleTagger(api_key="your api key")
 )
 ```
 
