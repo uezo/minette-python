@@ -304,6 +304,7 @@ class DialogRouter:
             # update topic if request is not adhoc
             if dialog_service and not request.is_adhoc:
                 session.topic.name = dialog_service.topic_name()
+                session.topic.status = ""
                 session.topic.is_new = True
             # do not update topic when request is adhoc or dialog_service is not registered
             else:
@@ -317,6 +318,7 @@ class DialogRouter:
         else:
             dialog_service = self.default_dialog_service
             session.topic.name = dialog_service.topic_name()
+            session.topic.status = ""
             session.topic.is_new = True
         return dialog_service
 
