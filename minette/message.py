@@ -174,7 +174,7 @@ class Message(JsonSerializable):
         self.type = type
         self.timestamp = datetime.now(tz("UTC"))
         self.channel = channel
-        self.channel_detail = channel_detail
+        self.channel_detail = channel_detail if channel_detail else ""
         self.channel_user_id = channel_user_id
         self.channel_message = channel_message
         self.token = token

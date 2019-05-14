@@ -290,13 +290,19 @@ class Minette:
             request.words = self.tagger.parse(request.text)
             ticks.append(("tagger.parse", time() - start_time))
             # get user
-            request.user = self.user_repository.get_user(request.channel, request.channel_user_id, conn)
+            user_scope = request.channel
+            if self.config.get("user_scope") == "channel_detail":
+                user_scope += "_" + request.channel_detail
+            request.user = self.user_repository.get_user(user_scope, request.channel_user_id, conn)
             ticks.append(("user_repository.get_user", time() - start_time))
             # get session
+            session_scope = request.channel
+            if self.config.get("session_scope") == "channel_detail":
+                session_scope += "_" + request.channel_detail
             if request.group:
-                session = self.session_store.get_session(request.channel, request.group.id, conn)
+                session = self.session_store.get_session(session_scope, request.group.id, conn)
             else:
-                session = self.session_store.get_session(request.channel, request.channel_user_id, conn)
+                session = self.session_store.get_session(session_scope, request.channel_user_id, conn)
             ticks.append(("session_store.get_session", time() - start_time))
             # route dialog
             try:
