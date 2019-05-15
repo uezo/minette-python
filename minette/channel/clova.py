@@ -1,6 +1,6 @@
 """ Adapter for Clova Extensions Kit """
 from logging import Logger
-from cek import Clova, URL, Request
+from cek import Clova, URL, Request, IntentRequest
 from minette import Minette
 from minette.message import Message, Response
 from minette.channel import Adapter
@@ -70,17 +70,18 @@ class ClovaAdapter(Adapter):
         if self.debug:
             self.logger.info(clova_request.__dict__)
         msg = Message(
-            type=clova_request.request_type,
+            type=clova_request.type,
             channel="LINE",
             channel_detail="Clova",
-            channel_user_id=clova_request.user_id,
+            channel_user_id=clova_request.session.user.id,
             channel_message=clova_request
         )
-        if clova_request.is_intent:
-            msg.intent = clova_request.intent_name
-            # if clova_request.slots_dict: <- Error occures when no slot values
+        # Set intent and entities when IntentRequest
+        if isinstance(clova_request, IntentRequest):
+            msg.intent = clova_request.name
+            # if clova_request.slots: <- Error occures when no slot values
             if clova_request._request["intent"]["slots"]:
-                msg.entities = clova_request.slots_dict
+                msg.entities = clova_request.slots
         return msg
 
     def format_response(self, response):
@@ -100,13 +101,12 @@ class ClovaAdapter(Adapter):
         if not response.messages:
             response.for_channel = self.clova.response("")
             return response
-        res = response.messages[0]
-        end_session = res.entities.get("end_session", True)
-        if res.type == "url":
-            clova_res = self.clova.response(URL(res.text), end_session=end_session)
+        speech_values = [URL(msg.text) if msg.type == "url" else msg.text for msg in response.messages]
+        end_session = response.messages[-1].entities.get("end_session", True)
+        if len(speech_values) == 1:
+            response.for_channel = self.clova.response(speech_values[0], end_session=end_session)
         else:
-            clova_res = self.clova.response(res.text, end_session=end_session)
-        response.for_channel = clova_res
+            response.for_channel = self.clova.response(speech_values, end_session=end_session)
         return response
 
     def chat(self, request_data, request_headers):
