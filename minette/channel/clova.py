@@ -103,10 +103,11 @@ class ClovaAdapter(Adapter):
             return response
         speech_values = [URL(msg.text) if msg.type == "url" else msg.text for msg in response.messages]
         end_session = response.messages[-1].entities.get("end_session", True)
+        reprompt = response.messages[-1].entities.get("reprompt", None)
         if len(speech_values) == 1:
-            response.for_channel = self.clova.response(speech_values[0], end_session=end_session)
+            response.for_channel = self.clova.response(speech_values[0], end_session=end_session, reprompt=reprompt)
         else:
-            response.for_channel = self.clova.response(speech_values, end_session=end_session)
+            response.for_channel = self.clova.response(speech_values, end_session=end_session, reprompt=reprompt)
         return response
 
     def chat(self, request_data, request_headers):
