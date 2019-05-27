@@ -192,7 +192,7 @@ class SessionStore:
             Table name for session store
         """
         self.sqls = self.get_sqls(table_name)
-        self.timeout = timeout if timeout else 300
+        self.timeout = timeout
         self.logger = logger if logger else getLogger(__name__)
         self.config = config
         self.timezone = timezone
