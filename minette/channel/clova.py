@@ -27,8 +27,8 @@ class ClovaAdapter(Adapter):
         Debug mode
     """
 
-    def __init__(self, minette, application_id=None,
-                 default_language=None, logger=None, debug=False):
+    def __init__(self, minette, application_id,
+                 default_language="ja", logger=None, debug=False):
         """
         Parameters
         ----------
@@ -44,8 +44,8 @@ class ClovaAdapter(Adapter):
             Debug mode
         """
         super().__init__(minette, logger, debug)
-        self.application_id = application_id if application_id else minette.config.get(section="clova_api", key="application_id")
-        self.default_language = default_language if default_language else minette.config.get(section="clova_api", key="default_language", default="ja")
+        self.application_id = application_id
+        self.default_language = default_language
         self.clova = Clova(application_id=self.application_id, default_language=self.default_language, debug_mode=debug)
 
         # handler for all types of request

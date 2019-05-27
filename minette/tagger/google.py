@@ -58,7 +58,7 @@ class GoogleTagger(Tagger):
         Timezone of this chatbot
     """
 
-    def __init__(self, api_key=None, logger=None, config=None, timezone=None):
+    def __init__(self, api_key, logger=None, config=None, timezone=None):
         """
         Parameters
         ----------
@@ -73,8 +73,6 @@ class GoogleTagger(Tagger):
         """
         super().__init__(logger=logger, config=config, timezone=timezone)
         self.api_key = api_key
-        if not api_key and config:
-            self.api_key = config.get("googletagger_api_key")
 
     def parse(self, text, lang="en"):
         """

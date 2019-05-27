@@ -84,8 +84,8 @@ class LineAdapter(Adapter):
         Debug mode
     """
 
-    def __init__(self, minette, channel_secret=None,
-                 channel_access_token=None, threads=16, logger=None, debug=False):
+    def __init__(self, minette, channel_secret,
+                 channel_access_token, threads=16, logger=None, debug=False):
         """
         Parameters
         ----------
@@ -103,8 +103,8 @@ class LineAdapter(Adapter):
             Debug mode
         """
         super().__init__(minette, logger, debug)
-        self.channel_secret = channel_secret if channel_secret else minette.config.get(section="line_bot_api", key="channel_secret")
-        self.channel_access_token = channel_access_token if channel_access_token else minette.config.get(section="line_bot_api", key="channel_access_token")
+        self.channel_secret = channel_secret
+        self.channel_access_token = channel_access_token
         self.parser = WebhookParser(self.channel_secret)
         self.line_bot_api = LineBotApi(self.channel_access_token)
         self.threads = threads
