@@ -305,57 +305,9 @@ class Minette:
                 session = self.session_store.get_session(session_scope, request.channel_user_id, conn)
             ticks.append(("session_store.get_session", time() - start_time))
             # route dialog
-            try:
-                # extract intent and entities
-                extracted = self.dialog_router.extract_intent(request=request, session=session, connection=conn)
-                if isinstance(extracted, tuple):
-                    request.intent = extracted[0]
-                    request.entities = extracted[1]
-                    if len(extracted) > 2:
-                        request.intent_priority = extracted[2]
-                elif isinstance(extracted, str):
-                    request.intent = extracted
-                ticks.append(("dialog_router.extract_intent", time() - start_time))
-                # preprocess before route
-                self.dialog_router.before_route(request, session, conn)
-                ticks.append(("dialog_router.before_route", time() - start_time))
-                # route dialog
-                dialog_service = self.dialog_router.route(request, session, conn)
-                if isinstance(dialog_service, type):
-                    dialog_service = dialog_service(self.logger, self.config, self.timezone)
-                ticks.append(("dialog_router.route", time() - start_time))
-            except Exception as ex:
-                self.logger.error("Error occured in dialog_router: " + str(ex) + "\n" + traceback.format_exc())
-                dialog_service = self.dialog_router.handle_exception(request, session, ex, conn)
+            dialog_service = self.dialog_router.execute(request, session, conn, start_time, ticks)
             # process dialog
-            try:
-                # extract entities
-                for k, v in dialog_service.extract_entities(request, session, conn).items():
-                    if not request.entities.get(k, ""): request.entities[k] = v
-                ticks.append(("dialog_service.extract_entities", time() - start_time))
-                # initialize session data
-                if session.topic.is_new:
-                    session.data = dialog_service.get_slots(request, session, conn)
-                ticks.append(("dialog_service.get_slots", time() - start_time))
-                # process request
-                dialog_service.process_request(request, session, conn)
-                ticks.append(("dialog_service.process_request", time() - start_time))
-                # compose response
-                response_messages = dialog_service.compose_response(request, session, conn)
-                if not response_messages:
-                    self.logger.info("No response")
-                    response_messages = []
-                elif not isinstance(response_messages, list):
-                    response_messages = [response_messages]
-                for rm in response_messages:
-                    if isinstance(rm, Message):
-                        response.messages.append(rm)
-                    elif isinstance(rm, str):
-                        response.messages.append(request.reply(text=rm))
-                ticks.append(("dialog_service.compose_response", time() - start_time))
-            except Exception as ex:
-                self.logger.error("Error occured in dialog_service: " + str(ex) + "\n" + traceback.format_exc())
-                response.messages = [dialog_service.handle_exception(request, session, ex, conn)]
+            response = dialog_service.execute(request, session, conn, start_time, ticks)
             # save session and user
             session_for_log = deepcopy(session)
             try:
