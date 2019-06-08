@@ -81,7 +81,7 @@ class JanomeTagger(Tagger):
             Timezone of this chatbot
         """
         super().__init__(logger=logger, config=config, timezone=timezone)
-        self.user_dic = user_dic
+        self.user_dic = user_dic if user_dic else config.get("janome_userdic")
         if self.user_dic:
             self.tokenizer = Tokenizer(self.user_dic, udic_enc="utf8", mmap=True)
         else:
