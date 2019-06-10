@@ -308,6 +308,27 @@ class Response(JsonSerializable):
         # for_channel is not JSON serializable
         response_dict["for_channel"] = str(response_dict["for_channel"])
         return response_dict
+    
+    @classmethod
+    def from_dict(cls, data):
+        """
+        Restore response object from dict
+
+        Parameters
+        ----------
+        data : dict
+            Dictionary that has attributes of response
+
+        Returns
+        -------
+        session : Response
+            Instance of Response
+        """
+        response = cls()
+        for k, v in data.items():
+            setattr(response, k, v)
+        response.messages = [Message.from_dict(m) for m in response.messages]
+        return response
 
 
 class MessageLogger:

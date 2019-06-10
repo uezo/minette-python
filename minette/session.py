@@ -155,6 +155,29 @@ class Session(JsonSerializable):
         """
         self.error = {"exception": str(ex), "traceback": traceback.format_exc(), "info": info if info else {}}
 
+    @classmethod
+    def from_dict(cls, data):
+        """
+        Restore session object from dict
+
+        Parameters
+        ----------
+        data : dict
+            Dictionary that has attributes of session
+
+        Returns
+        -------
+        session : Session
+            Instance of Session
+        """
+        session = cls(data["channel"], data["channel_user_id"])
+        for k, v in data.items():
+            if k == "topic":
+                setattr(session, k, Topic.from_dict(v))
+            else:
+                setattr(session, k, v)
+        return session
+
 
 class SessionStore:
     """
