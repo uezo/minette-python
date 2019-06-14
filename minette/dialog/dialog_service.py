@@ -4,6 +4,7 @@ import traceback
 import requests
 from minette.message import Message, Response
 from minette.session import Session
+from minette.performance import PerformanceInfo
 from minette.serializer import encode_json
 
 
@@ -279,7 +280,7 @@ class HttpDialogServiceClient(DialogService):
     def execute(self, request, session, connection, performance):
         try:
             service_response = self.fetch(request, session, performance)
-            response = self.handle_service_response(service_response, request, session, connection)
+            response = self.handle_service_response(service_response, request, session, connection, performance)
         except Exception as ex:
             self.logger.error(f"Error occured in dialog_service(client): {str(ex)} \n{traceback.format_exc()}")
             response = Response(messages=[self.handle_exception(request, session, ex, connection)])
@@ -306,7 +307,7 @@ class HttpDialogServiceClient(DialogService):
         data = encode_json({"request": request.to_dict(), "session": session.to_dict(), "performance": performance.to_dict()})
         return requests.post(self.endpoint_uri, data=data, headers={"Content-Type": "application/json"}, timeout=60).json()
 
-    def handle_service_response(self, service_response, request, session, connection):
+    def handle_service_response(self, service_response, request, session, connection, performance):
         """
         Update session and request and make response
 
@@ -329,12 +330,14 @@ class HttpDialogServiceClient(DialogService):
             self.logger.error(f"Error occured in dialog_service(remote): {error}")
             return Response(messages=[self.handle_exception(request, session, None, connection)])
         else:
-            # update request and session
+            # update request, session and performance
             res_request = Message.from_dict(service_response["request"])
             request.entities = res_request.entities
             res_session = Session.from_dict(service_response["session"])
             session.topic = res_session.topic
             session.data = res_session.data
             session.error = res_session.error
+            res_performance = PerformanceInfo.from_dict(service_response["performance"])
+            performance.ticks = res_performance.ticks
             # make response data
             return Response.from_dict(service_response["response"])
