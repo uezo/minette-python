@@ -1,7 +1,6 @@
 """ Base components for route proper dialog for the intent """
 from logging import Logger, getLogger
 import traceback
-from time import time
 from minette.message import Message
 from minette.dialog import DialogService, ErrorDialogService
 
@@ -63,7 +62,7 @@ class DialogRouter:
         self.topic_resolver = {v.topic_name(): v for v in self.intent_resolver.values() if v}
         self.topic_resolver[self.default_dialog_service.topic_name()] = self.default_dialog_service
 
-    def execute(self, request, session, connection, start_time, ticks):
+    def execute(self, request, session, connection, performance):
         # route dialog
         try:
             # extract intent and entities
@@ -75,15 +74,15 @@ class DialogRouter:
                     request.intent_priority = extracted[2]
             elif isinstance(extracted, str):
                 request.intent = extracted
-            ticks.append(("dialog_router.extract_intent", time() - start_time))
+            performance.append("dialog_router.extract_intent")
             # preprocess before route
             self.before_route(request, session, connection)
-            ticks.append(("dialog_router.before_route", time() - start_time))
+            performance.append("dialog_router.before_route")
             # route dialog
             dialog_service = self.route(request, session, connection)
             if isinstance(dialog_service, type):
                 dialog_service = dialog_service(self.logger, self.config, self.timezone)
-            ticks.append(("dialog_router.route", time() - start_time))
+            performance.append("dialog_router.route")
         except Exception as ex:
             self.logger.error("Error occured in dialog_router: " + str(ex) + "\n" + traceback.format_exc())
             dialog_service = self.handle_exception(request, session, ex, connection)

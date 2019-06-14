@@ -13,6 +13,7 @@ from minette.message import Message, MessageLogger, Response
 from minette.task import Scheduler
 from minette.util import get_class
 from minette.config import Config
+from minette.performance import PerformanceInfo
 
 
 class Minette:
@@ -280,21 +281,20 @@ class Minette:
         """
         response = Response()
         try:
-            ticks = []
-            start_time = time()
+            performance = PerformanceInfo()
             conn = self.connection_provider.get_connection()
-            ticks.append(("get_connection", time() - start_time))
+            performance.append("get_connection")
             if isinstance(request, str):
                 request = Message(text=request)
             # extract words with tagger
             request.words = self.tagger.parse(request.text)
-            ticks.append(("tagger.parse", time() - start_time))
+            performance.append("tagger.parse")
             # get user
             user_scope = request.channel
             if self.config.get("user_scope") == "channel_detail":
                 user_scope += "_" + request.channel_detail
             request.user = self.user_repository.get_user(user_scope, request.channel_user_id, conn)
-            ticks.append(("user_repository.get_user", time() - start_time))
+            performance.append("user_repository.get_user")
             # get session
             session_scope = request.channel
             if self.config.get("session_scope") == "channel_detail":
@@ -303,25 +303,27 @@ class Minette:
                 session = self.session_store.get_session(session_scope, request.group.id, conn)
             else:
                 session = self.session_store.get_session(session_scope, request.channel_user_id, conn)
-            ticks.append(("session_store.get_session", time() - start_time))
+            performance.append("session_store.get_session")
             # route dialog
-            dialog_service = self.dialog_router.execute(request, session, conn, start_time, ticks)
+            dialog_service = self.dialog_router.execute(request, session, conn, performance)
+            performance.append("dialog_router.execute")
             # process dialog
-            response = dialog_service.execute(request, session, conn, start_time, ticks)
+            response = dialog_service.execute(request, session, conn, performance)
+            performance.append("dialog_service.execute")
             # save session and user
             session_for_log = deepcopy(session)
             try:
                 session.reset(self.config.get("keep_session_data", False))
                 self.session_store.save_session(session, conn)
-                ticks.append(("save_session", time() - start_time))
+                performance.append("save_session")
                 self.user_repository.save_user(request.user, conn)
-                ticks.append(("save_user", time() - start_time))
+                performance.append("save_user")
             except Exception as ex:
                 self.logger.error("Error occured in saving session/user: " + str(ex) + "\n" + traceback.format_exc())
             # message log
             try:
-                response.milliseconds = int(ticks[-1][1] * 1000)
-                response.performance_info = ticks
+                response.milliseconds = int(performance.ticks[-1][1] * 1000)
+                response.performance_info = performance.ticks
                 self.message_logger.write(request, response, session_for_log, conn)
             except Exception as ex:
                 self.logger.error("Error occured in logging message: " + str(ex) + "\n" + traceback.format_exc())

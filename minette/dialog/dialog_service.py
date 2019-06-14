@@ -1,8 +1,8 @@
 """ Base components for processing each dialogs """
 from logging import Logger, getLogger
 import traceback
-from time import time
 from minette.message import Message, Response
+from minette.session import Session
 
 
 class DialogService:
@@ -51,22 +51,44 @@ class DialogService:
         self.config = config
         self.timezone = timezone
 
-    def execute(self, request, session, connection, start_time, ticks):
-        # process dialog
-        response = Response()
+    def execute(self, request, session, connection, performance):
+        """
+        Main logic of DialogService
+
+        Parameters
+        ----------
+        request : Message
+            Request message
+        session : Session
+            Session
+        exception : Exception
+            Exception
+        connection : Connection
+            Connection
+        performance : PerformanceInfo
+            Performance information
+
+        Returns
+        -------
+        response : Response
+            Response from chatbot
+        """
         try:
             # extract entities
             for k, v in self.extract_entities(request, session, connection).items():
                 if not request.entities.get(k, ""):
                     request.entities[k] = v
-            ticks.append(("dialog_service.extract_entities", time() - start_time))
+            performance.append("dialog_service.extract_entities")
+
             # initialize session data
             if session.topic.is_new:
                 session.data = self.get_slots(request, session, connection)
-            ticks.append(("dialog_service.get_slots", time() - start_time))
+            performance.append("dialog_service.get_slots")
+
             # process request
             self.process_request(request, session, connection)
-            ticks.append(("dialog_service.process_request", time() - start_time))
+            performance.append("dialog_service.get_slots")
+
             # compose response
             response_messages = self.compose_response(request, session, connection)
             if not response_messages:
@@ -74,16 +96,18 @@ class DialogService:
                 response_messages = []
             elif not isinstance(response_messages, list):
                 response_messages = [response_messages]
+            response = Response()
             for rm in response_messages:
                 if isinstance(rm, Message):
                     response.messages.append(rm)
                 elif isinstance(rm, str):
                     response.messages.append(request.reply(text=rm))
-            ticks.append(("dialog_service.compose_response", time() - start_time))
+            performance.append("dialog_service.compose_response")
+
         except Exception as ex:
             self.logger.error("Error occured in dialog_service: " + str(ex) + "\n" + traceback.format_exc())
-            response.messages = [self.handle_exception(request, session, ex, connection)]
-        # return response
+            response = Response(messages=[self.handle_exception(request, session, ex, connection)])
+
         return response
 
     def extract_entities(self, request, session, connection):
