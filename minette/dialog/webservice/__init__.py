@@ -1,0 +1,1 @@
+from minette.dialog.webservice.client import HttpDialogServiceClient
