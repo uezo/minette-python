@@ -7,7 +7,6 @@ from minette.session import Session
 from minette.message import Message, Response
 from minette.dialog import DialogService
 from minette.serializer import encode_json
-from sqlite3.dbapi2 import Error
 
 
 class HttpDialogService(DialogService):
@@ -96,9 +95,47 @@ class HttpDialogService(DialogService):
         return False
 
     def parse_request(self, http_request):
+        """
+        Parameters
+        ----------
+        http_request : object
+            HTTP Request object that depends on Web application frameworks
+
+        Returns
+        -------
+        request : Message
+            Request message from user
+        session : Session
+            Session
+        performance : PerformanceInfo
+            PerformanceInfo
+        """
         return None, None, None
 
     def make_response(self, request=None, session=None, performance=None, response=None, error=None, status_code=200, content_type="application/json"):
+        """
+        Parameters
+        ----------
+        request : Message, default None
+            Request message
+        session : Session
+            Session, default None
+        performance : PerformanceInfo
+            Performance information
+        response : Response, default None
+            Response from chatbot
+        error : str, default None
+            Error message
+        status_code : int, default 200
+            Status code
+        content_type : str, default "application/json"
+            Content type set in response header
+
+        Returns
+        -------
+        response : object
+            HTTP Response object that depends on Web application frameworks
+        """
         request_dict = request.to_dict() if request else None
         session_dict = session.to_dict() if session else None
         performance_dict = performance.to_dict() if performance else None
