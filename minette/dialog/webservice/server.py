@@ -59,14 +59,14 @@ class HttpDialogService(DialogService):
         try:
             request, session, performance = self.parse_request(http_request)
         except Exception as ex:
-            logging.error(f"Invalid request: {str(ex)} \n{traceback.format_exc()}")
+            self.logger.error(f"Invalid request: {str(ex)} \n{traceback.format_exc()}")
             return self.make_response(error="Invalid request", status_code=400)
 
         # get connection
         try:
             connection = self.connection_provider.get_connection() if self.connection_provider else None
         except Exception as ex:
-            logging.error(f"Failed in getting connection: {str(ex)} \n{traceback.format_exc()}")
+            self.logger.error(f"Failed in getting connection: {str(ex)} \n{traceback.format_exc()}")
             return self.make_response(error="Failed in getting connection", status_code=500)
 
         # execute dialog_service and return respose
@@ -81,7 +81,7 @@ class HttpDialogService(DialogService):
             return self.make_response(
                 request=request, session=session, performance=performance, response=response)
         except Exception as ex:
-            logging.error(f"Failed in making response: {str(ex)} \n{traceback.format_exc()}")
+            self.logger.error(f"Failed in making response: {str(ex)} \n{traceback.format_exc()}")
             return self.make_response(error="Failed in making response", status_code=500)
 
     def is_warmup(self, http_request):
@@ -91,6 +91,10 @@ class HttpDialogService(DialogService):
         http_request : object
             HTTP Request object that depends on Web application frameworks
 
+        Returns
+        -------
+        is_warmup : bool
+            Request for warming up or not
         """
         return False
 
