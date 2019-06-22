@@ -7,6 +7,7 @@ import copy
 from minette.util import date_to_str, str_to_date, date_to_unixtime, get_class
 from minette.serializer import JsonSerializable, encode_json, decode_json
 from minette.session import Priority
+from minette.performance import PerformanceInfo
 
 
 class Group(JsonSerializable):
@@ -265,14 +266,12 @@ class Response(JsonSerializable):
         Response header
     for_channel : Any
         Formetted response for channels
-    milliseconds : int
-        Total processing time in milliseconds
-    performance_info : list
-        Ticks of each steps in chat()
+    performance : PerformanceInfo
+        Performance information of each steps in chat()
     json : str
         JSON encoded response for channels
     """
-    def __init__(self, messages=None, headers=None, for_channel=None):
+    def __init__(self, messages=None, headers=None, for_channel=None, performance=None):
         """
         Parameters
         ----------
@@ -282,14 +281,11 @@ class Response(JsonSerializable):
             Response header
         for_channel : Any, default None
             Formetted response for channels
-        milliseconds : int
-            Total processing time in milliseconds
         """
         self.messages = messages if messages else []
         self.headers = headers if headers else {}
         self.for_channel = for_channel
-        self.milliseconds = 0
-        self.performance_info = []
+        self.performance = performance or PerformanceInfo()
 
     @property
     def json(self):
@@ -308,7 +304,7 @@ class Response(JsonSerializable):
         # for_channel is not JSON serializable
         response_dict["for_channel"] = str(response_dict["for_channel"])
         return response_dict
-    
+
     @classmethod
     def from_dict(cls, data):
         """
@@ -328,6 +324,7 @@ class Response(JsonSerializable):
         for k, v in data.items():
             setattr(response, k, v)
         response.messages = [Message.from_dict(m) for m in response.messages]
+        response.performance = PerformanceInfo.from_dict(response.performance)
         return response
 
 

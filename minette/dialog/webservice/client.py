@@ -1,5 +1,4 @@
-""" Base components for processing each dialogs """
-from logging import Logger, getLogger
+""" Base components for processing http webservice dialogs """
 import traceback
 import requests
 from minette.message import Message, Response
@@ -99,7 +98,6 @@ class HttpDialogServiceClient(DialogService):
             session.topic = res_session.topic
             session.data = res_session.data
             session.error = res_session.error
-            res_performance = PerformanceInfo.from_dict(service_response["performance"])
-            performance.ticks = res_performance.ticks
+            performance.ticks.extend(service_response["performance"]["ticks"])
             # make response data
             return Response.from_dict(service_response["response"])

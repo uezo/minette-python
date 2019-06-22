@@ -279,59 +279,73 @@ class Minette:
         response : Response
             Response from chatbot
         """
-        response = Response()
         try:
             performance = PerformanceInfo()
-            conn = self.connection_provider.get_connection()
-            performance.append("get_connection")
-            if isinstance(request, str):
-                request = Message(text=request)
-            # extract words with tagger
+            request = Message(text=request) if isinstance(request, str) else request
+            # connection
+            connection = self.connection_provider.get_connection()
+            performance.append("connection_provider.get_connection")
+            # tagger
             request.words = self.tagger.parse(request.text)
             performance.append("tagger.parse")
-            # get user
-            user_scope = request.channel
-            if self.config.get("user_scope") == "channel_detail":
-                user_scope += "_" + request.channel_detail
-            request.user = self.user_repository.get_user(user_scope, request.channel_user_id, conn)
-            performance.append("user_repository.get_user")
-            # get session
-            session_scope = request.channel
-            if self.config.get("session_scope") == "channel_detail":
-                session_scope += "_" + request.channel_detail
-            if request.group:
-                session = self.session_store.get_session(session_scope, request.group.id, conn)
-            else:
-                session = self.session_store.get_session(session_scope, request.channel_user_id, conn)
-            performance.append("session_store.get_session")
+            # user
+            request.user = self.get_user(request, connection)
+            performance.append("get_user")
+            # session
+            session = self.get_session(request, connection)
+            performance.append("get_session")
             # route dialog
-            dialog_service = self.dialog_router.execute(request, session, conn, performance)
+            dialog_service = self.dialog_router.execute(request, session, connection, performance)
             performance.append("dialog_router.execute")
             # process dialog
-            response = dialog_service.execute(request, session, conn, performance)
+            response = dialog_service.execute(request, session, connection, performance)
             performance.append("dialog_service.execute")
-            # save session and user
-            session_for_log = deepcopy(session)
-            try:
-                session.reset(self.config.get("keep_session_data", False))
-                self.session_store.save_session(session, conn)
-                performance.append("save_session")
-                self.user_repository.save_user(request.user, conn)
-                performance.append("save_user")
-            except Exception as ex:
-                self.logger.error("Error occured in saving session/user: " + str(ex) + "\n" + traceback.format_exc())
-            # message log
-            try:
-                response.milliseconds = int(performance.ticks[-1][1] * 1000)
-                response.performance_info = performance.ticks
-                self.message_logger.write(request, response, session_for_log, conn)
-            except Exception as ex:
-                self.logger.error("Error occured in logging message: " + str(ex) + "\n" + traceback.format_exc())
+            # save session
+            session = self.save_session(session, connection)
+            performance.append("save_session")
+            # save user
+            self.save_user(request.user, connection)
+            performance.append("save_user")
         except Exception as ex:
-            self.logger.error("Error occured in preparing or finalizing: " + str(ex) + "\n" + traceback.format_exc())
+            self.logger.error("Error occured in chat: " + str(ex) + "\n" + traceback.format_exc())
+            response = Response()
         finally:
-            conn.close()
+            # set performance info to response
+            response.performance = performance
+            if connection:
+                # message log
+                try:
+                    self.message_logger.write(request, response, session, connection)
+                except Exception as ex:
+                    self.logger.error("Error occured in logging message: " + str(ex) + "\n" + traceback.format_exc())
+                # close connection
+                connection.close()
         return response
+
+    def get_user(self, request, connection):
+        user_scope = request.channel
+        if self.config.get("user_scope") == "channel_detail":
+            user_scope += "_" + request.channel_detail
+        return self.user_repository.get_user(user_scope, request.channel_user_id, connection)
+
+    def save_user(self, user, connection):
+        self.user_repository.save_user(user, connection)
+
+    def get_session(self, request, connection):
+        session_scope = request.channel
+        if self.config.get("session_scope") == "channel_detail":
+            session_scope += "_" + request.channel_detail
+        if request.group:
+            session = self.session_store.get_session(session_scope, request.group.id, connection)
+        else:
+            session = self.session_store.get_session(session_scope, request.channel_user_id, connection)
+        return session
+
+    def save_session(self, session, connection):
+        session_for_log = deepcopy(session)
+        session.reset(self.config.get("keep_session_data", False))
+        self.session_store.save_session(session, connection)
+        return session_for_log
 
     def get_message_log(self, count=20, max_id=2147483647):
         """
