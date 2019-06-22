@@ -86,7 +86,7 @@ class Payload(JsonSerializable):
         content : Any
             Content
         """
-        data = requests.get(self.url, headers=self.headers).content
+        data = requests.get(self.url, headers=self.headers, timeout=60).content
         if set_content:
             self.content = data
         return data

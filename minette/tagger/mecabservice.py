@@ -74,7 +74,7 @@ class MeCabServiceTagger(Tagger):
         if not text:
             return ret
         try:
-            parsed_json = requests.post(self.api_url, headers={"content-type": "application/json"}, json={"text": text}).json()
+            parsed_json = requests.post(self.api_url, headers={"content-type": "application/json"}, json={"text": text}, timeout=10).json()
             ret = [MeCabServiceNode(w) for w in parsed_json["words"]]
         except Exception as ex:
             self.logger.error("MeCab Service parsing error: " + str(ex) + "\n" + traceback.format_exc())

@@ -129,4 +129,4 @@ class GoogleTagger(Tagger):
             },
             "encodingType": "UTF8"
         }
-        return requests.post(url, headers=header, json=body).json()
+        return requests.post(url, headers=header, json=body, timeout=10).json()
