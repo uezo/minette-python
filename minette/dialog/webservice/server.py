@@ -44,7 +44,7 @@ class HttpDialogService(DialogService):
         """
         self.config = config or Config(config_file)
         self.logger = logger or Minette.get_logger(logfile=self.config.get("logfile")) if self.config.get("logfile") else logging
-        self.timezone = tz(timezone or self.config.get("timezone", default="UTC"))
+        self.timezone = timezone or tz(self.config.get("timezone", default="UTC"))
         self.connection_provider = connection_provider
         if not self.connection_provider:
             connection_provider_classname = self.config.get("connection_provider")
