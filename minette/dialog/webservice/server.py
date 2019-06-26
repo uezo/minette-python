@@ -27,7 +27,7 @@ class HttpDialogService(DialogService):
         ConnectionProvider
     """
 
-    def __init__(self, config_file="./minette.ini", logger=None, timezone=None, connection_provider=None):
+    def __init__(self, logger=None, config=None, timezone=None, config_file="./minette.ini", connection_provider=None):
         """
         Parameters
         ----------
@@ -37,10 +37,12 @@ class HttpDialogService(DialogService):
             Configuration
         timezone : timezone, default None
             Timezone
+        config_file : str, default "./minette.ini"
+            Path for configuration file
         connection_provider : ConnectionProvider, default None
             Database connection provider
         """
-        self.config = Config(config_file or "./minette.ini")
+        self.config = config or Config(config_file)
         self.logger = logger or Minette.get_logger(logfile=self.config.get("logfile")) if self.config.get("logfile") else logging
         self.timezone = tz(timezone or self.config.get("timezone", default="UTC"))
         self.connection_provider = connection_provider
