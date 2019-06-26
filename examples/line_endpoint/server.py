@@ -8,6 +8,8 @@ from minette.channel.line import LineAdapter
 
 bot = Minette.create(default_dialog_service=EchoDialogService)
 line_adapter = LineAdapter(bot, channel_secret="<CHANNEL SECRET>", channel_access_token="<CHANNEL ACCESS TOKEN>")
+# `threads=0` to use main thread for processing dialog
+# line_adapter = LineAdapter(bot, threads=0, channel_secret="<CHANNEL SECRET>", channel_access_token="<CHANNEL ACCESS TOKEN>")
 app = Flask(__name__)
 
 

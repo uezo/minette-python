@@ -51,9 +51,11 @@ class WorkerThread(Thread):
         """
         while True:
             try:
-                message, self.processing = self.queue.get()
+                message, reply_token, self.processing = self.queue.get()
                 response = self.adapter.minette.chat(message)
-                self.adapter.send(self.adapter.format_response(response))
+                line_messages = [self.adapter.to_line_message(m) for m in response.messages]
+                if line_messages:
+                    self.adapter.reply(line_messages, reply_token)
             except Exception as ex:
                 self.adapter.logger.error("{}: Error occured in processing queue message: {}: ".format(self.name, message.id) + str(ex) + "\n" + traceback.format_exc())
             finally:
@@ -108,32 +110,52 @@ class LineAdapter(Adapter):
         self.parser = WebhookParser(self.channel_secret)
         self.line_bot_api = LineBotApi(self.channel_access_token)
         self.threads = threads
-        self.thread_pool = []
-        self.prepare_thread_pool()
+        if self.threads:
+            self.thread_pool = []
+            self.prepare_thread_pool()
         self.minette.dialog_router.helpers["line_adapter"] = self
         if self.minette.task_scheduler:
             self.minette.task_scheduler.helpers["line_adapter"] = self
 
-    def prepare_thread_pool(self):
+    def chat(self, request_data_as_text, request_headers):
         """
-        Create worker threads and put into thread pool
-        """
-        # remove dead worker threads
-        for t in self.thread_pool[:]:
-            if not t.is_alive():
-                self.thread_pool.remove(t)
-                self.logger.warn("Remove: {} is not alive".format(t.name))
-        # create new worker threads
-        if len(self.thread_pool) < self.threads:
-            self.logger.info("Create {} worker thread(s)".format(str(self.threads - len(self.thread_pool))))
-            for i in range(self.threads - len(self.thread_pool)):
-                worker = WorkerThread(self)
-                worker.start()
-                self.thread_pool.append(worker)
+        Interface to chat with LINE Bot
 
-    def parse_request(self, event):
+        Parameters
+        ----------
+        request_data_as_text : str
+            Request data from LINE Messaging API as string
+        request_headers : dict
+            Request headers from LINE Messaging API as dict
+
+        Returns
+        -------
+        response : Response
+            Response that shows queued status
         """
-        Parse event to Message object
+        try:
+            events = self.parser.parse(request_data_as_text, request_headers.get("X-Line-Signature", ""))
+            for ev in events:
+                message = self.to_minette_message(ev)
+                reply_token = ev.reply_token if hasattr(ev, "reply_token") else ""
+                if self.threads:
+                    self.assign_worker(message, reply_token)
+                else:
+                    response = self.minette.chat(message)
+                    line_messages = [self.to_line_message(m) for m in response.messages]
+                    if line_messages:
+                        self.reply(line_messages, reply_token)
+            return Response(messages=[Message(text="done", type="system")])
+        except InvalidSignatureError as ise:
+            self.logger.error("Request signiture is invalid: " + str(ise) + "\n" + traceback.format_exc())
+            return Response(messages=[Message(text="invalid signiture", type="system")])
+        except Exception as ex:
+            self.logger.error("Request parsing error: " + str(ex) + "\n" + traceback.format_exc())
+            return Response(messages=[Message(text="failure in parsing request", type="system")])
+
+    def to_minette_message(self, event):
+        """
+        Convert LINE Event object to Minette Message object
 
         Parameters
         ----------
@@ -143,7 +165,7 @@ class LineAdapter(Adapter):
         Returns
         -------
         message : Message
-            Request converted into Message object
+            Request message object
         """
         if self.debug:
             self.logger.info(event)
@@ -209,48 +231,62 @@ class LineAdapter(Adapter):
             pass
         return msg
 
-    def format_response(self, response):
+    def to_line_message(self, message):
         """
-        Set LINE Messaging API formatted response to `for_channel` attribute
+        Convert Minette Message object to LINE SendMessage object
 
         Parameters
         ----------
-        response : Response
-            Response from chatbot
+        response : Message
+            Response message object
 
         Returns
         -------
         response : Response
-            Response with LINE Messaging API formatted response
+            SendMessage object for LINE Messaging API
         """
-        send_messages = []
-        for msg in response.messages:
-            payload = next(iter([p for p in msg.payloads if p.content_type != "quick_reply"]), None)
-            quick_reply = next(iter([p.content for p in msg.payloads if p.content_type == "quick_reply"]), None)
-            if msg.type == "text":
-                send_messages.append(TextSendMessage(text=msg.text, quick_reply=quick_reply))
-            elif msg.type == "image":
-                send_messages.append(ImageSendMessage(original_content_url=payload.url, preview_image_url=payload.thumb, quick_reply=quick_reply))
-            elif msg.type == "audio":
-                send_messages.append(AudioSendMessage(original_content_url=payload.url, duration=payload.content["duration"], quick_reply=quick_reply))
-            elif msg.type == "video":
-                send_messages.append(VideoSendMessage(original_content_url=payload.url, preview_image_url=payload.thumb, quick_reply=quick_reply))
-            elif msg.type == "location":
-                cont = payload.content
-                send_messages.append(LocationSendMessage(title=cont["title"], address=cont["address"], latitude=cont["latitude"], longitude=cont["longitude"], quick_reply=quick_reply))
-            elif msg.type == "sticker":
-                send_messages.append(StickerSendMessage(package_id=payload.content["package_id"], sticker_id=payload.content["sticker_id"], quick_reply=quick_reply))
-            elif msg.type == "imagemap":
-                send_messages.append(ImagemapSendMessage(alt_text=msg.text, base_url=payload.url, base_size=payload.content["base_size"], actions=payload.content["actions"], quick_reply=quick_reply))
-            elif msg.type == "template":
-                send_messages.append(TemplateSendMessage(alt_text=msg.text, template=payload.content, quick_reply=quick_reply))
-            elif msg.type == "flex":
-                send_messages.append(FlexSendMessage(alt_text=msg.text, contents=payload.content, quick_reply=quick_reply))
-        response.for_channel = send_messages
-        response.headers = {"reply_token": response.messages[0].token if response.messages else ""}
-        return response
+        payload = next(iter([p for p in message.payloads if p.content_type != "quick_reply"]), None)
+        quick_reply = next(iter([p.content for p in message.payloads if p.content_type == "quick_reply"]), None)
+        if message.type == "text":
+            return TextSendMessage(text=message.text, quick_reply=quick_reply)
+        elif message.type == "image":
+            return ImageSendMessage(original_content_url=payload.url, preview_image_url=payload.thumb, quick_reply=quick_reply)
+        elif message.type == "audio":
+            return AudioSendMessage(original_content_url=payload.url, duration=payload.content["duration"], quick_reply=quick_reply)
+        elif message.type == "video":
+            return VideoSendMessage(original_content_url=payload.url, preview_image_url=payload.thumb, quick_reply=quick_reply)
+        elif message.type == "location":
+            cont = payload.content
+            return LocationSendMessage(title=cont["title"], address=cont["address"], latitude=cont["latitude"], longitude=cont["longitude"], quick_reply=quick_reply)
+        elif message.type == "sticker":
+            return StickerSendMessage(package_id=payload.content["package_id"], sticker_id=payload.content["sticker_id"], quick_reply=quick_reply)
+        elif message.type == "imagemap":
+            return ImagemapSendMessage(alt_text=message.text, base_url=payload.url, base_size=payload.content["base_size"], actions=payload.content["actions"], quick_reply=quick_reply)
+        elif message.type == "template":
+            return TemplateSendMessage(alt_text=message.text, template=payload.content, quick_reply=quick_reply)
+        elif message.type == "flex":
+            return FlexSendMessage(alt_text=message.text, contents=payload.content, quick_reply=quick_reply)
+        else:
+            return None
 
-    def assign_worker(self, message):
+    def prepare_thread_pool(self):
+        """
+        Create worker threads and put into thread pool
+        """
+        # remove dead worker threads
+        for t in self.thread_pool[:]:
+            if not t.is_alive():
+                self.thread_pool.remove(t)
+                self.logger.warn("Remove: {} is not alive".format(t.name))
+        # create new worker threads
+        if len(self.thread_pool) < self.threads:
+            self.logger.info("Create {} worker thread(s)".format(str(self.threads - len(self.thread_pool))))
+            for i in range(self.threads - len(self.thread_pool)):
+                worker = WorkerThread(self)
+                worker.start()
+                self.thread_pool.append(worker)
+
+    def assign_worker(self, message, reply_token):
         """
         Put message into worker thread's queue
 
@@ -258,6 +294,8 @@ class LineAdapter(Adapter):
         ----------
         message : Message
             Message to process
+        reply_token : str
+            ReplyToken for this request
 
         Returns
         -------
@@ -283,54 +321,25 @@ class LineAdapter(Adapter):
                 worker = random.choice(self.thread_pool)
                 self.logger.warn("All threads are busy. Use {} to process {}'s request later".format(worker.name, processing_key))
         # put message into worker's queue
-        worker.queue.put((message, processing_key))
+        worker.queue.put((message, reply_token, processing_key))
 
-    def chat(self, request_data_as_text, request_headers):
+    def reply(self, line_messages, reply_token):
         """
-        Interface to chat with LINE Bot
+        Send reply messages to LINE Messaging API
 
         Parameters
         ----------
-        request_data_as_text : str
-            Request data from LINE Messaging API as string
-        request_headers : dict
-            Request headers from LINE Messaging API as dict
-
-        Returns
-        -------
-        response : Response
-            Response that shows queued status. The response from chatbot will be sent by worker thread
+        line_messages : list
+            List of SendMessage objects
+        reply_token : str
+            ReplyToken for LINE Messaging API
         """
-        try:
-            signature = request_headers["X-Line-Signature"]
-            events = self.parser.parse(request_data_as_text, signature)
-            for ev in events:
-                message = self.parse_request(ev)
-                self.assign_worker(message)
-            return Response(messages=[Message(text="queued", type="system")], for_channel="queued")
-        except InvalidSignatureError as ise:
-            self.logger.error("Request signiture is invalid: " + str(ise) + "\n" + traceback.format_exc())
-            return Response(messages=[Message(text="invalid signiture", type="system")], for_channel="invalid signiture")
-        except Exception as ex:
-            self.logger.error("Request parsing error: " + str(ex) + "\n" + traceback.format_exc())
-            return Response(messages=[Message(text="failure in parsing request", type="system")], for_channel="failure in parsing request")
-
-    def send(self, response):
-        """
-        Send response from chatbot to Reply API
-
-        Parameters
-        ----------
-        response : Response
-            Response with LINE Messaging API formatted response
-        """
-        if response.messages:
-            for msg in response.for_channel:
-                if self.debug:
-                    self.logger.info(msg)
-                else:
-                    self.logger.info("Minette> {}".format(msg.text if hasattr(msg, "text") else msg.alt_text if hasattr(msg, "alt_text") else msg.type))
-            self.line_bot_api.reply_message(response.headers["reply_token"], response.for_channel)
+        for msg in line_messages:
+            if self.debug:
+                self.logger.info(msg)
+            else:
+                self.logger.info("Minette> {}".format(msg.text if hasattr(msg, "text") else msg.alt_text if hasattr(msg, "alt_text") else msg.type))
+        self.line_bot_api.reply_message(reply_token, line_messages)
 
     def push(self, channel_user_id, messages, formatted=False):
         """
