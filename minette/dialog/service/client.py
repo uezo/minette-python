@@ -1,14 +1,13 @@
-""" Base components for processing http webservice dialogs """
 import traceback
 import requests
 from minette.message import Message, Response
 from minette.session import Session
 from minette.performance import PerformanceInfo
-from minette.dialog import DialogService
+from minette.dialog.service import DialogService
 from minette.serializer import encode_json
 
 
-class HttpDialogServiceClient(DialogService):
+class HttpDialogClient(DialogService):
     """
     Base class of client for DialogService provided as WebService
 

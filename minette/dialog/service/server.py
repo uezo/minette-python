@@ -5,13 +5,13 @@ from pytz import timezone as tz
 from minette.config import Config
 from minette.session import Session
 from minette.message import Message, Response
-from minette.dialog import DialogService
+from minette.dialog.service import DialogService
 from minette.serializer import encode_json
 
 
-class HttpDialogService(DialogService):
+class HttpDialogServer:
     """
-    Base class of DialogService WebServer
+    Base class of HTTP-Based DialogService Server
 
     Attributes
     ----------
@@ -27,30 +27,36 @@ class HttpDialogService(DialogService):
         ConnectionProvider
     """
 
-    def __init__(self, logger=None, config=None, timezone=None, config_file="./minette.ini", connection_provider=None):
+    def __init__(self, dialog_service, config_file="./minette.ini", connection_provider=None):
         """
         Parameters
         ----------
-        logger : Logger, default None
-            Logger
-        config : Config, default None
-            Configuration
-        timezone : timezone, default None
-            Timezone
+        dialog_service : DialogService
+            DialogService to publish as web service
         config_file : str, default "./minette.ini"
             Path for configuration file
         connection_provider : ConnectionProvider, default None
             Database connection provider
         """
-        self.config = config or Config(config_file)
-        self.logger = logger or Minette.get_logger(logfile=self.config.get("logfile")) if self.config.get("logfile") else logging
-        self.timezone = timezone or tz(self.config.get("timezone", default="UTC"))
+        if isinstance(dialog_service, type):
+            dialog_service = dialog_service()
+
+        # setup config, logger, timezone and connection
+        dialog_service.config = dialog_service.config or Config(config_file)
+        self.config = dialog_service.config
+        dialog_service.logger = dialog_service.logger or Minette.get_logger(logfile=self.config.get("logfile")) if self.config.get("logfile") else logging
+        self.logger = dialog_service.logger
+        dialog_service.timezone = dialog_service.timezone or tz(self.config.get("timezone", default="UTC"))
+        self.timezone = dialog_service.timezone
         self.connection_provider = connection_provider
         if not self.connection_provider:
             connection_provider_classname = self.config.get("connection_provider")
             connection_str = self.config.get("connection_str")
             if connection_provider_classname and connection_str:
                 self.connection_provider = get_class(connection_provider_classname)(connection_str)
+
+        # set instance of dialog_service
+        self.dialog_service = dialog_service
 
     def run(self, http_request):
         # just return 200 when warmup request
@@ -72,7 +78,7 @@ class HttpDialogService(DialogService):
             return self.make_response(error="Failed in getting connection", status_code=500)
 
         # execute dialog_service and return respose
-        response = self.execute(request, session, connection, performance)
+        response = self.dialog_service.execute(request, session, connection, performance)
 
         # close connection
         if connection:

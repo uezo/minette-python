@@ -1,11 +1,8 @@
 """ Base components for processing each dialogs """
-from logging import Logger, getLogger
 import traceback
-import requests
 from minette.message import Message, Response
 from minette.session import Session
 from minette.performance import PerformanceInfo
-from minette.serializer import encode_json
 
 
 class DialogService:

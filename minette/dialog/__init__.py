@@ -1,2 +1,2 @@
-from minette.dialog.dialog_service import DialogService, EchoDialogService, ErrorDialogService
-from minette.dialog.dialog_router import DialogRouter
+from minette.dialog.service import DialogService, EchoDialogService, ErrorDialogService, HttpDialogServer, HttpDialogClient
+from minette.dialog.router import DialogRouter

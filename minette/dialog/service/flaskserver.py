@@ -1,11 +1,11 @@
 from flask import Response as HttpResponse
 from minette.session import Session
-from minette.message import Message
+from minette.message import Message, Response
 from minette.performance import PerformanceInfo
-from minette.dialog.webservice import HttpDialogService
+from minette.dialog import HttpDialogServer
 
 
-class FlaskDialogService(HttpDialogService):
+class FlaskDialogServer(HttpDialogServer):
     def is_warmup(self, http_request):
         return True if http_request.args.get("warmup", "") else False
 
