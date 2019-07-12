@@ -74,7 +74,7 @@ class LineAdapter(Adapter):
         Channel Secret for your LINE Bot
     channel_access_token : str
         Channel Access Token for your LINE Bot
-    line_bot_api : LineBotApi
+    api : LineBotApi
         LINE Messaging API
     threads : int
         Number of worker thread
@@ -87,7 +87,7 @@ class LineAdapter(Adapter):
     """
 
     def __init__(self, minette, channel_secret,
-                 channel_access_token, threads=16, logger=None, debug=False):
+                 channel_access_token, *, api=None, threads=16, logger=None, debug=False):
         """
         Parameters
         ----------
@@ -97,6 +97,8 @@ class LineAdapter(Adapter):
             Channel Secret for your LINE Bot
         channel_access_token : str or None, default None
             Channel Access Token for your LINE Bot
+        api : LineBotApi, default None
+            Messaging API interface
         threads : int, default 16
             Number of worker thread
         logger : Logger, default None
@@ -108,7 +110,7 @@ class LineAdapter(Adapter):
         self.channel_secret = channel_secret
         self.channel_access_token = channel_access_token
         self.parser = WebhookParser(self.channel_secret)
-        self.line_bot_api = LineBotApi(self.channel_access_token)
+        self.api = api or LineBotApi(self.channel_access_token)
         self.threads = threads
         if self.threads:
             self.thread_pool = []
@@ -339,7 +341,7 @@ class LineAdapter(Adapter):
                 self.logger.info(msg)
             else:
                 self.logger.info("Minette> {}".format(msg.text if hasattr(msg, "text") else msg.alt_text if hasattr(msg, "alt_text") else msg.type))
-        self.line_bot_api.reply_message(reply_token, line_messages)
+        self.api.reply_message(reply_token, line_messages)
 
     def push(self, channel_user_id, messages, formatted=False):
         """
@@ -373,7 +375,7 @@ class LineAdapter(Adapter):
             else:
                 response = Response(messages=[Message(text=messages)] if isinstance(messages, str) else [messages] if isinstance(messages, Message) else messages)
                 response = self.format_response(response)
-            self.line_bot_api.push_message(to=channel_user_id, messages=response.for_channel)
+            self.api.push_message(to=channel_user_id, messages=response.for_channel)
             response.milliseconds = int((time() - start_time) * 1000)
             success = True
             self.minette.message_logger.write(push_request, response, session, connection)
@@ -393,7 +395,7 @@ class LineAdapter(Adapter):
         if not user.channel_user_id:
             return
         try:
-            profile = self.line_bot_api.get_profile(user.channel_user_id)
+            profile = self.api.get_profile(user.channel_user_id)
             user.name = profile.display_name
             user.profile_image_url = profile.picture_url
         except Exception as ex:
