@@ -44,6 +44,26 @@ class User(JsonSerializable):
         self.profile_image_url = ""
         self.data = {}
 
+    @classmethod
+    def from_dict(cls, data):
+        """
+        Restore user object from dict
+
+        Parameters
+        ----------
+        data : dict
+            Dictionary that has attributes of user
+
+        Returns
+        -------
+        session : User
+            Instance of User
+        """
+        user = cls(data["channel"], data["channel_user_id"])
+        for k, v in data.items():
+            setattr(user, k, v)
+        return user
+
 
 class UserRepository:
     """

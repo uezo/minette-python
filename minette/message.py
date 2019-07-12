@@ -7,6 +7,7 @@ import copy
 from minette.util import date_to_str, str_to_date, date_to_unixtime, get_class
 from minette.serializer import JsonSerializable, encode_json, decode_json
 from minette.session import Priority
+from minette.user import User
 from minette.performance import PerformanceInfo
 
 
@@ -250,6 +251,7 @@ class Message(JsonSerializable):
         """
         message = super().from_dict(data, as_args=False)
         message.timestamp = str_to_date(message.timestamp)
+        message.user = User.from_dict(message.user)
         message.payloads = Payload.from_dict_list(message.payloads)
         return message
 
