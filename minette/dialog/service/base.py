@@ -87,7 +87,7 @@ class DialogService:
 
             # process request
             self.process_request(request, session, connection)
-            performance.append("dialog_service.get_slots")
+            performance.append("dialog_service.process_request")
 
             # compose response
             response_messages = self.compose_response(request, session, connection)
