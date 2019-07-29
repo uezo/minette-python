@@ -2,9 +2,7 @@
 from logging import Logger
 import traceback
 from time import time
-import random
-from threading import Thread
-from queue import Queue
+from concurrent.futures import ThreadPoolExecutor
 from minette import Minette
 from minette.message import Message, Payload, Group, Response
 from minette.channel import Adapter
@@ -19,47 +17,6 @@ from linebot.models import (
     VideoSendMessage, LocationSendMessage, StickerSendMessage,
     ImagemapSendMessage, TemplateSendMessage, FlexSendMessage
 )
-
-
-class WorkerThread(Thread):
-    """
-    Worker for processing queued requests
-
-    Attributes
-    ----------
-    adapter : LineAdapter
-        Adapter for LINE Messaging API
-    queue : Queue
-        Request queue
-    """
-
-    def __init__(self, adapter):
-        """
-        Parameters
-        ----------
-        adapter : LineAdapter
-            Adapter for LINE Messaging API
-        """
-        super().__init__()
-        self.adapter = adapter
-        self.queue = Queue()
-        self.processing = ""
-
-    def run(self):
-        """
-        Run the loop for processing queued requests
-        """
-        while True:
-            try:
-                message, reply_token, self.processing = self.queue.get()
-                response = self.adapter.minette.chat(message)
-                line_messages = [self.adapter.to_line_message(m) for m in response.messages]
-                if line_messages:
-                    self.adapter.reply(line_messages, reply_token)
-            except Exception as ex:
-                self.adapter.logger.error("{}: Error occured in processing queue message: {}: ".format(self.name, message.id) + str(ex) + "\n" + traceback.format_exc())
-            finally:
-                self.processing = ""
 
 
 class LineAdapter(Adapter):
@@ -87,7 +44,7 @@ class LineAdapter(Adapter):
     """
 
     def __init__(self, minette, channel_secret,
-                 channel_access_token, *, api=None, threads=16, logger=None, debug=False):
+                 channel_access_token, *, api=None, threads=None, logger=None, debug=False):
         """
         Parameters
         ----------
@@ -112,9 +69,12 @@ class LineAdapter(Adapter):
         self.parser = WebhookParser(self.channel_secret)
         self.api = api or LineBotApi(self.channel_access_token)
         self.threads = threads
-        if self.threads:
-            self.thread_pool = []
-            self.prepare_thread_pool()
+        if self.threads != 0:
+            self.logger.info("Using worker threads to handle events")
+            self.executor = ThreadPoolExecutor(max_workers=self.threads, thread_name_prefix="Thread")
+        else:
+            self.logger.info(f"Using main thread to handle events")
+            self.executor = None
         self.minette.dialog_router.helpers["line_adapter"] = self
         if self.minette.task_scheduler:
             self.minette.task_scheduler.helpers["line_adapter"] = self
@@ -138,15 +98,10 @@ class LineAdapter(Adapter):
         try:
             events = self.parser.parse(request_data_as_text, request_headers.get("X-Line-Signature", ""))
             for ev in events:
-                message = self.to_minette_message(ev)
-                reply_token = ev.reply_token if hasattr(ev, "reply_token") else ""
-                if self.threads:
-                    self.assign_worker(message, reply_token)
+                if self.executor:
+                    self.executor.submit(self.handle_event, ev)
                 else:
-                    response = self.minette.chat(message)
-                    line_messages = [self.to_line_message(m) for m in response.messages]
-                    if line_messages:
-                        self.reply(line_messages, reply_token)
+                    self.handle_event(ev)
             return Response(messages=[Message(text="done", type="system")])
         except InvalidSignatureError as ise:
             self.logger.error("Request signiture is invalid: " + str(ise) + "\n" + traceback.format_exc())
@@ -154,6 +109,22 @@ class LineAdapter(Adapter):
         except Exception as ex:
             self.logger.error("Request parsing error: " + str(ex) + "\n" + traceback.format_exc())
             return Response(messages=[Message(text="failure in parsing request", type="system")])
+
+    def handle_event(self, event):
+        """
+        Handle event and reply message
+
+        Parameters
+        ----------
+        event : Event
+            Event data from LINE Messaging API
+        """
+        message = self.to_minette_message(event)
+        reply_token = event.reply_token if hasattr(event, "reply_token") else ""
+        response = self.minette.chat(message)
+        line_messages = [self.to_line_message(m) for m in response.messages]
+        if line_messages:
+            self.reply(line_messages, reply_token)
 
     def to_minette_message(self, event):
         """
@@ -270,60 +241,6 @@ class LineAdapter(Adapter):
             return FlexSendMessage(alt_text=message.text, contents=payload.content, quick_reply=quick_reply)
         else:
             return None
-
-    def prepare_thread_pool(self):
-        """
-        Create worker threads and put into thread pool
-        """
-        # remove dead worker threads
-        for t in self.thread_pool[:]:
-            if not t.is_alive():
-                self.thread_pool.remove(t)
-                self.logger.warn("Remove: {} is not alive".format(t.name))
-        # create new worker threads
-        if len(self.thread_pool) < self.threads:
-            self.logger.info("Create {} worker thread(s)".format(str(self.threads - len(self.thread_pool))))
-            for i in range(self.threads - len(self.thread_pool)):
-                worker = WorkerThread(self)
-                worker.start()
-                self.thread_pool.append(worker)
-
-    def assign_worker(self, message, reply_token):
-        """
-        Put message into worker thread's queue
-
-        Parameters
-        ----------
-        message : Message
-            Message to process
-        reply_token : str
-            ReplyToken for this request
-
-        Returns
-        -------
-        worker : WorkerThread
-            Worker thread to process the user's request
-        """
-        # determine processing key
-        processing_key = message.group.id if message.group else message.channel_user_id
-        # remove dead workers
-        self.prepare_thread_pool()
-        # get worker that is processing current user's / group's request
-        user_workers = [t for t in self.thread_pool if t.processing == processing_key]
-        if user_workers:
-            worker = user_workers[0]
-            self.logger.info("Use {} that is now processing {}'s request".format(worker.name, processing_key))
-        else:
-            # use free worker
-            free_workers = [t for t in self.thread_pool if not t.processing]
-            if free_workers:
-                worker = random.choice(free_workers)
-            # choice worker randomly if all workers are busy
-            else:
-                worker = random.choice(self.thread_pool)
-                self.logger.warn("All threads are busy. Use {} to process {}'s request later".format(worker.name, processing_key))
-        # put message into worker's queue
-        worker.queue.put((message, reply_token, processing_key))
 
     def reply(self, line_messages, reply_token):
         """
