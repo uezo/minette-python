@@ -1,17 +1,25 @@
 # Minette for Python
-Minette is a micro bot framework. Session and user management, Natural language analyzing and architecture for multi-skill/character bot are ready-to-use.
+Minette is a minimal and extensible chatbot framework. It is extremely easy to develop and the architecture preventing to be spaghetti code enables you to scale up to complex chatbot.
+
 
 ## Caution
 
-Destructive change from version 0.1
+__Destructive change from version 0.3__
 
-If you need version 0.1 install from github.
+- Some packages are deprecated. All standard classes can be imported from `minette`.
+- The way to create instance of `Minette` is changed. (just call constructor)
+- `Session` is renamed to `Context`. The arguments named `session` is also changed.
+- `minette.user.User#save()` is deleted. Create `UserStore` and call `save(user)` instead.
+- `SessionStore` -> `ContextStore`, `UserRepository` -> `UserStore`, `MessageLogger` -> `MessageLogStore`
+- HTTP request handler method of `LineAdapter` is changed to `handle_http_request`.
+
+If you need version 0.3 install from github.
 
 ```
-$ pip install git+https://github.com/uezo/minette-python.git@v0.1
+$ pip install git+https://github.com/uezo/minette-python.git@v0.3
 ```
 
-## Installation
+# Installation
 
 To install minette, simply:
 
@@ -25,17 +33,17 @@ If you want to get the newest version, install from this Github repository.
 $ pip install git+https://github.com/uezo/minette-python
 ```
 
-## Running the echo bot
+# Running the echo bot
 
-Code like below and run.
+Running echo bot is extremely easy.
 
 ```python
-from minette import Minette
+from minette import Minette, EchoDialogService
 
-# Create bot
-bot = Minette.create(default_dialog_service=EchoDialogService)
+# Create chatbot instance using EchoDialogService
+bot = Minette(default_dialog_service=EchoDialogService)
 
-# Start conversation
+# Send and receive messages
 while True:
     req = input("user> ")
     res = bot.chat(req)
@@ -49,37 +57,326 @@ user> hello
 minette> You said: hello
 ```
 
-## Architecture of Minette
+Creating LINE bot is also super easy.
 
-To create a bot, developers just implement `DialogService(s)` to process the application logic and compose the response message to the user and `DialogRouter` to extract intents and entities from what the user is saying to route the proper DialogService.
+```python
+from flask import Flask, request
+from minette import Minette, EchoDialogService
+from minette.adaper.lineadapter import LineAdapter
+
+# Create chatbot wrapped by LINE adapter
+bot = LineAdapter(default_dialog_service=EchoDialogService)
+
+# Create web server and its request handler
+app = Flask(__name__)
+
+@app.route("/", methods=["POST"])
+def handle_webhook():
+    bot.handle_http_request(request.data, request.headers)
+
+# Start web server
+app.run(port=12345)
+```
+
+# Supported Platforms
+
+Python 3.5 or higher is supported. Mainly developed using Python 3.6.6 on Mac OSX.
+
+## Messaging Service
+
+- LINE
+- Clova
+- Symphony
+
+You can connect to other messaging services by extending `minette.Adapter`.
+
+## Database
+
+- SQLite
+- Azure SQL Database
+- Azure Table Storage
+- MySQL (Tested on 8.0.13)
+
+You can use other databases you like by extending the classes in `minette.datastore` package. (Context / User / MessageLog)
+
+## Tagger
+
+- MeCab
+- Janome
+
+You can use other morphological engines including cloud services and for other languages by extending `minette.Tagger`.
+To setup and use MeCab and Janome Tagger, see the Appendix at the bottom of this page.
+
+# Dependencies
+
+(Required)
+- requests >= 2.21.0
+- pytz >= 2018.9
+- schedule >= 0.6.0
+
+(Optional)
+- line-bot-sdk >= 1.12.1 (for LINE)
+- clova-cek-sdk >= 1.1.1
+- sym-api-client-python >= 0.1.16 (for Symphony)
+- pyodbc >= 4.0.26 (for Azure SQL Databsae)
+- azure-cosmosdb-table >= 1.0.5 (for Azure Table Storage)
+- MySQLdb (for MySQL)
+- mecab-python3 == 0.7 (for MeCabTagger. Latest version has a critical bug)
+- Janome >= 0.3.8 (for Janome Tagger)
+
+# Features
+
+To create a bot, developers just implement `DialogService(s)` and `DialogRouter`.
+
+- DialogService: process the application logic and compose the response message to the user
+- DialogRouter: extract intents and entities from request message to route the proper DialogService
 
 [![Architecture](http://uezo.net/img/minette_architecture.png)](http://uezo.net/img/minette_architecture.png)
 
-Any other common operations (e.g. session management) are done by Minette framework.
+Any other common operations (e.g. context management) are done by framework.
 
-## Session management (Context management)
-Minette provides a data store that enables your bot to continue conversasion accross the requests like HTTP Session. Default SessionStore uses Sqlite but you can make custom SessionStore and change to any database you like.
+## Context management
+Minette provides a data store that enables your bot to continue conversasion accross the requests like HTTP Session.
+
+Set data
+```python
+# to use context data at the next request, set `True` to `context.topic.keep_on` in DialogService
+context.data["pizza_name"] = "Seafood Pizza"
+context.topic.keep_on = True
+```
+
+Get data
+```python
+pizza_name = context.data["pizza_name"]
+```
 
 ## User management
-Users are identified by internal UserIDs which are given at the first access to the bot. The UserID is determined by the channel (e.g. CONSOLE, LINE, etc) and the user_id of the channel. Minette stores the data of users in Sqlite automatically and you can get (or update) it from User object.
+Users are identified by the Channel (e.g LINE, FB Messanger etc) and the UserID for the Channel. Each users are automatically registered at the first access and each changes for user is saved automatically.
+
+```python
+# framework saves the updated user info automatically and keep them until the app delete them
+request.user.nickname = "uezo"
+request.user.data["horoscope"] = "cancer"
+```
+
+## Natural language analyzing
+Taggers are the components for analyzing the text of request and the result will be automatically set to request object. Minette has 3 built-in taggers for Japanese - MeCabTagger, MeCabServiceTagger and JanomeTagger.
+
+```python
+>>> from minette import *
+>>> tagger = MeCabServiceTagger()
+Do not use default API URL for the production environment. This is for trial use only. Install MeCab and use MeCabTagger instead.
+>>> words = tagger.parse("今日は良い天気です")
+>>> words[0].to_dict()
+{'surface': '今日', 'part': '名詞', 'part_detail1': '副詞可能', 'part_detail2': '', 'part_detail3': '', 'stem_type': '', 'stem_form': '', 'word': '今日', 'kana': 'キョウ', 'pronunciation': 'キョー'}
+```
 
 ## Task scheduler
-Built-in task scheduler is ready-to-use. Your chatbot can do regular jobs without cron and the jobs can use chatbot resources like user repository.
+Built-in task scheduler is ready-to-use. Your chatbot can run periodic jobs without cron.
 
-## Natural Language Analyzing
-Taggers are the components for analyzing the text of request and the result will be set to `request.words` property. Minette has 3 built-in taggers - MeCabTagger, JanomeTagger and GoogleTagger.
+```python
+class MyTask(Task):
+    # implement periodic task in `do` method
+    def do(self, arg1, arg2):
+        # The Logger of scheduler is available in each tasks
+        self.logger.info("Task started!: {} / {}".format(arg1, arg2))
 
-### Janome Tagger
-JanomeTagger uses Janome which is Japanese morphological analyzer written in pure Python.
+# Create Scheculer
+sc = Scheduler()
+# Register the task. This task runs every 3 seconds
+sc.every_seconds(MyTask, seconds=3, arg1="val1", arg2="val2")
+# Start the scheduler
+sc.start()
+```
 
-#### Install dependency
+## Message Log
+Request, response and context at each turns are stored as Message Log. It provides you the very useful information to debug and improve your chatbot.
+
+# Sample codes
+
+These codes are included in `examples` if you want to try mmediately.
+
+## Dice bot
+
+This example shows you how to implement your logic and build the reply message using the result of logic.
+
+```python
+import random
+from minette import Minette, DialogService
+
+
+# Custom dialog service
+class DiceDialogService(DialogService):
+    # Process logic and build context data
+    def process_request(self, request, context, connection):
+        context.data = {
+            "dice1": random.randint(1, 6),
+            "dice2": random.randint(1, 6)
+        }
+
+    # Compose response message using context data
+    def compose_response(self, request, context, connection):
+        return "Dice1:{} / Dice2:{}".format(
+            str(context.data["dice1"]), str(context.data["dice2"]))
+
+
+if __name__ == "__main__":
+    # Create bot
+    bot = Minette(default_dialog_service=DiceDialogService)
+    # Start conversation
+    while True:
+        req = input("user> ")
+        res = bot.chat(req)
+        for message in res.messages:
+            print("minette> " + message.text)
+```
+
+Run it.
+
+```
+$ python dice.py
+
+user> dice
+minette> Dice1:1 / Dice2:2
+user> more
+minette> Dice1:4 / Dice2:5
+user> 
+minette> Dice1:6 / Dice2:6
+```
+
+## Translation bot
+
+This example shows;
+- how to make the successive conversation using context
+- how to extract intent from what user is saying and route the proper DialogService
+- how to configure API Key using configuration file (minette.ini)
+
+```python
+"""
+Translation Bot
+
+Notes
+Signup Microsoft Cognitive Services and get API Key for Translator Text API
+https://azure.microsoft.com/ja-jp/services/cognitive-services/
+
+"""
+from datetime import datetime
+import requests
+from minette import (
+    Minette,
+    DialogRouter,
+    DialogService,
+    EchoDialogService   # built-in EchoDialog
+)
+
+class TranslationDialogService(DialogService):
+    # Process logic and build context data
+    def process_request(self, request, context, connection):
+        # Just set the topic.status at the start and the end of translation dialog
+        if context.topic.is_new:
+            context.topic.status = "start_translation"
+
+        elif request.text == "stop":
+            context.topic.status = "end_translation"
+
+        # Translate to Japanese
+        else:
+            # translate using Azure Cognitive Services
+            api_url = "https://api.cognitive.microsofttranslator.com/translate?api-version=3.0&to=ja"
+            headers = {
+                # set `translation_api_key` at the `minette` section in `minette.ini`
+                #
+                # [minette]
+                # translation_api_key=YOUR_TRANSLATION_API_KEY
+                "Ocp-Apim-Subscription-Key": self.config.get("translation_api_key"),
+                "Content-type": "application/json"
+            }
+            data = [{"text": request.text}]
+            api_result = requests.post(api_url, headers=headers, json=data).json()
+            # set translated text to context
+            context.data["translated_text"] = api_result[0]["translations"][0]["text"]
+            context.topic.status = "process_translation"
+
+    # Compose response message
+    def compose_response(self, request, context, connection):
+        if context.topic.status == "start_translation":
+            context.topic.keep_on = True
+            return "Input words to translate into Japanese"
+        elif context.topic.status == "end_translation":
+            return "Translation finished"
+        elif context.topic.status == "process_translation":
+            context.topic.keep_on = True
+            return request.text + " in Japanese: " + context.data["translated_text"]
+
+
+class MyDialogRouter(DialogRouter):
+    # Configure intent->dialog routing table
+    def register_intents(self):
+        self.intent_resolver = {
+            # If the intent is "TranslationIntent" then use TranslationDialogService
+            "TranslationIntent": TranslationDialogService,
+            "EchoIntent": EchoDialogService
+        }
+
+    # Implement the intent extraction logic
+    def extract_intent(self, request, context, connection):
+        # Return TranslationIntent if request contains "translat"
+        if "translat" in request.text.lower():
+            return "TranslationIntent"
+
+        # Return EchoIntent if request is not "ignore"
+        # If "ignore", chatbot doesn't return reply message.
+        elif request.text.lower() != "ignore":
+            return "EchoIntent"
+
+
+if __name__ == "__main__":
+    # Create bot
+    bot = Minette(dialog_router=MyDialogRouter)
+
+    # Start conversation
+    while True:
+        req = input("user> ")
+        res = bot.chat(req)
+        for message in res.messages:
+            print("minette> " + message.text)
+```
+
+Let's talk to your chatbot!
+
+```
+$ python translation.py
+
+user> hello
+minette> You said: hello
+user> ignore
+user> okay
+minette> You said: okay
+user> translate
+minette> Input words to translate into Japanese
+user> I'm feeling happy
+minette> I'm feeling happy in Japanese: 幸せな気分だ
+user> My favorite food is soba
+minette> My favorite food is soba in Japanese: 私の好きな食べ物はそばです。
+user> stop
+minette> Translation finished
+user> thank you
+minette> You said: thank you
+```
+
+# License
+This software is licensed under the Apache v2 License.
+
+# Appendix
+
+## Setup Janome Tagger
+
+### Install dependency
 ```
 $ pip install janome
 ```
 
-#### Usage
-
-Just create bot instance with JanomeTagger.
+### Usage
 
 ```python
 from minette.tagger.janometagger import JanomeTagger
@@ -94,11 +391,9 @@ If you have a user dictionary in MeCab IPADIC format, configure like below in mi
 janome_userdic = /path/to/userdic.csv
 ```
 
+## Setup MeCab Tagger
 
-### MeCab Tagger
-MeCabTagger uses MeCab which is one of the most popular Japanese morphological analyzer. This provides all information of MeCab nodes. To use this tagger, MeCab and its binding for Python are required.
-
-#### Installing MeCab
+### Installing MeCab
 - Ubuntu 16.04
 ```
 $ sudo apt-get install mecab libmecab-dev mecab-ipadic
@@ -109,302 +404,15 @@ $ sudo apt-get install mecab-ipadic-utf8
 $ brew install mecab mecab-ipadic git curl xz
 ```
 
-#### Installing Binding
+### Installing python binding
 ```
 $ pip install mecab-python3
 ```
 
-#### Usase
+### Usase
 ```python
 from minette.tagger.mecab import MeCabTagger
 bot = Minette.create(
     tagger=MeCabTagger
 )
-```
-
-
-### Google Tagger
-GoogleTagger uses Cloud Natural Language API. This separates text into words and provides tags for each of them. (e.g. NOUN, VERB, ADJ ...)
-
-#### Usase
-```python
-from minette.tagger.google import GoogleTagger
-bot = Minette.create(
-    tagger=GoogleTagger(api_key="your api key")
-)
-```
-
-## Adding custom skill
-Here is the example of Random Dice Bot.
-
-```python
-import random
-from minette import Minette
-from minette.dialog import DialogService
-
-
-# Custom dialog service
-class DiceDialogService(DialogService):
-    # Process logic and build session data
-    def process_request(self, request, session, connection):
-        session.data = {
-            "dice1": random.randint(1, 6),
-            "dice2": random.randint(1, 6)
-        }
-
-    # Compose response message using session data
-    def compose_response(self, request, session, connection):
-        return "Dice1:{} / Dice2:{}".format(str(session.data["dice1"]), str(session.data["dice2"]))
-
-if __name__ == "__main__":
-    # Create bot
-    bot = Minette.create(default_dialog_service=DiceDialogService)
-    # Start conversation
-    while True:
-        req = input("user> ")
-        res = bot.chat(req)
-        for message in res.messages:
-            print("minette> " + message.text)
-```
-
-Run and say something to the bot.
-```
-user> dice
-minette> Dice1:2 / Dice2:5
-```
-
-## License
-This software is licensed under the Apache v2 License.
-
-# Sample Codes
-
-## Echo bot
-The first bot that just echoes what you say.
-```python
-import minette
-
-# create bot
-bot = minette.create()
-
-# start conversation
-while True:
-    req = input("user> ")
-    res = bot.chat(req)
-    for message in res.messages:
-        print("minette> " + message.text)
-```
-```
-user> hello
-minette> You said:hello
-```
-
-## Greeting Bot
-The simplest structure.
-```python
-from datetime import datetime
-from minette import Minette
-from minette.dialog import DialogService
-
-# Custom dialog service
-class GreetingDialogService(DialogService):
-    # Compose response message
-    def compose_response(self, request, session, connection):
-        now = datetime.now()
-        phrase = "It's " + now.strftime("%H:%M") + " now. "
-        if now.hour < 12:
-            phrase += "Good morning"
-        elif now.hour < 18:
-            phrase += "Hello"
-        else:
-            phrase += "Good evening"
-        return phrase
-
-if __name__ == "__main__":
-    # Create bot
-    bot = Minette.create(default_dialog_service=GreetingDialogService)
-    # Start conversation
-    while True:
-        req = input("user> ")
-        res = bot.chat(req)
-        for message in res.messages:
-            print("minette> " + message.text)
-```
-```
-user> hello
-minette> Good morning
-```
-
-## Dice Bot
-Override process_request method to execute application logic and compose_response method to compose the response message.
-```python
-import random
-from minette import Minette
-from minette.dialog import DialogService
-
-# Custom dialog service
-class DiceDialogService(DialogService):
-    # Process logic and build session data
-    def process_request(self, request, session, connection):
-        session.data = {
-            "dice1": random.randint(1, 6),
-            "dice2": random.randint(1, 6)
-        }
-
-    # Compose response message using session data
-    def compose_response(self, request, session, connection):
-        return "Dice1:{} / Dice2:{}".format(str(session.data["dice1"]), str(session.data["dice2"]))
-
-if __name__ == "__main__":
-    # Create bot
-    bot = Minette.create(default_dialog_service=DiceDialogService)
-    # Start conversation
-    while True:
-        req = input("user> ")
-        res = bot.chat(req)
-        for message in res.messages:
-            print("minette> " + message.text)
-```
-
-## Multi-skill Bot
-Switching GreetingDialogService and DiceDialogService using `DialogRouter`.
-
-```python
-import random
-from datetime import datetime
-from minette import Minette
-from minette.dialog import DialogRouter, DialogService, EchoDialogService
-
-class GreetingDialogService(DialogService):
-    def compose_response(self, request, session, connection):
-        now = datetime.now()
-        phrase = "It's " + now.strftime("%H:%M") + " now. "
-        if now.hour < 12:
-            phrase += "Good morning"
-        elif now.hour < 18:
-            phrase += "Hello"
-        else:
-            phrase += "Good evening"
-        return phrase
-
-class DiceDialogService(DialogService):
-    # Process logic and build session data
-    def process_request(self, request, session, connection):
-        session.data = {
-            "dice1": random.randint(1, 6),
-            "dice2": random.randint(1, 6)
-        }
-    # Compose response message using session data
-    def compose_response(self, request, session, connection):
-        return "Dice1:{} / Dice2:{}".format(str(session.data["dice1"]), str(session.data["dice2"]))
-
-class MyDialogRouter(DialogRouter):
-    # Configure intent->dialog routing table
-    def configure(self):
-        self.intent_resolver = {
-            "DiceIntent": DiceDialogService, 
-            "GreetingIntent": GreetingDialogService
-        }
-
-    # Set DiceIntent when user says "dice" or GreetingIntent when user says "hello"
-    def extract_intent(self, request, session, connection):
-        if request.text.lower() == "dice":
-            return "DiceIntent"
-        elif request.text.lower() == "hello":
-            return "GreetingIntent"
-
-if __name__ == "__main__":
-    # Create bot
-    bot = Minette.create(dialog_router=MyDialogRouter, default_dialog_service=EchoDialogService)
-    # Start conversation
-    while True:
-        req = input("user> ")
-        res = bot.execute(req)
-        for message in res:
-            print("minette> " + message.text)
-```
-
-```
-user> hello
-minette> Good morning
-user> はろー
-minette> You said: はろー
-user> dice
-minette> Dice1:2 / Dice2:4
-```
-
-## Continue topic
-Switching translation and echo using session.
-You can switch to the `translation` mode by saying "翻訳して" and switch back to echo by saying "翻訳終わり".
-
-```python
-from datetime import datetime
-import requests
-from minette import Minette
-from minette.dialog import DialogRouter, DialogService, EchoDialogService
-
-
-class TranslationDialogService(DialogService):
-    # Process logic and build session data
-    def process_request(self, request, session, connection):
-        if session.topic.is_new:
-            session.topic.status = "start_translation"
-        elif request.text == "翻訳終わり":
-            session.topic.status = "end_translation"
-        else:
-            res = requests.post("https://translation.googleapis.com/language/translate/v2", data={
-                "key": self.config.get("google_api_key"),
-                "q": request.text,
-                "target": "ja"
-            }).json()
-            session.data["translated_text"] = res["data"]["translations"][0]["translatedText"].replace("&#39;", "'")
-            session.topic.status = "process_translation"
-
-    # Compose response message
-    def compose_response(self, request, session, connection):
-        if session.topic.status == "start_translation":
-            session.topic.keep_on = True
-            return "日本語に翻訳します。英語を入力してください"
-        elif session.topic.status == "end_translation":
-            return "翻訳を終了しました"
-        elif session.topic.status == "process_translation":
-            session.topic.keep_on = True
-            return request.text + " in Japanese: " + session.data["translated_text"]
-
-
-class MyDialogRouter(DialogRouter):
-    # Configure intent->dialog routing table
-    def configure(self):
-        self.intent_resolver = {"TranslationIntent": TranslationDialogService}
-
-    # Set TranslationIntent when user said something contains "翻訳"
-    def extract_intent(self, request, session, connection):
-        if request.text == "翻訳":
-            return "TranslationIntent"
-
-
-if __name__ == "__main__":
-    # Create bot
-    bot = Minette.create(dialog_router=MyDialogRouter, default_dialog_service=EchoDialogService)
-
-    # Start conversation
-    while True:
-        req = input("user> ")
-        res = bot.chat(req)
-        for message in res.messages:
-            print("minette> " + message.text)
-```
-
-```
-user> hello
-minette> You said: hello
-user> 翻訳
-minette> 日本語に翻訳します。英語を入力してください
-user> hello
-minette> hello in Japanese: こんにちは
-user> Good
-minette> Good in Japanese: 良い
-user> 翻訳終わり
-minette> 翻訳を終了しました
-user> テスト
-minette> You said: テスト
 ```

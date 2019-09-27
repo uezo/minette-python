@@ -1,1 +1,0 @@
-from minette.channel.adapter import Adapter

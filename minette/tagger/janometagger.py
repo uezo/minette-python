@@ -1,17 +1,19 @@
 """ tagger using janome """
 import traceback
-from minette.tagger import WordNode, Tagger
 from janome.tokenizer import Tokenizer
+
+from ..models import WordNode
+from .base import Tagger
 
 
 class JanomeNode(WordNode):
     """
-    Parsed word by Janome
+    Parsed word node by Janome
 
     Attributes
     ----------
     surface : str
-        Surface of the word
+        Surface of word
     part : str
         Part of the word
     part_detail1 : str
@@ -31,57 +33,64 @@ class JanomeNode(WordNode):
     pronunciation : str
         Pronunciation of the word
     """
-    def __init__(self, token):
+
+    @classmethod
+    def create(cls, surface, features):
         """
+        Create instance of JanomeNode
+
         Parameters
         ----------
         surface : str
             Surface of the word
-        features : list
+        features : janome.Token
             Features analyzed by Janome
         """
-        self.surface = token.surface
-        ps = token.part_of_speech.split(",")
-        self.part = ps[0] if len(ps) > 1 and ps[0] != "*" else ""
-        self.part_detail1 = ps[1] if len(ps) > 2 and ps[1] != "*" else ""
-        self.part_detail2 = ps[2] if len(ps) > 3 and ps[2] != "*" else ""
-        self.part_detail3 = ps[3] if len(ps) > 4 and ps[3] != "*" else ""
-        self.stem_type = token.infl_type if token.infl_type != "*" else ""
-        self.stem_form = token.infl_form if token.infl_form != "*" else ""
-        self.word = token.base_form if token.base_form != "*" else ""
-        self.kana = token.reading if token.reading != "*" else ""
-        self.pronunciation = token.phonetic if token.phonetic != "*" else ""
+        ps = features.part_of_speech.split(",")
+        return cls(
+            surface=surface,
+            part=ps[0] if len(ps) > 1 and ps[0] != "*" else "",
+            part_detail1=ps[1] if len(ps) > 2 and ps[1] != "*" else "",
+            part_detail2=ps[2] if len(ps) > 3 and ps[2] != "*" else "",
+            part_detail3=ps[3] if len(ps) > 4 and ps[3] != "*" else "",
+            stem_type=features.infl_type if features.infl_type != "*" else "",
+            stem_form=features.infl_form if features.infl_form != "*" else "",
+            word=features.base_form if features.base_form != "*" else "",
+            kana=features.reading if features.reading != "*" else "",
+            pronunciation=features.phonetic if features.phonetic != "*" else ""
+        )
 
 
 class JanomeTagger(Tagger):
     """
-    Word tagger using Janome
+    Tagger using Janome
 
     Attributes
     ----------
-    logger : Logger
+    config : minette.Config
+        Configuration
+    timezone : pytz.timezone
+        Timezone
+    logger : logging.Logger
         Logger
-    config : Config
-        Configuration of this chatbot
-    timezone : timezone
-        Timezone of this chatbot
     """
 
-    def __init__(self, user_dic=None, logger=None, config=None, timezone=None):
+    def __init__(self, config=None, timezone=None, logger=None, *,
+                 user_dic=None, **kwargs):
         """
         Parameters
         ----------
-        user_dic : str, default None
-             Path for user dictionary (MeCab IPADIC format)
+        config : Config, default None
+            Configuration
+        timezone : timezone, default None
+            Timezone
         logger : Logger, default None
             Logger
-        config : Config, default None
-            Configuration of this chatbot
-        timezone : timezone, default None
-            Timezone of this chatbot
+        user_dic : str, default None
+             Path to user dictionary (MeCab IPADIC format)
         """
         super().__init__(logger=logger, config=config, timezone=timezone)
-        self.user_dic = user_dic if user_dic else config.get("janome_userdic")
+        self.user_dic = user_dic or config.get("janome_userdic") if config else None
         if self.user_dic:
             self.tokenizer = Tokenizer(self.user_dic, udic_enc="utf8", mmap=True)
         else:
@@ -89,7 +98,7 @@ class JanomeTagger(Tagger):
 
     def parse(self, text):
         """
-        Analyze and parse text
+        Parse and annotate using Janome
 
         Parameters
         ----------
@@ -98,15 +107,17 @@ class JanomeTagger(Tagger):
 
         Returns
         -------
-        words : [JanomeNode]
-            Jaonome word nodes
+        words : list of minette.minette.tagger.janometagger.JanomeNode
+            Janome nodes
         """
         ret = []
         if not text:
             return ret
         try:
             for token in self.tokenizer.tokenize(text, stream=True):
-                ret.append(JanomeNode(token))
+                ret.append(JanomeNode.create(token.surface, token))
         except Exception as ex:
-            self.logger.error("Janome parsing error: " + str(ex) + "\n" + traceback.format_exc())
+            self.logger.error(
+                "Janome parsing error: "
+                + str(ex) + "\n" + traceback.format_exc())
         return ret

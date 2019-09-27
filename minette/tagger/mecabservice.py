@@ -1,17 +1,19 @@
-""" tagger using mecab-service """
-import requests
+""" Tagger using mecab-service """
 import traceback
-from minette.tagger import WordNode, Tagger
+import requests
+
+from ..models import WordNode
+from .base import Tagger
 
 
 class MeCabServiceNode(WordNode):
     """
-    Parsed word by MeCabServiceNode
+    Parsed word node by MeCabServiceTagger
 
     Attributes
     ----------
     surface : str
-        Surface of the word
+        Surface of word
     part : str
         Part of the word
     part_detail1 : str
@@ -31,30 +33,73 @@ class MeCabServiceNode(WordNode):
     pronunciation : str
         Pronunciation of the word
     """
-    def __init__(self, node):
+
+    @classmethod
+    def create(cls, surface, features):
         """
+        Create instance of MeCabServiceNode
+
         Parameters
         ----------
-        node : dict
-            Nodes analyzed by MeCabService
+        surface : str
+            Surface of the word
+        features : dict
+            Features analyzed by MeCabService
         """
-        self.surface = node["surface"]
-        self.part = node["part"]
-        self.part_detail1 = node["part_detail1"]
-        self.part_detail2 = node["part_detail2"]
-        self.part_detail3 = node["part_detail3"]
-        self.stem_type = node["stem_type"]
-        self.stem_form = node["stem_form"]
-        self.word = node["word"]
-        self.kana = node["kana"]
-        self.pronunciation = node["pronunciation"]
+        return cls(
+            surface=surface,
+            part=features["part"],
+            part_detail1=features["part_detail1"],
+            part_detail2=features["part_detail2"],
+            part_detail3=features["part_detail3"],
+            stem_type=features["stem_type"],
+            stem_form=features["stem_form"],
+            word=features["word"],
+            kana=features["kana"],
+            pronunciation=features["pronunciation"]
+        )
 
 
 class MeCabServiceTagger(Tagger):
-    def __init__(self, logger=None, config=None, timezone=None):
-        super().__init__(logger=logger, config=config, timezone=timezone)
-        self.api_url = "https://api.uezo.net/mecab/parse"
-        self.logger.warn("Do not use MeCabService tagger for the production environment. This is for trial use only. Install MeCab and use MeCabTagger instead.")
+    """
+    Tagger using mecab-service
+
+    Attributes
+    ----------
+    config : minette.Config
+        Configuration
+    timezone : pytz.timezone
+        Timezone
+    logger : logging.Logger
+        Logger
+    api_url : str
+        URL for MeCabService API
+    """
+
+    def __init__(self, config=None, timezone=None, logger=None, *,
+                 api_url=None, **kwargs):
+        """
+        Parameters
+        ----------
+        config : Config, default None
+            Configuration
+        timezone : timezone, default None
+            Timezone
+        logger : Logger, default None
+            Logger
+        api_url : str, default None
+            URL for MeCabService API.
+            If None trial URL is used.
+        """
+        super().__init__(config=config, timezone=timezone, logger=logger)
+        if not api_url:
+            self.api_url = "https://api.uezo.net/mecab/parse"
+            self.logger.warning(
+                "Do not use default API URL for the production environment. "
+                "This is for trial use only. "
+                "Install MeCab and use MeCabTagger instead.")
+        else:
+            self.api_url = api_url
 
     def parse(self, text):
         """
@@ -67,15 +112,20 @@ class MeCabServiceTagger(Tagger):
 
         Returns
         -------
-        words : [MeCabServiceNode]
+        words : list of minette.MeCabServiceNode
             MeCabService nodes
         """
         ret = []
         if not text:
             return ret
         try:
-            parsed_json = requests.post(self.api_url, headers={"content-type": "application/json"}, json={"text": text}, timeout=10).json()
-            ret = [MeCabServiceNode(w) for w in parsed_json["words"]]
+            parsed_json = requests.post(
+                self.api_url, headers={"content-type": "application/json"},
+                json={"text": text}, timeout=10).json()
+            ret = [MeCabServiceNode.create(
+                n["surface"], n["features"]) for n in parsed_json["nodes"]]
         except Exception as ex:
-            self.logger.error("MeCab Service parsing error: " + str(ex) + "\n" + traceback.format_exc())
+            self.logger.error(
+                "MeCab Service parsing error: "
+                + str(ex) + "\n" + traceback.format_exc())
         return ret

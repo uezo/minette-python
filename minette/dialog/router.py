@@ -1,72 +1,94 @@
-""" Base components for route proper dialog for the intent """
-from logging import Logger, getLogger
+""" Base class for DialogRouter that routes proper dialog for the intent """
+from abc import ABC, abstractmethod
 import traceback
-from minette.message import Message
-from minette.dialog import DialogService, ErrorDialogService
+from logging import Logger, getLogger
+
+from ..models import Message
+from .service import DialogService, ErrorDialogService
 
 
 class DialogRouter:
     """
-    Base class of dialog router
+    Base class for DialogRouter
 
     Attributes
     ----------
-    logger : Logger
-        Logger
-    config : Config
+    config : minette.Config
         Configuration
     timezone : timezone
         Timezone
+    logger : logging.Logger
+        Logger
     default_dialog_service : DialogService
-        Default dialog service for unhandled request
-    helpers : dict
-        Helper objects and functions
+        Dialog service used when intent is not clear
     intent_resolver : dict
         Resolver for intent to dialog
     topic_resolver : dict
-        Resolver for topic to dialog
+        Resolver for topic to dialog for successive chatting
     """
-    def __init__(self, logger=None, config=None, timezone=None, default_dialog_service=None, helpers=None):
+
+    def __init__(self, config=None, timezone=None, logger=None,
+                 default_dialog_service=None, **kwargs):
         """
         Parameters
         ----------
-        logger : Logger, default None
-            Logger
-        config : Config, default None
+        config : minette.Config, default None
             Configuration
-        timezone : timezone, default None
+        timezone : pytz.timezone, default None
             Timezone
-        default_dialog_service : DialogService, default None
-            Default dialog service for unhandled request
-        helpers : dict, default None
-            Helper objects and functions
+        logger : logging.Logger, default None
+            Logger
+        default_dialog_service : minette.DialogService or type, default None
+            Dialog service used when intent is not clear.
         """
-        self.logger = logger if logger else logging.getLogger(__name__)
         self.config = config
         self.timezone = timezone
+        self.logger = logger or getLogger(__name__)
         self.default_dialog_service = default_dialog_service or DialogService
-        self.helpers = helpers if helpers else {}
+        # set up intent_resolver
         self.intent_resolver = {}
-        self.topic_resolver = {}
+        self.register_intents()
+        # set up topic_resolver
+        self.topic_resolver = {
+            v.topic_name(): v for v in self.intent_resolver.values() if v}
+        self.topic_resolver[self.default_dialog_service.topic_name()] = \
+            self.default_dialog_service
 
-    def configure(self):
+    def register_intents(self):
         """
-        Configuration after instancing
+        Register intents and the dialog services to process the intents
+
+        >>> self.intent_resolver = {
+            "PizzaOrderIntent": PizzaDialogService,
+            "ChangeAddressIntent": ChangeAddressDialogService,
+        }
         """
         pass
 
-    def init_resolvers(self):
+    def execute(self, request, context, connection, performance):
         """
-        Initialize intent_resolver and topic_resolver
-        """
-        self.topic_resolver = {v.topic_name(): v for v in self.intent_resolver.values() if v}
-        self.topic_resolver[self.default_dialog_service.topic_name()] = self.default_dialog_service
+        Main logic of DialogRouter
 
-    def execute(self, request, session, connection, performance):
-        # route dialog
+        Parameters
+        ----------
+        request : minette.Message
+            Request message
+        context : minette.Context
+            Context
+        connection : Connection
+            Connection
+        performance : minette.PerformanceInfo
+            Performance information
+
+        Returns
+        -------
+        dialog_service : minette.DialogService
+            DialogService to process request message
+        """
         try:
             # extract intent and entities
-            extracted = self.extract_intent(request=request, session=session, connection=connection)
+            extracted = self.extract_intent(
+                request=request, context=context, connection=connection)
             if isinstance(extracted, tuple):
                 request.intent = extracted[0]
                 request.entities = extracted[1]
@@ -76,112 +98,117 @@ class DialogRouter:
                 request.intent = extracted
             performance.append("dialog_router.extract_intent")
             # preprocess before route
-            self.before_route(request, session, connection)
+            self.before_route(request, context, connection)
             performance.append("dialog_router.before_route")
             # route dialog
-            dialog_service = self.route(request, session, connection)
-            if isinstance(dialog_service, type):
-                dialog_service = dialog_service(self.logger, self.config, self.timezone)
+            dialog_service = self.route(request, context, connection)
+            if issubclass(dialog_service, DialogService):
+                dialog_service = dialog_service(
+                    config=self.config, timezone=self.timezone,
+                    logger=self.logger
+                )
             performance.append("dialog_router.route")
         except Exception as ex:
-            self.logger.error("Error occured in dialog_router: " + str(ex) + "\n" + traceback.format_exc())
-            dialog_service = self.handle_exception(request, session, ex, connection)
+            self.logger.error(
+                "Error occured in dialog_router: "
+                + str(ex) + "\n" + traceback.format_exc())
+            dialog_service = \
+                self.handle_exception(request, context, ex, connection)
 
         return dialog_service
 
-    def extract_intent(self, request, session, connection):
+    def extract_intent(self, request, context, connection):
         """
         Extract intent and entities from request message
 
         Parameters
         ----------
-        request : Message
+        request : minette.Message
             Request message
-        session : Session
-            Session
-        exception : Exception
-            Exception
+        context : minette.Context
+            Context
         connection : Connection
             Connection
 
         Returns
         -------
-        response : (str, dict)
+        response : tuple of (str, dict)
             Intent and entities
         """
         return request.intent, request.entities
 
-    def before_route(self, request, session, connection):
+    def before_route(self, request, context, connection):
         """
         Preprocessing for all requests before routing
 
         Parameters
         ----------
-        request : Message
+        request : minette.Message
             Request message
-        session : Session
-            Session
-        exception : Exception
-            Exception
+        context : minette.Context
+            Context
         connection : Connection
             Connection
         """
         pass
 
-    def route(self, request, session, connection):
+    def route(self, request, context, connection):
         """
-        Return DialogService for the topic
+        Return proper DialogService for intent or topic
 
         Parameters
         ----------
-        request : Message
+        request : minette.Message
             Request message
-        session : Session
-            Session
-        exception : Exception
-            Exception
+        context : minette.Context
+            Context
         connection : Connection
             Connection
 
+
         Returns
         -------
-        dialog_service : DialogService
+        dialog_service : minette.DialogService
             Dialog service proper for intent or topic
         """
         # update
-        if request.intent in self.intent_resolver and (request.intent_priority > session.topic.priority or not session.topic.name):
+        if request.intent in self.intent_resolver and (
+                request.intent_priority > context.topic.priority or
+                not context.topic.name):
             dialog_service = self.intent_resolver[request.intent]
             # update topic if request is not adhoc
             if dialog_service and not request.is_adhoc:
-                session.topic.name = dialog_service.topic_name()
-                session.topic.status = ""
-                session.topic.is_new = True
-            # do not update topic when request is adhoc or dialog_service is not registered
+                context.topic.name = dialog_service.topic_name()
+                context.topic.status = ""
+                context.topic.is_new = True
+            # do not update topic when request is adhoc or ds is None
             else:
                 dialog_service = dialog_service or DialogService
-                if session.topic.name:
-                    session.topic.keep_on = True
+                if context.topic.name:
+                    context.topic.keep_on = True
+
         # continue
-        elif session.topic.name:
-            dialog_service = self.topic_resolver[session.topic.name]
-        # default
+        elif context.topic.name:
+            dialog_service = self.topic_resolver[context.topic.name]
+
+        # default (intent not extracted or unknown)
         else:
             dialog_service = self.default_dialog_service
-            session.topic.name = dialog_service.topic_name()
-            session.topic.status = ""
-            session.topic.is_new = True
+            context.topic.name = dialog_service.topic_name()
+            context.topic.status = ""
+            context.topic.is_new = True
         return dialog_service
 
-    def handle_exception(self, request, session, exception, connection):
+    def handle_exception(self, request, context, exception, connection):
         """
         Handle exception and return ErrorDialogService
 
         Parameters
         ----------
-        request : Message
+        request : minette.Message
             Request message
-        session : Session
-            Session
+        context : minette.Context
+            Context
         exception : Exception
             Exception
         connection : Connection
@@ -189,8 +216,9 @@ class DialogRouter:
 
         Returns
         -------
-        response : ErrorDialogService
+        response : minette.ErrorDialogService
             Dialog service for error occured in chatting
         """
-        session.set_error(exception)
-        return ErrorDialogService(logger=self.logger, config=self.config, timezone=self.timezone)
+        context.set_error(exception)
+        return ErrorDialogService(
+            config=self.config, timezone=self.timezone, logger=self.logger)
