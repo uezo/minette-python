@@ -1,15 +1,27 @@
 # VS Code
 .vscode/
 
-# test app
+# test apps
 imoutobot/
+develop/
+examples/
 
-# DB/Log
-minette.db
-minette.log
+# internal test app
+develop/
+
+# DB/Log/ini
+*.db
+*.log
+tests/config/test_config_datastores.ini
+tests/config/test_config_adapter.ini
+tests/adapter/request_samples.py
+tests/config/private/
 
 # .DS_Store
 .DS_Store
+
+# IDE
+.vscode/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
