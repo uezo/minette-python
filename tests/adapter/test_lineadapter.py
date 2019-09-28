@@ -25,11 +25,6 @@ channel_secret = lineconfig.get("channel_secret", section="line_bot_api")
 channel_access_token = lineconfig.get("channel_access_token", section="line_bot_api")
 
 
-def remove_logger_handlers(logger):
-    for _ in range(len(logger.handlers)):
-        logger.removeHandler(logger.handlers[0])
-
-
 class MyDialog(DialogService):
     def compose_response(self, request, context, connection):
         return "res:" + request.text
@@ -41,7 +36,6 @@ def test_init():
         channel_access_token=channel_access_token, prepare_table=True)
     assert isinstance(adapter.parser, WebhookParser)
     assert isinstance(adapter.api, LineBotApi)
-    remove_logger_handlers(adapter.bot.logger)
 
 
 def test_extract_token():
@@ -64,7 +58,6 @@ def test_extract_token():
     })
     token = adapter._extract_token(event)
     assert token == "nHuyWiB7yP5Zw52FIkcQobQuGDXCTA"
-    remove_logger_handlers(adapter.bot.logger)
 
 
 def test_to_minette_message():
@@ -371,7 +364,6 @@ def test_to_minette_message():
     })
     message = adapter._to_minette_message(event)
     assert message.type == "accountLink"
-    remove_logger_handlers(adapter.bot.logger)
 
 
 def test_to_channel_message():
@@ -548,13 +540,12 @@ def test_handle_event():
                 "text": "Hello, world!"
             }
         }))
-    remove_logger_handlers(adapter.bot.logger)
 
 
 def test_handle_http_request():
-    request_data = b'{"events":[{"type":"message","replyToken":"f9ce201e2daf49058fc19dee78c59b8f","source":{"userId":"U4bb389af09ad694ace414ce22d57ac0f","type":"user"},"timestamp":1569653115711,"message":{"type":"text","id":"10646472721796","text":"hello"}}],"destination":"U9e20741b688ed93c536adbe97acee31d"}'.encode(encoding="utf-8")
+    request_data = '{"events":[{"type":"message","replyToken":"e60740718df849e396e93600254b28b5","source":{"userId":"U4bb389af09ad694ace414ce22d57ac0f","type":"user"},"timestamp":1569657170129,"message":{"type":"text","id":"10646756260763","text":"hello"}}],"destination":"U9e20741b688ed93c536adbe97acee31d"}'.encode(encoding="utf-8")
     request_headers = {
-        "X-Line-Signature": "JNlSpjfQNyjf4dvWFuPYEjDAM2CywvOcHjPfari7h2s=",
+        "X-Line-Signature": "Kj+MIQWKb6gE/IO8c9+TydGF3o9qx8sjC1qiqiTfDao=",
         "Content-Type": "application/json;charset=UTF-8",
         "Content-Length": 288,
         "Host": "host.name.local",
@@ -572,7 +563,6 @@ def test_handle_http_request():
     response = adapter.handle_http_request(request_data, request_headers)
     # error will not be handled because error occures in worker thread
     assert response.messages[0].text == "done"
-    remove_logger_handlers(adapter.bot.logger)
 
     # main thread
     adapter = LineAdapter(
@@ -583,13 +573,11 @@ def test_handle_http_request():
     )
     response = adapter.handle_http_request(request_data, request_headers)
     assert response.messages[0].text == "failure in parsing request"
-    remove_logger_handlers(adapter.bot.logger)
 
     # common error
     adapter.parser = None
     response = adapter.handle_http_request(request_data, request_headers)
     assert response.messages[0].text == "failure in parsing request"
-    remove_logger_handlers(adapter.bot.logger)
 
     # signiture error
     request_headers = {
@@ -609,4 +597,3 @@ def test_handle_http_request():
     )
     response = adapter.handle_http_request(request_data, request_headers)
     assert response.messages[0].text == "invalid signiture"
-    remove_logger_handlers(adapter.bot.logger)
