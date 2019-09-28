@@ -172,6 +172,15 @@ Do not use default API URL for the production environment. This is for trial use
 {'surface': '今日', 'part': '名詞', 'part_detail1': '副詞可能', 'part_detail2': '', 'part_detail3': '', 'stem_type': '', 'stem_form': '', 'word': '今日', 'kana': 'キョウ', 'pronunciation': 'キョー'}
 ```
 
+Sample use case in `DialogService` is here.
+```python
+def process_request(self, request, context, connection):
+    # extract nouns from request.text == "今日は良い天気です"
+    nouns = [w.surface for w in request.words if w.part == "名詞"]
+    # set ["今日", "天気"] to context data
+    context.data["nouns"] = nouns
+```
+
 ## Task scheduler
 Built-in task scheduler is ready-to-use. Your chatbot can run periodic jobs without cron.
 
