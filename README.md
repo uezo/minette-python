@@ -73,6 +73,7 @@ app = Flask(__name__)
 @app.route("/", methods=["POST"])
 def handle_webhook():
     bot.handle_http_request(request.data, request.headers)
+    return "ok"
 
 # Start web server
 app.run(port=12345)
