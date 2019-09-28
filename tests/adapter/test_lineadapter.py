@@ -15,12 +15,14 @@ from linebot.models import (
 )
 from linebot.exceptions import LineBotApiError, InvalidSignatureError
 
-from minette import DialogService, Message, Payload
+from minette import DialogService, Message, Payload, Config
 from minette.adapter.lineadapter import LineAdapter
 
 
-channel_secret = "8674e2cc94aa93d908bac2bce2632657"
-channel_access_token = "fwnz1tVCdoD3pouOGOsYB6bcT2x7vHP1Id6I3rQgBIaeUsUF2MDTPs+Q/zhtdaT4fhRbPDgqrunhpmzvgenf2X7YN5EN6ABoSb6j4+igkZtN6oXlGPaQ5RbM2lHymXVDxgOiAZQxUQwJEaact9fniAdB04t89/1O/w1cDnyilFU="
+lineconfig = Config("config/test_config_adapter.ini")
+
+channel_secret = lineconfig.get("channel_secret", section="line_bot_api")
+channel_access_token = lineconfig.get("channel_access_token", section="line_bot_api")
 
 
 def remove_logger_handlers(logger):
@@ -550,9 +552,9 @@ def test_handle_event():
 
 
 def test_handle_http_request():
-    request_data = '{"events":[{"type":"message","replyToken":"a9e61d7fb174416faffe9f849746977c","source":{"userId":"U4bb389af09ad694ace414ce22d57ac0f","type":"user"},"timestamp":1569144655960,"message":{"type":"text","id":"10612950879794","text":"hello"}}],"destination":"U9e20741b688ed93c536adbe97acee31d"}'.encode(encoding="utf-8")
+    request_data = b'{"events":[{"type":"message","replyToken":"f9ce201e2daf49058fc19dee78c59b8f","source":{"userId":"U4bb389af09ad694ace414ce22d57ac0f","type":"user"},"timestamp":1569653115711,"message":{"type":"text","id":"10646472721796","text":"hello"}}],"destination":"U9e20741b688ed93c536adbe97acee31d"}'.encode(encoding="utf-8")
     request_headers = {
-        "X-Line-Signature": "oi9JF26jUMJM9bWanJz99tj2v19RmPjeyYJOhJSUnJM=",
+        "X-Line-Signature": "JNlSpjfQNyjf4dvWFuPYEjDAM2CywvOcHjPfari7h2s=",
         "Content-Type": "application/json;charset=UTF-8",
         "Content-Length": 288,
         "Host": "host.name.local",

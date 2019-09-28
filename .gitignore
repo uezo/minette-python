@@ -13,6 +13,8 @@ develop/
 *.db
 *.log
 tests/config/test_config_datastores.ini
+tests/config/test_config_adapter.ini
+tests/adapter/request_samples.py
 
 # .DS_Store
 .DS_Store
