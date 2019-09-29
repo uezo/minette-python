@@ -180,6 +180,7 @@ class DialogRouter:
             if dialog_service and not request.is_adhoc:
                 context.topic.name = dialog_service.topic_name()
                 context.topic.status = ""
+                context.topic.priority = request.intent_priority
                 context.topic.is_new = True
             # do not update topic when request is adhoc or ds is None
             else:
