@@ -37,6 +37,8 @@ class MyDialogRouter(DialogRouter):
     def extract_intent(self, request, context, connection):
         if "pizza" in request.text:
             return "PizzaIntent"
+        elif "lower" in request.text:
+            return "SobaIntent", {"soba_name": "tanuki soba", "is_hot": True}, Priority.Low
         elif "soba" in request.text:
             return "SobaIntent", {"soba_name": "tanuki soba", "is_hot": True}, Priority.High
         elif "adhoc" in request.text:
@@ -130,6 +132,50 @@ def test_route():
     ds = dr.route(request, context, None)
     assert ds is DialogService
 
+    # update topic by higher priority intent
+    context = Context("TEST", "test_user")
+    request = Message(channel="TEST", channel_user_id="test_user", text="Hello")
+    request.intent = "PizzaIntent"
+    ds = dr.route(request, context, None)
+    assert ds is PizzaDialogService
+    context.topic.keep_on = True
+    # intent continue without intent
+    request = Message(channel="TEST", channel_user_id="test_user", text="Hello")
+    ds = dr.route(request, context, None)
+    assert ds is PizzaDialogService
+    context.topic.keep_on = True
+    # soba intent with normal priority (not updated)
+    request = Message(channel="TEST", channel_user_id="test_user", text="Hello")
+    request.intent = "SobaIntent"
+    ds = dr.route(request, context, None)
+    assert ds is PizzaDialogService
+    context.topic.keep_on = True
+    # soba intent with higher priority (updated)
+    request = Message(channel="TEST", channel_user_id="test_user", text="Hello")
+    request.intent = "SobaIntent"
+    request.intent_priority = Priority.High
+    ds = dr.route(request, context, None)
+    assert ds is SobaDialogService
+
+    # update topic by normal priority intent
+    context = Context("TEST", "test_user")
+    request = Message(channel="TEST", channel_user_id="test_user", text="Hello")
+    request.intent = "PizzaIntent"
+    request.intent_priority = Priority.Low
+    ds = dr.route(request, context, None)
+    assert ds is PizzaDialogService
+    context.topic.keep_on = True
+    # intent continue without intent
+    request = Message(channel="TEST", channel_user_id="test_user", text="Hello")
+    ds = dr.route(request, context, None)
+    assert ds is PizzaDialogService
+    context.topic.keep_on = True
+    # soba intent with normal priority (updated)
+    request = Message(channel="TEST", channel_user_id="test_user", text="Hello")
+    request.intent = "SobaIntent"
+    ds = dr.route(request, context, None)
+    assert ds is SobaDialogService
+
 
 def test_handle_exception():
     dr = MyDialogRouter(timezone=timezone("Asia/Tokyo"), default_dialog_service=EchoDialogService)
@@ -163,9 +209,12 @@ def test_execute():
     ds = dr.execute(request, context, None, performance)
     assert isinstance(ds, PizzaDialogService)
 
+    # soba lower priority (continume pizza)
+    request = Message(channel="TEST", channel_user_id="test_user", text="lower")
+    ds = dr.execute(request, context, None, performance)
+    assert isinstance(ds, PizzaDialogService)
+
     # soba
-    context = Context("TEST", "test_user")
-    context.topic.is_new = True
     request = Message(channel="TEST", channel_user_id="test_user", text="give me soba")
     ds = dr.execute(request, context, None, performance)
     assert isinstance(ds, SobaDialogService)
