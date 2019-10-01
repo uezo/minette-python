@@ -157,7 +157,7 @@ class Minette:
             "default_dialog_service": default_dialog_service,
             "tagger": tagger,
         }
-        setter_args.update({k: v for k, v in kwargs if k not in setter_args})
+        setter_args.update({k: v for k, v in kwargs.items() if k not in setter_args})
 
         # setup members
         self.context_store = self._get_context_store(**setter_args)
