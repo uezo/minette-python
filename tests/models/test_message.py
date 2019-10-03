@@ -2,7 +2,7 @@ import pytest
 from pytz import timezone
 from datetime import datetime
 
-from minette import Message, Group, Payload
+from minette import Message, Group, Payload, Priority
 
 
 def test_init():
@@ -14,12 +14,16 @@ def test_init():
         channel="TEST",
         channel_detail="messaging",
         channel_user_id="user_id",
+        channel_message={
+            "text": "hello"
+        },
         text="hello",
         token="token123456789",
         payloads=[Payload(content_type="image", url="https://image")],
-        channel_message={
-            "text": "hello"
-        }
+        intent="OrderPan",
+        intent_priority=Priority.High,
+        entities={"menu": "Yakisoba Pan", "count": 20},
+        is_adhoc=True
     )
     assert message.id == "mid123456789"
     assert message.type == "hogehoge"
@@ -27,10 +31,14 @@ def test_init():
     assert message.channel == "TEST"
     assert message.channel_detail == "messaging"
     assert message.channel_user_id == "user_id"
+    assert message.channel_message == {"text": "hello"}
     assert message.text == "hello"
     assert message.token == "token123456789"
     assert message.payloads[0].url == "https://image"
-    assert message.channel_message == {"text": "hello"}
+    assert message.intent == "OrderPan"
+    assert message.intent_priority == Priority.High
+    assert message.entities == {"menu": "Yakisoba Pan", "count": 20}
+    assert message.is_adhoc is True
 
 
 def test_init_default():
@@ -42,7 +50,7 @@ def test_init_default():
     assert message.channel_detail == ""
     assert message.channel_user_id == "anonymous"
     assert message.text == ""
-    assert message.token is None
+    assert message.token == ""
     assert message.payloads == []
     assert message.channel_message is None
 
