@@ -28,7 +28,7 @@ class DialogRouter:
     """
 
     def __init__(self, config=None, timezone=None, logger=None,
-                 default_dialog_service=None, **kwargs):
+                 default_dialog_service=None, intent_resolver=None, **kwargs):
         """
         Parameters
         ----------
@@ -46,7 +46,7 @@ class DialogRouter:
         self.logger = logger or getLogger(__name__)
         self.default_dialog_service = default_dialog_service or DialogService
         # set up intent_resolver
-        self.intent_resolver = {}
+        self.intent_resolver = intent_resolver or {}
         self.register_intents()
         # set up topic_resolver
         self.topic_resolver = {
