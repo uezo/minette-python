@@ -53,6 +53,12 @@ class ErrorDialog(DialogService):
         return "res:" + request.text
 
 
+class MyDialogRouter(DialogRouter):
+    def __init__(self, custom_router_arg=None, **kwargs):
+        super().__init__(**kwargs)
+        self.custom_attr = custom_router_arg
+
+
 def test_init():
     # without config
     bot = Minette()
@@ -100,7 +106,9 @@ def test_init_args():
     messagelog_store = CustomMessageLogStore
     data_stores = CustomDataStores
     default_dialog_service = MyDialog
+    dialog_router = MyDialogRouter
     tagger = MeCabServiceTagger
+    custom_router_arg = "router_value"
 
     # create bot
     bot = Minette(
@@ -108,6 +116,8 @@ def test_init_args():
         connection_provider=connection_provider, context_store=context_store,
         user_store=user_store, messagelog_store=messagelog_store,
         default_dialog_service=default_dialog_service,
+        dialog_router=dialog_router,
+        custom_router_arg=custom_router_arg,
         tagger=tagger, prepare_table=True
     )
     assert bot.config.get("test_key", section="test_section") == "test_value"
@@ -118,6 +128,8 @@ def test_init_args():
     assert isinstance(bot.user_store, CustomUserStore)
     assert isinstance(bot.messagelog_store, CustomMessageLogStore)
     assert bot.default_dialog_service is MyDialog
+    assert isinstance(bot.dialog_router, MyDialogRouter)
+    assert bot.dialog_router.custom_attr == "router_value"
     assert isinstance(bot.tagger, MeCabServiceTagger)
 
     # create bot with data_stores
@@ -125,6 +137,8 @@ def test_init_args():
         config=config, timezone=tz, logger=logger,
         data_stores=data_stores,
         default_dialog_service=default_dialog_service,
+        dialog_router=dialog_router,
+        custom_router_arg=custom_router_arg,
         tagger=tagger, prepare_table=True
     )
     assert bot.config.get("test_key", section="test_section") == "test_value"
@@ -135,6 +149,8 @@ def test_init_args():
     assert isinstance(bot.user_store, CustomUserStore)
     assert isinstance(bot.messagelog_store, CustomMessageLogStore)
     assert bot.default_dialog_service is MyDialog
+    assert isinstance(bot.dialog_router, MyDialogRouter)
+    assert bot.dialog_router.custom_attr == "router_value"
     assert isinstance(bot.tagger, MeCabServiceTagger)
 
 

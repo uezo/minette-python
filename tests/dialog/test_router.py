@@ -262,3 +262,39 @@ def test_execute():
     request = Message(channel="TEST", channel_user_id="test_user", text="error")
     ds = dr.execute(request, context, None, performance)
     assert isinstance(ds, ErrorDialogService)
+
+
+def test_intent_resolver_as_arg():
+    # init
+    dr = MyDialogRouter(
+        timezone=timezone("Asia/Tokyo"),
+        default_dialog_service=EchoDialogService,
+        intent_resolver={
+            "PizzaIntent": PizzaDialogService,
+            "SobaIntent": SobaDialogService,
+        })
+    assert dr.timezone == timezone("Asia/Tokyo")
+    assert dr.default_dialog_service is EchoDialogService
+    # route
+    context = Context("TEST", "test_user")
+    request = Message(
+        channel="TEST",
+        channel_user_id="test_user",
+        text="Hello",
+        intent="PizzaIntent")
+    assert dr.route(request, context, None) is PizzaDialogService
+
+    context = Context("TEST", "test_user")
+    request = Message(
+        channel="TEST",
+        channel_user_id="test_user",
+        text="Hello",
+        intent="SobaIntent")
+    assert dr.route(request, context, None) is SobaDialogService
+
+    context = Context("TEST", "test_user")
+    request = Message(
+        channel="TEST",
+        channel_user_id="test_user",
+        text="Hello")
+    assert dr.route(request, context, None) is EchoDialogService

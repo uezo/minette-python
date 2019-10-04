@@ -1,6 +1,3 @@
-import sys
-import os
-sys.path.append(os.pardir)
 import pytest
 from datetime import datetime
 from pytz import timezone

@@ -53,7 +53,8 @@ class Message(JsonSerializable):
     def __init__(self, id=None, type="text", channel="console",
                  channel_detail=None, channel_user_id="anonymous",
                  timestamp=None, channel_message=None, token=None,
-                 text=None, payloads=None, entities=None):
+                 user=None, group=None, text=None, payloads=None, intent=None,
+                 intent_priority=None, entities=None, is_adhoc=False):
         """
         Parameters
         ----------
@@ -83,16 +84,16 @@ class Message(JsonSerializable):
         self.channel_detail = channel_detail or ""
         self.channel_user_id = channel_user_id
         self.channel_message = channel_message
-        self.token = token
-        self.user = None
-        self.group = None
+        self.token = token or ""
+        self.user = user
+        self.group = group
         self.text = text or ""
         self.words = []
         self.payloads = payloads or []
-        self.intent = ""
-        self.intent_priority = Priority.Normal
+        self.intent = intent or ""
+        self.intent_priority = intent_priority or Priority.Normal
         self.entities = entities or {}
-        self.is_adhoc = False
+        self.is_adhoc = is_adhoc
 
     def to_reply(self, text=None, payloads=None, type="text"):
         """
