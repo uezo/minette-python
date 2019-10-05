@@ -376,6 +376,71 @@ user> thank you
 minette> You said: thank you
 ```
 
+# 対話のテスト
+Minetteは対話クラスのテストを支援するための機能を提供しています。
+
+- テストケース毎（テスト関数毎）に異なる `channel_user_id` を自動でセットします。
+- `chat` メソッドに `Message` オブジェクトの生成に必要な引数を渡すことができます。`bot.chat(Message(text="hello", intent="HelloIntent"))` のかわりに `bot.chat("hello", intent="HelloIntent")` と呼び出すことができるため、テストコードをよりスッキリさせることができます。
+- `chat` からも戻り値の `Response` オブジェクトに `response.messages[0].text` の値をセットした `text` アトリビュートを追加します。
+
+pytestでの利用例は以下の通り。
+
+```python
+import pytest
+from minette import Message, DialogService, Priority, Payload
+from minette.test.helper import MinetteForTest
+
+# dialogs to test
+class FooDialog(DialogService):
+    def compose_response(self, request, context, connetion):
+        return "foo:" + request.text
+
+class BarDialog(DialogService):
+    def compose_response(self, request, context, connetion):
+        context.topic.keep_on = True
+        return "bar:" + request.text
+
+class PayloadDialog(DialogService):
+    def compose_response(self, request, context, connetion):
+        return "payload:" + str(request.payloads[0].content)
+
+# bot created for each test functions
+@pytest.fixture(scope="function")
+def bot():
+    # use MinetteForTest instead of Minette
+    return MinetteForTest(
+        intent_resolver={
+            "FooIntent": FooDialog,
+            "BarIntent": BarDialog,
+            "PayloadIntent": PayloadDialog
+        },
+    )
+
+# test cases function using bot
+def test_example(bot):
+    # trigger intent
+    assert bot.chat("hello", intent="FooIntent").text == "foo:hello"
+    # empty response without intent
+    assert bot.chat("hello").text == ""
+    # trigger other intent
+    assert bot.chat("hello", intent="BarIntent").text == "bar:hello"
+    # context and topic is kept by dialog service
+    assert bot.chat("hi", intent="FooIntent").text == "bar:hi"
+    assert bot.chat("yo").text == "bar:yo"
+    # update topic by higher priority request
+    assert bot.chat("hello", intent="FooIntent", intent_priority=Priority.High).text == "foo:hello"
+
+def test_payload(bot):
+    # use Message to test your dialog with payloads, channel_message and so on
+    assert bot.chat(Message(
+        intent="PayloadIntent",
+        type="data",
+        text="hello",
+        payloads=[Payload(content={"key1": "value1"})]
+    )).text == "payload:" + str({"key1": "value1"})
+```
+
+
 # ライセンス
 Apache v2 License
 
