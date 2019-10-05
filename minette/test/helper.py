@@ -22,5 +22,9 @@ class MinetteForTest(Minette):
             request.channel_user_id = "user" + self.case_id
         # chat and return response
         response = super().chat(request)
+        if response.messages:
+            response.text = response.messages[0].text
+        else:
+            response.text = ""
         self.logger.info("end testcase: " + self.case_id)
         return response
