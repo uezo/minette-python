@@ -41,6 +41,10 @@ class MyDialogRouter(DialogRouter):
             return "SobaIntent", {"soba_name": "tanuki soba", "is_hot": True}, Priority.Low
         elif "soba" in request.text:
             return "SobaIntent", {"soba_name": "tanuki soba", "is_hot": True}, Priority.High
+        elif "highest p" in request.text:
+            return "PizzaIntent", {}, Priority.Highest
+        elif "highest s" in request.text:
+            return "SobaIntent", {}, Priority.Highest
         elif "adhoc" in request.text:
             request.is_adhoc = True
             return "AdhocIntent", {}, Priority.Highest
@@ -111,6 +115,36 @@ def test_route():
     request = Message(channel="TEST", channel_user_id="test_user", text="Hello")
     ds = dr.route(request, context, None)
     assert ds is PizzaDialogService
+    assert context.topic.priority == Priority.Normal
+    # not updated by same priority
+    request = Message(channel="TEST", channel_user_id="test_user", text="Hello")
+    request.intent = "SobaIntent"
+    ds = dr.route(request, context, None)
+    assert ds is PizzaDialogService
+    assert context.topic.priority == Priority.Normal
+
+    # highest topic updated by highest intent
+    context = Context("TEST", "test_user")
+    request = Message(channel="TEST", channel_user_id="test_user", text="Hello")
+    request.intent = "PizzaIntent"
+    request.intent_priority = Priority.Highest
+    ds = dr.route(request, context, None)
+    assert ds is PizzaDialogService
+    assert context.topic.priority == Priority.Highest - 1
+    # next message (not updated by lower than highest)
+    request = Message(channel="TEST", channel_user_id="test_user", text="Hello")
+    request.intent = "SobaIntent"
+    request.intent_priority = Priority.Highest - 1
+    ds = dr.route(request, context, None)
+    assert ds is PizzaDialogService
+    assert context.topic.priority == Priority.Highest - 1
+    # last message (updated by highest)
+    request = Message(channel="TEST", channel_user_id="test_user", text="Hello")
+    request.intent = "SobaIntent"
+    request.intent_priority = Priority.Highest
+    ds = dr.route(request, context, None)
+    assert ds is SobaDialogService
+    assert context.topic.priority == Priority.Highest - 1
 
     # no intent
     context = Context("TEST", "test_user")
@@ -214,8 +248,23 @@ def test_execute():
     ds = dr.execute(request, context, None, performance)
     assert isinstance(ds, PizzaDialogService)
 
-    # soba
+    # soba higher priority (update to soba)
     request = Message(channel="TEST", channel_user_id="test_user", text="give me soba")
+    ds = dr.execute(request, context, None, performance)
+    assert isinstance(ds, SobaDialogService)
+
+    # pizza highest (update pizza)
+    request = Message(channel="TEST", channel_user_id="test_user", text="highest p")
+    ds = dr.execute(request, context, None, performance)
+    assert isinstance(ds, PizzaDialogService)
+    assert context.topic.priority == Priority.Highest - 1
+    # soba with high priority (continue pizza)
+    request = Message(channel="TEST", channel_user_id="test_user", text="give me soba")
+    ds = dr.execute(request, context, None, performance)
+    assert isinstance(ds, PizzaDialogService)
+    assert context.topic.priority == Priority.Highest - 1
+    # soba with highest priority (update soba)
+    request = Message(channel="TEST", channel_user_id="test_user", text="highest s")
     ds = dr.execute(request, context, None, performance)
     assert isinstance(ds, SobaDialogService)
 
