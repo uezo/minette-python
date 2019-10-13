@@ -3,7 +3,7 @@ from abc import ABC, abstractmethod
 import traceback
 from logging import Logger, getLogger
 
-from ..models import Message
+from ..models import Message, Priority
 from .service import DialogService, ErrorDialogService
 
 
@@ -180,7 +180,11 @@ class DialogRouter:
             if dialog_service and not request.is_adhoc:
                 context.topic.name = dialog_service.topic_name()
                 context.topic.status = ""
-                context.topic.priority = request.intent_priority
+                if request.intent_priority >= Priority.Highest:
+                    # set slightly lower priority to enable to update Highest priority intent
+                    context.topic.priority = Priority.Highest - 1
+                else:
+                    context.topic.priority = request.intent_priority
                 context.topic.is_new = True
             # do not update topic when request is adhoc or ds is None
             else:

@@ -167,15 +167,15 @@ class Scheduler:
         self.schedule.every(seconds).seconds.do(
             self.executor.submit, self.create_task(task), *args, **kwargs)
 
-    def every_minute(self, task, minutes=1, *args, **kwargs):
+    def every_minutes(self, task, minutes=1, *args, **kwargs):
         self.schedule.every(minutes).minutes.do(
             self.executor.submit, self.create_task(task), *args, **kwargs)
 
-    def every_hour(self, task, hours=1, *args, **kwargs):
+    def every_hours(self, task, hours=1, *args, **kwargs):
         self.schedule.every(hours).hours.do(
             self.executor.submit, self.create_task(task), *args, **kwargs)
 
-    def every_day(self, task, days=1, *args, **kwargs):
+    def every_days(self, task, days=1, *args, **kwargs):
         self.schedule.every(days).days.do(
             self.executor.submit, self.create_task(task), *args, **kwargs)
 
@@ -183,10 +183,12 @@ class Scheduler:
         """
         Start scheduler
         """
+        self.logger.info("Task scheduler started")
         self._is_running = True
         while self._is_running:
             self.schedule.run_pending()
             time.sleep(1)
+        self.logger.info("Task scheduler stopped")
 
     def stop(self):
         """

@@ -11,7 +11,7 @@ setup(
     author_email="uezo@uezo.net",
     maintainer="uezo",
     maintainer_email="uezo@uezo.net",
-    description="Minette is a micro chatbot framework. Session and user management, natural language analyzing and architecture for multi-skill/character bot are ready-to-use",
+    description="Minette is a minimal and extensible chatbot framework. It is extremely easy to develop and the architecture preventing to be spaghetti code enables you to scale up to complex chatbot.",
     packages=find_packages(exclude=["examples*", "develop*", "tests*"]),
     install_requires=["requests", "pytz", "schedule"],
     license="Apache v2",

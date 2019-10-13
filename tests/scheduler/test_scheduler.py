@@ -71,9 +71,9 @@ def test_scheduler_create_task():
 def test_scheduler_register_task():
     sc = Scheduler()
     sc.every_seconds(print_something)
-    sc.every_minute(print_something, 2)
-    sc.every_hour(MyTask, arg1="val1", arg2="val2")
-    sc.every_day(MyTask, 4, "val1", "val2")
+    sc.every_minutes(print_something, 2)
+    sc.every_hours(MyTask, arg1="val1", arg2="val2")
+    sc.every_days(MyTask, 4, "val1", "val2")
 
 
 def test_scheduler_start_stop():
