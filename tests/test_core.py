@@ -304,3 +304,10 @@ def test_chat_dialog_error():
     bot = Minette(default_dialog_service=ErrorDialog)
     res = bot.chat("hello")
     assert res.messages[0].text == "?"
+
+
+def test_chat_timezone():
+    bot = Minette(default_dialog_service=MyDialog, timezone=timezone("Asia/Tokyo"))
+    res = bot.chat("hello")
+    # bot.timezone itself is +9:19
+    assert res.messages[0].timestamp.tzinfo == datetime.now(tz=bot.timezone).tzinfo

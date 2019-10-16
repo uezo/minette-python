@@ -1,6 +1,7 @@
 """ Core module of minette """
 import traceback
 import logging
+from datetime import datetime
 from pytz import timezone as tz
 from copy import deepcopy
 
@@ -289,8 +290,8 @@ class Minette:
         connection = None
         try:
             performance = PerformanceInfo()
-            request = Message(text=request) \
-                if isinstance(request, str) else request
+            if isinstance(request, str):
+                request = Message(text=request, timestamp=datetime.now(self.timezone))
             # connection
             connection = self.connection_provider.get_connection()
             performance.append("connection_provider.get_connection")
