@@ -1,4 +1,5 @@
 import traceback
+from datetime import datetime
 
 from linebot import LineBotApi, WebhookParser
 from linebot.exceptions import InvalidSignatureError
@@ -163,7 +164,8 @@ class LineAdapter(Adapter):
             channel="LINE",
             channel_detail="Messaging",
             channel_user_id=event.source.user_id,
-            channel_message=event)
+            channel_message=event,
+            timestamp=datetime.now(self.timezone))
         if event.source.type in ["group", "room"]:
             if event.source.type == "group":
                 msg.group = Group(id=event.source.group_id, type="group")

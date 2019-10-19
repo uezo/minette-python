@@ -133,7 +133,7 @@ class ClovaAdapter(Adapter):
             type=clova_request.type,
             channel="LINE",
             channel_detail="Clova",
-            channel_user_id=clova_request.session.user.id if clova_request.session.user._user.get("id") else "",
+            channel_user_id=clova_request.session.user.id if clova_request.session._session else "",
             channel_message=clova_request
         )
 

@@ -97,7 +97,7 @@ class _DateTimeJSONEncoder(json.JSONEncoder):
         return super().default(obj)
 
 
-def encode_json(obj):
+def encode_json(obj, **kwargs):
     """
     Encode object to JSON
 
@@ -113,10 +113,10 @@ def encode_json(obj):
     """
     if obj is None:
         return ""
-    return json.dumps(obj, cls=_DateTimeJSONEncoder)
+    return json.dumps(obj, cls=_DateTimeJSONEncoder, **kwargs)
 
 
-def decode_json(json_string):
+def decode_json(json_string, **kwargs):
     """
     Decode JSON to dict
 
@@ -132,4 +132,4 @@ def decode_json(json_string):
     """
     if json_string is None or json_string == "":
         return None
-    return json.loads(json_string)
+    return json.loads(json_string, **kwargs)

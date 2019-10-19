@@ -44,7 +44,7 @@ class JsonSerializable:
                     data[key] = getattr(self, key, None)
         return data
 
-    def to_json(self):
+    def to_json(self, **kwargs):
         """
         Convert this object to JSON
 
@@ -53,7 +53,7 @@ class JsonSerializable:
         object_json : str
             Object as JSON string
         """
-        return encode_json(self.to_dict())
+        return encode_json(self.to_dict(), **kwargs)
 
     @staticmethod
     def _class_from_dict(cls, data):
