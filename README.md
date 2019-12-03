@@ -3,23 +3,6 @@
 
 Minette is a minimal and extensible chatbot framework. It is extremely easy to develop and the architecture preventing to be spaghetti code enables you to scale up to complex chatbot.
 
-## Caution
-
-__Destructive change from version 0.3__
-
-- Some packages are deprecated. All standard classes can be imported from `minette`.
-- The way to create instance of `Minette` is changed. (just call constructor)
-- `Session` is renamed to `Context`. The arguments named `session` is also changed.
-- `minette.user.User#save()` is deleted. Create `UserStore` and call `save(user)` instead.
-- `SessionStore` -> `ContextStore`, `UserRepository` -> `UserStore`, `MessageLogger` -> `MessageLogStore`
-- HTTP request handler method of `LineAdapter` is changed to `handle_http_request`.
-
-If you need version 0.3 install from github.
-
-```
-$ pip install git+https://github.com/uezo/minette-python.git@v0.3
-```
-
 # Installation
 
 To install minette, simply:
@@ -480,8 +463,10 @@ $ brew install mecab mecab-ipadic git curl xz
 
 ### Installing python binding
 ```
-$ pip install mecab-python3
+$ pip install mecab-python3==0.7
 ```
+Version 0.996.1 has a bug(?) so we strongly recommend to use version 0.7.
+
 
 ### Usase
 ```python
@@ -489,4 +474,19 @@ from minette.tagger.mecab import MeCabTagger
 bot = Minette.create(
     tagger=MeCabTagger
 )
+```
+
+# Appendix2. Migration from version 0.3
+
+- Some packages are deprecated. All standard classes can be imported from `minette`.
+- The way to create instance of `Minette` is changed. (just call constructor)
+- `Session` is renamed to `Context`. The arguments named `session` is also changed.
+- `minette.user.User#save()` is deleted. Create `UserStore` and call `save(user)` instead.
+- `SessionStore` -> `ContextStore`, `UserRepository` -> `UserStore`, `MessageLogger` -> `MessageLogStore`
+- HTTP request handler method of `LineAdapter` is changed to `handle_http_request`.
+
+If you need version 0.3 install from github.
+
+```
+$ pip install git+https://github.com/uezo/minette-python.git@v0.3
 ```
