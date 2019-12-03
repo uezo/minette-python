@@ -125,7 +125,7 @@ def test_save(connection_provider_class, connection_str, user_store_class):
         assert user.data == {
             "strvalue": "value1",
             "intvalue": 2,
-            "dtvalue": date_to_str(now),
+            "dtvalue": now,
             "dictvalue": {
                 "k1": "v1",
                 "k2": 2,

@@ -1,10 +1,9 @@
 import pytest
 from pytz import timezone
 from datetime import datetime
-from concurrent.futures import ThreadPoolExecutor
 
-from minette import JsonSerializable
-from minette.utils import date_to_str, str_to_date
+from minette.models.base import JsonSerializable
+from minette.utils import date_to_str
 
 
 class CustomClass(JsonSerializable):
@@ -100,7 +99,7 @@ def test_from_dict_list():
             "strvalue": "str_2",
         },
     ]
-    cc = CustomClass.from_dict_list(cc_dict_list)
+    cc = CustomClass.from_dict(cc_dict_list)
     assert cc[0].strvalue == "str_1"
     assert cc[0].to_dict() == CustomClass.from_dict({"strvalue": "str_1"}).to_dict()
     assert cc[1].strvalue == "str_2"
@@ -113,7 +112,7 @@ def test_from_json():
     cc = CustomClass.from_json(cc_json)
     assert cc.strvalue == "str"
     assert cc.intvalue == 1
-    assert cc.dtvalue == date_to_str(now, with_timezone=True)
+    assert cc.dtvalue == now
     assert cc.listvalue == [1, 2, 3]
     assert cc.dictvalue == {"key1": "value1", "key2": 2}
     assert cc.objvalue is None

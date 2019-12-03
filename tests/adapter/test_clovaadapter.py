@@ -13,13 +13,14 @@ from cek import (
 
 from request_samples import *
 
+import objson
+
 from minette import (
     DialogService,
     Message,
     Payload,
     Config
 )
-from minette.utils import decode_json
 from minette.adapter.clovaadapter import ClovaAdapter
 
 clovaconfig = Config("config/test_config_adapter.ini")
@@ -86,26 +87,26 @@ def test_handle_intent_request():
     }
 
     # launch request
-    response = decode_json(adapter.handle_http_request(LAUNCH_REQUEST_BODY, request_headers))
+    response = objson.loads(adapter.handle_http_request(LAUNCH_REQUEST_BODY, request_headers))
     assert response["response"]["outputSpeech"]["values"]["value"] == "Handled LaunchRequest"
 
     # intent request
-    response = decode_json(adapter.handle_http_request(INTENT_REQUEST_BODY, request_headers))
+    response = objson.loads(adapter.handle_http_request(INTENT_REQUEST_BODY, request_headers))
     assert response["response"]["outputSpeech"]["values"]["value"] == "Handled IntentRequest"
 
     # intent request (multiple response message)
-    response = decode_json(adapter.handle_http_request(INTENT_REQUEST_TURN_OFF, request_headers))
+    response = objson.loads(adapter.handle_http_request(INTENT_REQUEST_TURN_OFF, request_headers))
     assert response["response"]["outputSpeech"]["values"][0]["value"] == "Handled IntentRequest"
     assert response["response"]["outputSpeech"]["values"][1]["value"] == "Finish turning off"
 
     # end request
-    response = decode_json(adapter.handle_http_request(END_REQUEST_BODY, request_headers))
+    response = objson.loads(adapter.handle_http_request(END_REQUEST_BODY, request_headers))
     assert response["response"]["outputSpeech"]["values"]["value"] == "Handled SessionEndedRequest"
 
     # event request
-    response = decode_json(adapter.handle_http_request(EVENT_REQUEST_BODY, request_headers))
+    response = objson.loads(adapter.handle_http_request(EVENT_REQUEST_BODY, request_headers))
     assert response["response"]["outputSpeech"]["values"]["value"] == "Handled EventRequest"
 
     # EventFromSkillStore request
-    response = decode_json(adapter.handle_http_request(EVENT_REQUEST_BODY_FROM_SKILL_STORE, request_headers))
+    response = objson.loads(adapter.handle_http_request(EVENT_REQUEST_BODY_FROM_SKILL_STORE, request_headers))
     assert response["response"]["outputSpeech"]["values"]["value"] == "Handled EventRequest"

@@ -1,9 +1,8 @@
 from uuid import uuid4
+from objson import Serializable
 
-from .base import JsonSerializable
 
-
-class User(JsonSerializable):
+class User(Serializable):
     """
     User
 

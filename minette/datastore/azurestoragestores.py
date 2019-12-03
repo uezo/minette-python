@@ -1,7 +1,5 @@
 import traceback
-from logging import Logger, getLogger
 from datetime import datetime, timezone, MAXYEAR
-from pytz import timezone as tz
 from time import time
 
 from azure.cosmosdb.table.tableservice import TableService
@@ -19,7 +17,7 @@ from ..models import (
     User
 )
 
-from .. import utils
+import objson
 
 
 class AzureTableConnection(TableService):
@@ -110,8 +108,8 @@ class AzureTableContextStore(ContextStore):
             row = connection.get_entity(self.table_name, channel, channel_user_id)
             if row is not None:
                 # convert type
-                row["topic_previous"] = utils.decode_json(row["topic_previous"])
-                row["data"] = utils.decode_json(row["data"])
+                row["topic_previous"] = objson.loads(row["topic_previous"])
+                row["data"] = objson.loads(row["data"])
                 # check context timeout. AzureTableStorage always returns timestamp with UTC timezone
                 last_access = row["local_timestamp"].astimezone(self.timezone)
                 if (datetime.now(self.timezone) - last_access).total_seconds() <= self.timeout:
@@ -141,8 +139,8 @@ class AzureTableContextStore(ContextStore):
             return
         # serialize some elements
         context_dict = context.to_dict()
-        serialized_previous_topic = utils.encode_json(context_dict["topic"]["previous"])
-        serialized_data = utils.encode_json(context_dict["data"])
+        serialized_previous_topic = objson.dumps(context_dict["topic"]["previous"])
+        serialized_data = objson.dumps(context_dict["data"])
         # save
         entity = {
             "PartitionKey": context.channel,
@@ -211,7 +209,7 @@ class AzureTableUserStore(UserStore):
         try:
             row = connection.get_entity(self.table_name, channel, channel_user_id)
             # convert type
-            row["data"] = utils.decode_json(row["data"])
+            row["data"] = objson.loads(row["data"])
             # restore user
             user.id = row["user_id"]
             user.name = row["name"]
@@ -230,7 +228,7 @@ class AzureTableUserStore(UserStore):
                     "name": user.name,
                     "nickname": user.nickname,
                     "profile_image_url": user.profile_image_url,
-                    "data": utils.encode_json({})
+                    "data": objson.dumps({})
                 }
                 connection.insert_entity(self.table_name, entity)
             else:
@@ -253,7 +251,7 @@ class AzureTableUserStore(UserStore):
             Connection
         """
         user_dict = user.to_dict()
-        serialized_data = utils.encode_json(user_dict["data"])
+        serialized_data = objson.dumps(user_dict["data"])
         entity = {
             "PartitionKey": user.channel,
             "RowKey": user.channel_user_id,

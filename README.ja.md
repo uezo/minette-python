@@ -1,4 +1,6 @@
 # Minette for Python
+[![Downloads](https://pepy.tech/badge/minette)](https://pepy.tech/project/minette)
+
 Minette はチャットボットを開発するための軽量で拡張可能なフレームワークです。とても簡単に開発できる上に、スパゲッティコードになることなく複雑なBOTにまで拡張していくことができます。
 
 

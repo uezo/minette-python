@@ -1,7 +1,7 @@
-from .base import JsonSerializable
+from objson import Serializable
 
 
-class Group(JsonSerializable):
+class Group(Serializable):
     """
     Group
 

@@ -1,6 +1,7 @@
 # Minette for Python
-Minette is a minimal and extensible chatbot framework. It is extremely easy to develop and the architecture preventing to be spaghetti code enables you to scale up to complex chatbot.
+[![Downloads](https://pepy.tech/badge/minette)](https://pepy.tech/project/minette)
 
+Minette is a minimal and extensible chatbot framework. It is extremely easy to develop and the architecture preventing to be spaghetti code enables you to scale up to complex chatbot.
 
 ## Caution
 

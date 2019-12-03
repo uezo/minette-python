@@ -1,9 +1,10 @@
-from .base import JsonSerializable
+from objson import Serializable
+
 from .performance import PerformanceInfo
 from .message import Message
 
 
-class Response(JsonSerializable):
+class Response(Serializable):
     """
     Response from chatbot
 
@@ -33,21 +34,8 @@ class Response(JsonSerializable):
         self.performance = performance or PerformanceInfo()
 
     @classmethod
-    def from_dict(cls, data):
-        """
-        Restore response object from dict
-
-        Parameters
-        ----------
-        data : dict
-            Dictionary that has attributes of response
-
-        Returns
-        -------
-        context : minette.Response
-            Instance of Response
-        """
-        response = cls._class_from_dict(cls, data)
-        response.messages = Message.from_dict_list(response.messages)
-        response.performance = PerformanceInfo.from_dict(response.performance)
-        return response
+    def _types(cls):
+        return {
+            "messages": Message,
+            "performance": PerformanceInfo
+        }

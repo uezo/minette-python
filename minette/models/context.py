@@ -1,13 +1,12 @@
 import traceback
 from copy import deepcopy
+from objson import Serializable
 
-from .. import utils
-from .base import JsonSerializable
 from .priority import Priority
 from .topic import Topic
 
 
-class Context(JsonSerializable):
+class Context(Serializable):
     """
     Context
 
@@ -83,19 +82,7 @@ class Context(JsonSerializable):
             "info": info if info else {}}
 
     @classmethod
-    def from_dict(cls, data):
-        """
-        Restore context object from dict
-
-        Parameters
-        ----------
-        data : dict
-            Dictionary that has attributes of context
-
-        Returns
-        -------
-        context : minette.Context
-            Instance of Context
-        """
-        data["topic"] = Topic.from_dict(data["topic"])
-        return cls._class_from_dict(cls, data)
+    def _types(cls):
+        return {
+            "topic": Topic
+        }
