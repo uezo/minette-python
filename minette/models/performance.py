@@ -1,9 +1,8 @@
 from time import time
+from objson import Serializable
 
-from .base import JsonSerializable
 
-
-class PerformanceInfo(JsonSerializable):
+class PerformanceInfo(Serializable):
     """
     Performance information of each steps
 

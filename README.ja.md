@@ -1,23 +1,7 @@
 # Minette for Python
+[![Downloads](https://pepy.tech/badge/minette)](https://pepy.tech/project/minette)
+
 Minette はチャットボットを開発するための軽量で拡張可能なフレームワークです。とても簡単に開発できる上に、スパゲッティコードになることなく複雑なBOTにまで拡張していくことができます。
-
-
-## 注意
-
-__version 0.3 からの破壊的な変更について__
-
-- いくつかのパッケージが変更になっており、特定ベンダーに依存しない全てのクラスは `minette` からインポートするようになりました。
-- `Minette` インスタンスの生成方法。コンストラクターで直接生成するようになりました。
-- `Session` から `Context` に名称を変更しています。また、`session` という引数をとるものもすべて `context` に変更しました。
-- `minette.user.User#save()` を廃止しました。アプリロジックでユーザー情報を保存するには、 `UserStore` インスタンスを生成してください。
-- `SessionStore` -> `ContextStore`, `UserRepository` -> `UserStore`, `MessageLogger` -> `MessageLogStore`
-- `LineAdapter` のHTTPリクエストを受け取るメソッドは、`chat` から `handle_http_request` に変更しました。
-
-もし version 0.3 をインストールしたい場合、Githubのリリースパッケージから入手してください。
-
-```
-$ pip install git+https://github.com/uezo/minette-python.git@v0.3
-```
 
 # インストール
 
@@ -483,8 +467,10 @@ $ brew install mecab mecab-ipadic git curl xz
 
 ### Pythonバインディングのインストール
 ```
-$ pip install mecab-python3
+$ pip install mecab-python3==0.7
 ```
+0.996.1時点では`surface`が想定通りにならないバグ？があるため、0.7のインストールをお勧めします。
+
 
 ### 使い方
 ```python
@@ -492,4 +478,19 @@ from minette.tagger.mecab import MeCabTagger
 bot = Minette.create(
     tagger=MeCabTagger
 )
+```
+
+# Appendix2 version 0.3からの移行について
+
+- いくつかのパッケージが変更になっており、特定ベンダーに依存しない全てのクラスは `minette` からインポートするようになりました。
+- `Minette` インスタンスの生成方法。コンストラクターで直接生成するようになりました。
+- `Session` から `Context` に名称を変更しています。また、`session` という引数をとるものもすべて `context` に変更しました。
+- `minette.user.User#save()` を廃止しました。アプリロジックでユーザー情報を保存するには、 `UserStore` インスタンスを生成してください。
+- `SessionStore` -> `ContextStore`, `UserRepository` -> `UserStore`, `MessageLogger` -> `MessageLogStore`
+- `LineAdapter` のHTTPリクエストを受け取るメソッドは、`chat` から `handle_http_request` に変更しました。
+
+もし version 0.3 をインストールしたい場合、Githubのリリースパッケージから入手してください。
+
+```
+$ pip install git+https://github.com/uezo/minette-python.git@v0.3
 ```

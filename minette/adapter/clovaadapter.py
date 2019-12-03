@@ -4,19 +4,13 @@ import traceback
 from cek import (
     Clova,
     URL,
-    Request,
     IntentRequest
 )
 
+import objson
+
 from .base import Adapter
-from ..utils import encode_json
-from ..models import (
-    Message,
-    Payload,
-    Group,
-    Response,
-    Context
-)
+from ..models import Message
 
 
 class ClovaAdapter(Adapter):
@@ -108,10 +102,10 @@ class ClovaAdapter(Adapter):
         end_session = channel_messages[-1]["end_session"]
         reprompt = channel_messages[-1]["reprompt"]
         if len(speech_values) == 1:
-            return encode_json(self.clova.response(
+            return objson.dumps(self.clova.response(
                 speech_values[0], end_session=end_session, reprompt=reprompt))
         else:
-            return encode_json(self.clova.response(
+            return objson.dumps(self.clova.response(
                 speech_values, end_session=end_session, reprompt=reprompt))
 
     @staticmethod

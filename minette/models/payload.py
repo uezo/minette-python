@@ -1,9 +1,8 @@
 import requests
+from objson import Serializable
 
-from .base import JsonSerializable
 
-
-class Payload(JsonSerializable):
+class Payload(Serializable):
     """
     Payload
 

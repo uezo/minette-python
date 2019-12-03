@@ -1,15 +1,14 @@
 from datetime import datetime
 from pytz import timezone as tz
 from copy import copy
+from objson import Serializable
 
-from .. import utils
-from .base import JsonSerializable
 from .payload import Payload
 from .priority import Priority
 from .user import User
 
 
-class Message(JsonSerializable):
+class Message(Serializable):
     """
     Message
 
@@ -144,21 +143,8 @@ class Message(JsonSerializable):
         return message_dict
 
     @classmethod
-    def from_dict(cls, data):
-        """
-        Convert dict to Message object
-
-        Parameters
-        ----------
-        data : dict
-            Dictionary
-
-        Returns
-        -------
-        message : minette.Message
-            Message object
-        """
-        message = cls._class_from_dict(cls, data)
-        message.user = User.from_dict(message.user) if message.user else None
-        message.payloads = Payload.from_dict_list(message.payloads)
-        return message
+    def _types(cls):
+        return {
+            "user": User,
+            "payloads": Payload
+        }

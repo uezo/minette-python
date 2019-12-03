@@ -8,7 +8,7 @@ from minette import (
     SQLiteContextStore, SQLiteUserStore, SQLiteMessageLogStore,
     Tagger, Message
 )
-from minette.test.helper import MinetteForTest
+from minette.testing.helper import MinetteForTest
 from minette.utils import date_to_unixtime
 
 now = datetime.now()

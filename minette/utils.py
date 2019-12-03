@@ -1,8 +1,7 @@
 """ Utilities functions for minette """
-import sys
 from datetime import datetime
 import calendar
-import json
+import objson
 
 
 def date_to_str(dt, with_timezone=False):
@@ -21,10 +20,7 @@ def date_to_str(dt, with_timezone=False):
     datetime_str : str
         Datetime string
     """
-    if with_timezone and dt.tzinfo:
-        return dt.strftime("%Y-%m-%d %H:%M:%S %z")
-    else:
-        return dt.strftime("%Y-%m-%d %H:%M:%S")
+    return objson.date_to_str(dt, with_timezone)
 
 
 def str_to_date(dtstr):
@@ -41,10 +37,7 @@ def str_to_date(dtstr):
     datetime : datetime
         datetime
     """
-    if len(dtstr) > 19:
-        return datetime.strptime(dtstr, "%Y-%m-%d %H:%M:%S %z")
-    else:
-        return datetime.strptime(dtstr, "%Y-%m-%d %H:%M:%S")
+    return objson.str_to_date(dtstr)
 
 
 def date_to_unixtime(dt):
@@ -83,53 +76,9 @@ def unixtime_to_date(unixtime, tz=None):
     return datetime.fromtimestamp(unixtime, tz=tz)
 
 
-class _DateTimeJSONEncoder(json.JSONEncoder):
-    """
-    JSON Encoder to serialize DateTime
-
-    """
-    def default(self, obj):
-        if isinstance(obj, datetime):
-            if obj.tzinfo:
-                return obj.strftime("%Y-%m-%d %H:%M:%S %z")
-            else:
-                return obj.strftime("%Y-%m-%d %H:%M:%S")
-        return super().default(obj)
-
-
 def encode_json(obj, **kwargs):
-    """
-    Encode object to JSON
-
-    Parameters
-    ----------
-    obj : object
-        Object to encode
-
-    Returns
-    -------
-    json_string : str
-        JSON string
-    """
-    if obj is None:
-        return ""
-    return json.dumps(obj, cls=_DateTimeJSONEncoder, **kwargs)
+    return objson.dumps(obj, **kwargs)
 
 
 def decode_json(json_string, **kwargs):
-    """
-    Decode JSON to dict
-
-    Parameters
-    ----------
-    json_string : str
-        JSON string to decode
-
-    Returns
-    -------
-    json_dict : dict
-        JSON dict
-    """
-    if json_string is None or json_string == "":
-        return None
-    return json.loads(json_string, **kwargs)
+    return objson.loads(json_string, **kwargs)

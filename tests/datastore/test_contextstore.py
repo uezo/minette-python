@@ -23,7 +23,7 @@ from minette.datastore.mysqlstores import (
 )
 from minette.utils import date_to_unixtime, date_to_str
 
-now = datetime.now()
+now = datetime.now(tz=timezone("Asia/Tokyo"))
 table_name = "context" + str(date_to_unixtime(now))
 user_id = "user_id" + str(date_to_unixtime(now))
 print("context_table: {}".format(table_name))
@@ -113,7 +113,7 @@ def test_save(connection_provider_class, connection_str, context_store_class):
         assert ctx.data == {
             "strvalue": "value1",
             "intvalue": 2,
-            "dtvalue": date_to_str(now),
+            "dtvalue": now,
             "dictvalue": {
                 "k1": "v1",
                 "k2": 2,

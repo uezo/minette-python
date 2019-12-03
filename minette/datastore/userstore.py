@@ -1,11 +1,12 @@
 """ Base class for UserStore """
 from abc import ABC, abstractmethod
 import traceback
-from logging import Logger, getLogger
+from logging import getLogger
 from datetime import datetime
 from pytz import timezone as tz
 
-from .. import utils
+import objson
+
 from ..models import User
 
 
@@ -106,7 +107,7 @@ class UserStore(ABC):
                     record = dict(
                         zip([column[0] for column in cursor.description], row))
                 # convert type
-                record["data"] = utils.decode_json(record["data"])
+                record["data"] = objson.loads(record["data"])
                 # restore user
                 user.id = record["user_id"]
                 user.name = record["name"]
@@ -138,7 +139,7 @@ class UserStore(ABC):
             Connection
         """
         user_dict = user.to_dict()
-        serialized_data = utils.encode_json(user_dict["data"])
+        serialized_data = objson.dumps(user_dict["data"])
         cursor = connection.cursor()
         cursor.execute(self.sqls["save_user"], (
             datetime.now(self.timezone), user.name, user.nickname,

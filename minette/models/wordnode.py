@@ -1,9 +1,8 @@
 from abc import ABC, abstractmethod
+from objson import Serializable
 
-from ..models import JsonSerializable
 
-
-class WordNode(ABC, JsonSerializable):
+class WordNode(ABC, Serializable):
     """
     Base class of parsed word
 

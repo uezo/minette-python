@@ -1,8 +1,9 @@
-from .base import JsonSerializable
+from objson import Serializable
+
 from .priority import Priority
 
 
-class Topic(JsonSerializable):
+class Topic(Serializable):
     """
     Topic
 
