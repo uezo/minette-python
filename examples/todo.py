@@ -46,7 +46,7 @@ class TodoModel(Base):
 class TodoDialogService(DialogService):
     def process_request(self, request, context, connection):
 
-        # Note: connection is an instance of Session of SQLAlchemy
+        # Note: Session of SQLAlchemy is provided as argument `connection`
 
         # Register new item
         if request.text.lower().startswith("todo:"):
