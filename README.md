@@ -3,7 +3,13 @@
 
 Minette is a minimal and extensible chatbot framework. It is extremely easy to develop and the architecture preventing to be spaghetti code enables you to scale up to complex chatbot.
 
-# Installation
+[🇯🇵日本語のREADMEはこちら](./README.ja.md)
+
+# 🎉 version 0.4.1 is available
+
+- SQLAlchemy is supported (experimental). See also [examples/todo.py](https://github.com/uezo/minette-python/blob/master/examples/todo.py)
+
+# 📦 Installation
 
 To install minette, simply:
 
@@ -11,13 +17,7 @@ To install minette, simply:
 $ pip install minette
 ```
 
-If you want to get the newest version, install from this Github repository.
-
-```
-$ pip install git+https://github.com/uezo/minette-python
-```
-
-# Running the echo bot
+# 🤖 Running the echo bot
 
 Running echo bot is extremely easy.
 
@@ -65,7 +65,7 @@ app.run(port=12345)
 
 # Supported Platforms
 
-Python 3.5 or higher is supported. Mainly developed using Python 3.6.6 on Mac OSX.
+Python 3.5 or higher is supported. Mainly developed using Python 3.7.7 on Mac OSX.
 
 ## Messaging Service
 
@@ -83,6 +83,7 @@ You can connect to other messaging services by extending `minette.Adapter`.
 - MySQL (Tested on 8.0.13)
 
 You can use other databases you like by extending the classes in `minette.datastore` package. (Context / User / MessageLog)
+Or, maybe you can use supported databases by SQLAlchemy by just setting connection string for it.
 
 ## Tagger
 
@@ -106,7 +107,8 @@ To setup and use MeCab and Janome Tagger, see the Appendix at the bottom of this
 - pyodbc >= 4.0.26 (for Azure SQL Databsae)
 - azure-cosmosdb-table >= 1.0.5 (for Azure Table Storage)
 - MySQLdb (for MySQL)
-- mecab-python3 == 0.7 (for MeCabTagger. Latest version has a critical bug)
+- SQLAlchemy (for SQLAlchemyStores)
+- mecab-python3 >= 1.0.1 (for MeCabTagger)
 - Janome >= 0.3.8 (for Janome Tagger)
 
 # Features
@@ -237,6 +239,126 @@ minette> Dice1:4 / Dice2:5
 user> 
 minette> Dice1:6 / Dice2:6
 ```
+
+
+## Todo bot
+
+This example shows the simplest usage of SQLAlchemy experimentally supported at 0.4.1. You can use `Session` created for each request.
+
+```python
+from minette import Minette, DialogService
+from minette.datastore.sqlalchemystores import SQLAlchemyStores, Base
+from datetime import datetime
+from sqlalchemy import Column, Integer, String, DateTime, Boolean
+
+# Define datamodel
+class TodoModel(Base):
+    __tablename__ = "todolist"
+    id = Column("id", Integer, primary_key=True, autoincrement=True)
+    created_at = Column("created_at", DateTime, default=datetime.utcnow())
+    text = Column("title", String(255))
+    is_closed = Column("is_closed", Boolean, default=False)
+
+# TodoDialog
+class TodoDialogService(DialogService):
+    def process_request(self, request, context, connection):
+
+        # Note: Session of SQLAlchemy is provided as argument `connection`
+
+        # Register new item
+        if request.text.lower().startswith("todo:"):
+            item = TodoModel()
+            item.text = request.text[5:].strip()
+            connection.add(item)
+            connection.commit()
+            context.data["item"] = item
+            context.topic.status = "item_added"
+
+        # Close item
+        elif request.text.lower().startswith("close:"):
+            item_id = int(request.text[6:])
+            item = connection.query(TodoModel).filter(TodoModel.id==item_id).first()
+            if item:
+                item.is_closed = True
+                connection.commit()
+                context.data["item"] = item
+                context.topic.status = "item_closed"
+            else:
+                context.data["item_id"] = item_id
+                context.topic.status = "item_not_found"
+
+        # Get item list
+        elif request.text.lower().startswith("list") or request.text.lower().startswith("show"):
+            if "all" in request.text.lower():
+                items = connection.query(TodoModel).all()
+            else:
+                items = connection.query(TodoModel).filter(TodoModel.is_closed==0).all()
+            if items:
+                context.data["items"] = items
+                context.topic.status = "item_listed"
+            else:
+                context.topic.status = "no_items"
+
+    # Return reply message to user
+    def compose_response(self, request, context, connection):
+        if context.topic.status == "item_added":
+            return "New item created: □ #{} {}".format(context.data["item"].id, context.data["item"].text)
+        elif context.topic.status == "item_closed":
+            return "Item closed: ✅#{} {}".format(context.data["item"].id, context.data["item"].text)
+        elif context.topic.status == "item_not_found":
+            return "Item not found: #{}".format(context.data["item_id"])
+        elif context.topic.status == "item_listed":
+            text = "Todo:"
+            for item in context.data["items"]:
+                text += "\n{}#{} {}".format("□ " if item.is_closed == 0 else "✅", item.id, item.text)
+            return text
+        elif context.topic.status == "no_items":
+            return "No todo item registered"
+        else:
+            return "Something wrong :("
+
+# Create an instance of Minette with TodoDialogService and SQLAlchemyStores
+bot = Minette(
+    default_dialog_service=TodoDialogService,
+    data_stores=SQLAlchemyStores,
+    connection_str="sqlite:///todo.db",
+    db_echo=False)
+
+# Create table(s) using engine
+Base.metadata.create_all(bind=bot.connection_provider.engine)
+
+# Send and receive messages
+while True:
+    req = input("user> ")
+    res = bot.chat(req)
+    for message in res.messages:
+        print("minette> " + message.text)
+```
+
+Run it.
+
+```bash
+$ python todo.py
+
+user> todo: Buy beer
+minette> New item created: □ #1 Buy beer
+user> todo: Take a bath
+minette> New item created: □ #2 Take a bath
+user> todo: Watch anime
+minette> New item created: □ #3 Watch anime
+user> close: 2
+minette> Item closed: ✅#2 Take a bath
+user> list
+minette> Todo:
+□ #1 Buy beer
+□ #3 Watch anime
+user> list all
+minette> Todo:
+□ #1 Buy beer
+✅#2 Take a bath
+□ #3 Watch anime
+```
+
 
 ## Translation bot
 
