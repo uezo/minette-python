@@ -2,6 +2,8 @@ import pytest
 from datetime import datetime
 from pytz import timezone
 
+import objson
+
 from minette import (
     SQLiteConnectionProvider,
     SQLiteMessageLogStore,
@@ -23,6 +25,12 @@ from minette.datastore.mysqlstores import (
     MySQLConnection,
     MySQLConnectionProvider,
     MySQLMessageLogStore
+)
+from minette.datastore.sqlalchemystores import (
+    SQLAlchemyConnection,
+    SQLAlchemyConnectionProvider,
+    SQLAlchemyMessageLogStore,
+    SQLAlchemyMessageLog
 )
 from minette.utils import date_to_unixtime, date_to_str
 
@@ -54,7 +62,22 @@ datastore_params = [
         MySQLConnectionProvider,
         dbconfig.get("mysql_connection_str"),
         MySQLMessageLogStore
-    )
+    ),
+    (
+        SQLAlchemyConnectionProvider,
+        dbconfig.get("sqlalchemy_sqlite_connection_str"),
+        SQLAlchemyMessageLogStore
+    ),
+    (
+        SQLAlchemyConnectionProvider,
+        dbconfig.get("sqlalchemy_sqldb_connection_str"),
+        SQLAlchemyMessageLogStore
+    ),
+    (
+        SQLAlchemyConnectionProvider,
+        dbconfig.get("sqlalchemy_mysql_connection_str"),
+        SQLAlchemyMessageLogStore
+    ),
 ]
 
 
@@ -64,7 +87,10 @@ def test_prepare(connection_provider_class, connection_str, messagelog_store_cla
     cp = connection_provider_class(connection_str)
     with cp.get_connection() as connection:
         prepare_params = cp.get_prepare_params()
-        assert ms.prepare_table(connection, prepare_params) is True
+        if not isinstance(ms, SQLAlchemyMessageLogStore):
+            assert ms.prepare_table(connection, prepare_params) is True
+        else:
+            assert ms.prepare_table(connection, prepare_params) is False
         assert ms.prepare_table(connection, prepare_params) is False
 
 
@@ -94,6 +120,9 @@ def test_save(connection_provider_class, connection_str, messagelog_store_class)
         # check
         if isinstance(connection, AzureTableConnection):
             record = connection.get_entity(table_name, user_id, save_res)
+        elif isinstance(connection, SQLAlchemyConnection):
+            record = connection.query(SQLAlchemyMessageLog).filter(SQLAlchemyMessageLog.request_id==str(date_to_unixtime(now))).first()
+            record = objson.dumpd(record)
         else:
             cursor = connection.cursor()
             if isinstance(connection, MySQLConnection):

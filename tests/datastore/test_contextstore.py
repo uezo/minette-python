@@ -21,6 +21,11 @@ from minette.datastore.mysqlstores import (
     MySQLConnectionProvider,
     MySQLContextStore
 )
+from minette.datastore.sqlalchemystores import (
+    SQLAlchemyConnectionProvider,
+    SQLAlchemyContextStore
+)
+
 from minette.utils import date_to_unixtime, date_to_str
 
 now = datetime.now(tz=timezone("Asia/Tokyo"))
@@ -51,7 +56,22 @@ datastore_params = [
         MySQLConnectionProvider,
         dbconfig.get("mysql_connection_str"),
         MySQLContextStore
-    )
+    ),
+    (
+        SQLAlchemyConnectionProvider,
+        dbconfig.get("sqlalchemy_sqlite_connection_str"),
+        SQLAlchemyContextStore
+    ),
+    (
+        SQLAlchemyConnectionProvider,
+        dbconfig.get("sqlalchemy_sqldb_connection_str"),
+        SQLAlchemyContextStore
+    ),
+    (
+        SQLAlchemyConnectionProvider,
+        dbconfig.get("sqlalchemy_mysql_connection_str"),
+        SQLAlchemyContextStore
+    ),
 ]
 
 
@@ -61,7 +81,10 @@ def test_prepare(connection_provider_class, connection_str, context_store_class)
     cp = connection_provider_class(connection_str)
     with cp.get_connection() as connection:
         prepare_params = cp.get_prepare_params()
-        assert cs.prepare_table(connection, prepare_params) is True
+        if not isinstance(cp, SQLAlchemyConnectionProvider):
+            assert cs.prepare_table(connection, prepare_params) is True
+        else:
+            assert cs.prepare_table(connection, prepare_params) is False
         assert cs.prepare_table(connection, prepare_params) is False
 
 
