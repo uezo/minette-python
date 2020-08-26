@@ -21,9 +21,6 @@ Using user dictionary
     minette without udic> 新しい(形容詞), 魔法(名詞), 少女(名詞), リリカル(名詞), な(助動詞), の(名詞), は(助詞), の(助詞), 映画(名詞), を(助詞), 観(動詞), まし(助動詞), た(助動詞), か(助詞), ？(記号)
     minette with udic> 固有名詞あり: 魔法少女リリカルなのは
 """
-import sys
-sys.path.append("/Users/uezo/dev/minette-python")
-
 from minette import Minette, DialogService
 from minette.tagger.janometagger import JanomeTagger
 
