@@ -92,7 +92,7 @@ class JanomeTagger(Tagger):
         super().__init__(logger=logger, config=config, timezone=timezone)
         self.user_dic = user_dic or config.get("janome_userdic") if config else None
         if self.user_dic:
-            self.tokenizer = Tokenizer(self.user_dic, udic_enc="utf8", mmap=True)
+            self.tokenizer = Tokenizer(self.user_dic, udic_enc="utf8")
         else:
             self.tokenizer = Tokenizer()
 
@@ -114,7 +114,7 @@ class JanomeTagger(Tagger):
         if not text:
             return ret
         try:
-            for token in self.tokenizer.tokenize(text, stream=True):
+            for token in self.tokenizer.tokenize(text):
                 ret.append(JanomeNode.create(token.surface, token))
         except Exception as ex:
             self.logger.error(
