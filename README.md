@@ -46,7 +46,7 @@ Creating LINE bot is also super easy.
 ```python
 from flask import Flask, request
 from minette import Minette, EchoDialogService
-from minette.adaper.lineadapter import LineAdapter
+from minette.adapter.lineadapter import LineAdapter
 
 # Create chatbot wrapped by LINE adapter
 bot = LineAdapter(default_dialog_service=EchoDialogService)

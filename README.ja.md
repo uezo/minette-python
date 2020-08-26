@@ -44,7 +44,7 @@ LINEBOTを作るのも同じくらい簡単です。
 ```python
 from flask import Flask, request
 from minette import Minette, EchoDialogService
-from minette.adaper.lineadapter import LineAdapter
+from minette.adapter.lineadapter import LineAdapter
 
 # LINE接続部品を使ってBOTを起動
 bot = LineAdapter(default_dialog_service=EchoDialogService)

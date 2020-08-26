@@ -3,7 +3,15 @@ from datetime import datetime
 from copy import deepcopy
 import objson
 
-from sqlalchemy import create_engine, Column, Integer, String, DateTime, Boolean, TEXT
+from sqlalchemy import (
+    create_engine,
+    Column,
+    Integer,
+    String,
+    DateTime,
+    Boolean,
+    TEXT
+)
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import Session
 
@@ -112,9 +120,9 @@ class SQLAlchemyConnectionProvider(ConnectionProvider):
             Database connection
         """
         return SQLAlchemyConnection(
-            autocommit = False,
-            autoflush = True,
-            bind = self.engine)
+            autocommit=False,
+            autoflush=True,
+            bind=self.engine)
 
 
 class SQLAlchemyContextStore(ContextStore):
