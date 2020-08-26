@@ -5,9 +5,12 @@ Minette is a minimal and extensible chatbot framework. It is extremely easy to d
 
 [🇯🇵日本語のREADMEはこちら](./README.ja.md)
 
-# 🎉 version 0.4.1 is available
+# 🎉 version 0.4.2 is available
 
-- SQLAlchemy is supported (experimental). See also [examples/todo.py](https://github.com/uezo/minette-python/blob/master/examples/todo.py)
+- 0.4.2 Aug 26, 2020
+    - Support [Janome 0.4](https://mocobeta.github.io/janome/en/)
+- 0.4.1 Aug 7, 2020
+    - SQLAlchemy is supported (experimental). See also [examples/todo.py](https://github.com/uezo/minette-python/blob/master/examples/todo.py)
 
 # 📦 Installation
 
