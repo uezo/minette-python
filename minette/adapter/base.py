@@ -51,7 +51,7 @@ class Adapter(ABC):
             self.executor = ThreadPoolExecutor(
                 max_workers=self.threads, thread_name_prefix="AdapterThread")
         else:
-            self.logger.info(f"Use main thread to handle events")
+            self.logger.info("Use main thread to handle events")
             self.executor = None
         self.debug = debug
 
