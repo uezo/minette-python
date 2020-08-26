@@ -12,6 +12,8 @@ setup(
     maintainer="uezo",
     maintainer_email="uezo@uezo.net",
     description="Minette is a minimal and extensible chatbot framework. It is extremely easy to develop and the architecture preventing to be spaghetti code enables you to scale up to complex chatbot.",
+    long_description=open("README.md").read(),
+    long_description_content_type="text/markdown",
     packages=find_packages(exclude=["examples*", "develop*", "tests*"]),
     install_requires=["requests", "pytz", "schedule", "objson-py"],
     license="Apache v2",

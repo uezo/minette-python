@@ -5,9 +5,12 @@ Minette はチャットボットを開発するための軽量で拡張可能な
 
 [🇬🇧README in English](./README.md)
 
-# 🎉 version 0.4.1
+# 🎉 version 0.4.2 is available
 
-- SQLAlchemyをサポートしました（試験的）。利用方法は [examples/todo.py](https://github.com/uezo/minette-python/blob/master/examples/todo.py) を参照ください。
+- 0.4.2 Aug 26, 2020
+    - [Janome 0.4](https://mocobeta.github.io/janome/)に対応しました
+- 0.4.1 Aug 7, 2020
+    - SQLAlchemyをサポートしました（試験的）。利用方法は [examples/todo.py](https://github.com/uezo/minette-python/blob/master/examples/todo.py) を参照ください。
 
 # 📦 インストール
 
