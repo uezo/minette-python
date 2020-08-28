@@ -1,7 +1,11 @@
 import pytest
 from pytz import timezone
 
-from minette.tagger.janometagger import JanomeTagger, JanomeNode
+try:
+    from minette.tagger.janometagger import JanomeTagger, JanomeNode
+except Exception:
+    # Skip if import dependencies not found
+    pytestmark = pytest.mark.skip
 
 
 def test_init():

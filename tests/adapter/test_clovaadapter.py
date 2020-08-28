@@ -1,32 +1,31 @@
 import pytest
-from pytz import timezone
-from concurrent.futures import ThreadPoolExecutor
-from copy import deepcopy
 
-from cek import (
-    Clova,
-    URL,
-    Request as ClovaRequest,
-    Response as ClovaResponse,
-    IntentRequest
-)
-
-from request_samples import *
+try:
+    from cek import (
+        Clova,
+        URL
+    )
+    from minette.adapter.clovaadapter import ClovaAdapter
+    import request_samples as rs
+except Exception:
+    # Skip if import dependencies not found
+    pytestmark = pytest.mark.skip
 
 import objson
 
 from minette import (
     DialogService,
     Message,
-    Payload,
     Config
 )
-from minette.adapter.clovaadapter import ClovaAdapter
 
 clovaconfig = Config("config/test_config_adapter.ini")
-
 application_id = clovaconfig.get("application_id", section="clova_cek")
 default_language = clovaconfig.get("default_language", section="clova_cek")
+
+# Skip if application_id is not provided
+if not application_id:
+    pytestmark = pytest.mark.skip
 
 
 class MyDialog(DialogService):
@@ -79,7 +78,7 @@ def test_handle_intent_request():
         debug=True,
         prepare_table=True)
     request_headers = {
-        "Signaturecek": REQUEST_SIGNATURE,
+        "Signaturecek": rs.REQUEST_SIGNATURE,
         "Content-Type": "application/json;charset=UTF-8",
         "Content-Length": 578,
         "Host": "host.name.local",
@@ -87,26 +86,26 @@ def test_handle_intent_request():
     }
 
     # launch request
-    response = objson.loads(adapter.handle_http_request(LAUNCH_REQUEST_BODY, request_headers))
+    response = objson.loads(adapter.handle_http_request(rs.LAUNCH_REQUEST_BODY, request_headers))
     assert response["response"]["outputSpeech"]["values"]["value"] == "Handled LaunchRequest"
 
     # intent request
-    response = objson.loads(adapter.handle_http_request(INTENT_REQUEST_BODY, request_headers))
+    response = objson.loads(adapter.handle_http_request(rs.INTENT_REQUEST_BODY, request_headers))
     assert response["response"]["outputSpeech"]["values"]["value"] == "Handled IntentRequest"
 
     # intent request (multiple response message)
-    response = objson.loads(adapter.handle_http_request(INTENT_REQUEST_TURN_OFF, request_headers))
+    response = objson.loads(adapter.handle_http_request(rs.INTENT_REQUEST_TURN_OFF, request_headers))
     assert response["response"]["outputSpeech"]["values"][0]["value"] == "Handled IntentRequest"
     assert response["response"]["outputSpeech"]["values"][1]["value"] == "Finish turning off"
 
     # end request
-    response = objson.loads(adapter.handle_http_request(END_REQUEST_BODY, request_headers))
+    response = objson.loads(adapter.handle_http_request(rs.END_REQUEST_BODY, request_headers))
     assert response["response"]["outputSpeech"]["values"]["value"] == "Handled SessionEndedRequest"
 
     # event request
-    response = objson.loads(adapter.handle_http_request(EVENT_REQUEST_BODY, request_headers))
+    response = objson.loads(adapter.handle_http_request(rs.EVENT_REQUEST_BODY, request_headers))
     assert response["response"]["outputSpeech"]["values"]["value"] == "Handled EventRequest"
 
     # EventFromSkillStore request
-    response = objson.loads(adapter.handle_http_request(EVENT_REQUEST_BODY_FROM_SKILL_STORE, request_headers))
+    response = objson.loads(adapter.handle_http_request(rs.EVENT_REQUEST_BODY_FROM_SKILL_STORE, request_headers))
     assert response["response"]["outputSpeech"]["values"]["value"] == "Handled EventRequest"

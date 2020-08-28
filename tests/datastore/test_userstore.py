@@ -3,28 +3,39 @@ from datetime import datetime
 from pytz import timezone
 
 from minette import (
-    SQLiteConnectionProvider,
-    SQLiteUserStore,
-    User,
+    SQLiteStores,
     Config
 )
-from minette.datastore.sqldbstores import (
-    SQLDBConnectionProvider,
-    SQLDBUserStore
-)
-from minette.datastore.azurestoragestores import (
-    AzureTableConnectionProvider,
-    AzureTableUserStore
-)
-from minette.datastore.mysqlstores import (
-    MySQLConnectionProvider,
-    MySQLUserStore
-)
-from minette.datastore.sqlalchemystores import (
-    SQLAlchemyConnectionProvider,
-    SQLAlchemyUserStore
-)
-from minette.utils import date_to_unixtime, date_to_str
+
+SQLDBStores = None
+try:
+    from minette.datastore.sqldbstores import SQLDBStores
+except Exception:
+    pass
+
+AzureTableStores = None
+try:
+    from minette.datastore.azurestoragestores import AzureTableStores
+except Exception:
+    pass
+
+MySQLStores = None
+try:
+    from minette.datastore.mysqlstores import MySQLStores
+except Exception:
+    pass
+
+SQLAlchemyStores = None
+SQLAlchemyUserStore = None
+try:
+    from minette.datastore.sqlalchemystores import (
+        SQLAlchemyStores,
+        SQLAlchemyUserStore
+    )
+except Exception:
+    pass
+
+from minette.utils import date_to_unixtime
 
 now = datetime.now()
 table_name = "user" + str(date_to_unixtime(now))
@@ -36,60 +47,69 @@ dbconfig = Config("config/test_config_datastores.ini")
 
 datastore_params = [
     (
-        SQLiteConnectionProvider,
+        SQLiteStores,
         "test.db",
-        SQLiteUserStore
     ),
     (
-        SQLDBConnectionProvider,
+        SQLDBStores,
         dbconfig.get("sqldb_connection_str"),
-        SQLDBUserStore
     ),
     (
-        AzureTableConnectionProvider,
+        AzureTableStores,
         dbconfig.get("table_connection_str"),
-        AzureTableUserStore
     ),
     (
-        MySQLConnectionProvider,
+        MySQLStores,
         dbconfig.get("mysql_connection_str"),
-        MySQLUserStore
     ),
     (
-        SQLAlchemyConnectionProvider,
+        SQLAlchemyStores,
         dbconfig.get("sqlalchemy_sqlite_connection_str"),
-        SQLAlchemyUserStore
     ),
     (
-        SQLAlchemyConnectionProvider,
+        SQLAlchemyStores,
         dbconfig.get("sqlalchemy_sqldb_connection_str"),
-        SQLAlchemyUserStore
     ),
     (
-        SQLAlchemyConnectionProvider,
+        SQLAlchemyStores,
         dbconfig.get("sqlalchemy_mysql_connection_str"),
-        SQLAlchemyUserStore
     ),
 ]
 
 
-@pytest.mark.parametrize("connection_provider_class,connection_str,user_store_class", datastore_params)
-def test_prepare(connection_provider_class, connection_str, user_store_class):
-    us = user_store_class(table_name=table_name, timezone=timezone("Asia/Tokyo"))
-    cp = connection_provider_class(connection_str)
+@pytest.mark.parametrize("datastore_class, connection_str", datastore_params)
+def test_prepare(datastore_class, connection_str):
+    if not datastore_class:
+        pytest.skip("Unable to import DataStoreSet")
+    if not connection_str:
+        pytest.skip(
+            "Connection string for {} is not provided"
+            .format(datastore_class.connection_provider.__name__))
+
+    us = datastore_class.user_store(
+        table_name=table_name, timezone=timezone("Asia/Tokyo"))
+    cp = datastore_class.connection_provider(connection_str)
     with cp.get_connection() as connection:
         prepare_params = cp.get_prepare_params()
-        if not isinstance(us, SQLAlchemyUserStore):
-            assert us.prepare_table(connection, prepare_params) is True
-        else:
+        if SQLAlchemyUserStore and isinstance(us, SQLAlchemyUserStore):
             assert us.prepare_table(connection, prepare_params) is False
+        else:
+            assert us.prepare_table(connection, prepare_params) is True
         assert us.prepare_table(connection, prepare_params) is False
 
 
-@pytest.mark.parametrize("connection_provider_class,connection_str,user_store_class", datastore_params)
-def test_get(connection_provider_class, connection_str, user_store_class):
-    us = user_store_class(table_name=table_name, timezone=timezone("Asia/Tokyo"))
-    with connection_provider_class(connection_str).get_connection() as connection:
+@pytest.mark.parametrize("datastore_class, connection_str", datastore_params)
+def test_get(datastore_class, connection_str):
+    if not datastore_class:
+        pytest.skip("Unable to import DataStoreSet")
+    if not connection_str:
+        pytest.skip(
+            "Connection string for {} is not provided"
+            .format(datastore_class.connection_provider.__name__))
+
+    us = datastore_class.user_store(
+        table_name=table_name, timezone=timezone("Asia/Tokyo"))
+    with datastore_class.connection_provider(connection_str).get_connection() as connection:
         user = us.get("TEST", user_id, connection)
         assert user.channel == "TEST"
         assert user.channel_user_id == user_id
@@ -100,35 +120,51 @@ def test_get(connection_provider_class, connection_str, user_store_class):
         assert user_without_user_id.channel_user_id == ""
 
 
-@pytest.mark.parametrize("connection_provider_class,connection_str,user_store_class", datastore_params)
-def test_get_error(connection_provider_class, connection_str, user_store_class):
-    us = user_store_class(table_name=table_name, timezone=timezone("Asia/Tokyo"))
+@pytest.mark.parametrize("datastore_class, connection_str", datastore_params)
+def test_get_error(datastore_class, connection_str):
+    if not datastore_class:
+        pytest.skip("Unable to import DataStoreSet")
+    if not connection_str:
+        pytest.skip(
+            "Connection string for {} is not provided"
+            .format(datastore_class.connection_provider.__name__))
+
+    us = datastore_class.user_store(
+        table_name=table_name, timezone=timezone("Asia/Tokyo"))
     us.sqls["get_user"] = ""
-    with connection_provider_class(connection_str).get_connection() as connection:
+    with datastore_class.connection_provider(connection_str).get_connection() as connection:
         user = us.get("TEST", user_id, connection)
         assert user.channel == "TEST"
         assert user.channel_user_id == user_id
         assert user.data == {}
     # table doesn't exist
     us.table_name = "notexisttable"
-    with connection_provider_class(connection_str).get_connection() as connection:
+    with datastore_class.connection_provider(connection_str).get_connection() as connection:
         user = us.get("TEST", user_id, connection)
         assert user.channel == "TEST"
         assert user.channel_user_id == user_id
         assert user.data == {}
     # invalid table name
     us.table_name = "_#_#_"
-    with connection_provider_class(connection_str).get_connection() as connection:
+    with datastore_class.connection_provider(connection_str).get_connection() as connection:
         user = us.get("TEST", user_id, connection)
         assert user.channel == "TEST"
         assert user.channel_user_id == user_id
         assert user.data == {}
 
 
-@pytest.mark.parametrize("connection_provider_class,connection_str,user_store_class", datastore_params)
-def test_save(connection_provider_class, connection_str, user_store_class):
-    us = user_store_class(table_name=table_name, timezone=timezone("Asia/Tokyo"))
-    with connection_provider_class(connection_str).get_connection() as connection:
+@pytest.mark.parametrize("datastore_class, connection_str", datastore_params)
+def test_save(datastore_class, connection_str):
+    if not datastore_class:
+        pytest.skip("Unable to import DataStoreSet")
+    if not connection_str:
+        pytest.skip(
+            "Connection string for {} is not provided"
+            .format(datastore_class.connection_provider.__name__))
+
+    us = datastore_class.user_store(
+        table_name=table_name, timezone=timezone("Asia/Tokyo"))
+    with datastore_class.connection_provider(connection_str).get_connection() as connection:
         # save
         user = us.get("TEST", user_id, connection)
         user.data["strvalue"] = "value1"

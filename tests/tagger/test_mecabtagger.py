@@ -1,7 +1,11 @@
 import pytest
 from pytz import timezone
 
-from minette.tagger.mecabtagger import MeCabTagger, MeCabNode
+try:
+    from minette.tagger.mecabtagger import MeCabTagger, MeCabNode
+except Exception:
+    # Skip if import dependencies not found
+    pytestmark = pytest.mark.skip
 
 
 def test_init():

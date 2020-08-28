@@ -1,28 +1,37 @@
 import pytest
-from pytz import timezone
-from concurrent.futures import ThreadPoolExecutor
 
-from linebot import LineBotApi, WebhookParser
-from linebot.models import (
-    Event, BeaconEvent, FollowEvent, JoinEvent, LeaveEvent, MessageEvent,
-    PostbackEvent, UnfollowEvent, MemberJoinedEvent, MemberLeftEvent,
-    AccountLinkEvent,
-    TextMessage, ImageMessage, AudioMessage, VideoMessage, LocationMessage,
-    StickerMessage, TextSendMessage, ImageSendMessage, AudioSendMessage,
-    VideoSendMessage, LocationSendMessage, StickerSendMessage,
-    ImagemapSendMessage, TemplateSendMessage, FlexSendMessage,
-    ImagemapAction, ButtonsTemplate, FlexContainer,
+try:
+    from linebot import LineBotApi, WebhookParser
+    from linebot.models import (
+        BeaconEvent, FollowEvent, JoinEvent, LeaveEvent, MessageEvent,
+        PostbackEvent, UnfollowEvent, MemberJoinedEvent, MemberLeftEvent,
+        AccountLinkEvent,
+        TextSendMessage, ImageSendMessage, AudioSendMessage,
+        VideoSendMessage, LocationSendMessage, StickerSendMessage,
+        ImagemapSendMessage, TemplateSendMessage, FlexSendMessage,
+        ButtonsTemplate, FlexContainer,
+    )
+    from linebot.exceptions import LineBotApiError
+    from minette.adapter.lineadapter import LineAdapter
+except Exception:
+    # Skip if import dependencies not found
+    pytestmark = pytest.mark.skip
+
+from minette import (
+    DialogService,
+    Message,
+    Payload,
+    Config
 )
-from linebot.exceptions import LineBotApiError, InvalidSignatureError
-
-from minette import DialogService, Message, Payload, Config
-from minette.adapter.lineadapter import LineAdapter
-
 
 lineconfig = Config("config/test_config_adapter.ini")
 
 channel_secret = lineconfig.get("channel_secret", section="line_bot_api")
 channel_access_token = lineconfig.get("channel_access_token", section="line_bot_api")
+
+# Skip if channel_secret or channel_access_token is not provided
+if not channel_secret or not channel_access_token:
+    pytestmark = pytest.mark.skip
 
 
 class MyDialog(DialogService):
