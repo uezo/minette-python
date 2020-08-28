@@ -3,7 +3,7 @@
 
 Minette はチャットボットを開発するための軽量で拡張可能なフレームワークです。とても簡単に開発できる上に、スパゲッティコードになることなく複雑なBOTにまで拡張していくことができます。
 
-[🇬🇧README in English](./README.md)
+[🇬🇧README in English](https://github.com/uezo/minette-python/blob/master/README.md)
 
 # 🎉 version 0.4.2 is available
 
@@ -548,6 +548,9 @@ def test_payload(bot):
     )).text == "payload:" + str({"key1": "value1"})
 ```
 
+# コントリビューション
+
+[コントリビューションガイド](https://github.com/uezo/minette-python/blob/master/CONTRIBUTING.md)を参照してください🙏
 
 # ライセンス
 Apache v2 License
@@ -591,9 +594,9 @@ $ brew install mecab mecab-ipadic git curl xz
 
 ### Pythonバインディングのインストール
 ```
-$ pip install mecab-python3==0.7
+$ pip install mecab-python3==1.0.1
 ```
-0.996.1時点では`surface`が想定通りにならないバグ？があるため、0.7のインストールをお勧めします。
+~~0.996.1時点では`surface`が想定通りにならないバグ？があるため、0.7のインストールをお勧めします。~~ 解決済み
 
 
 ### 使い方

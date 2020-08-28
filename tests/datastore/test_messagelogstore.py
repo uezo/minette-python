@@ -5,33 +5,53 @@ from pytz import timezone
 import objson
 
 from minette import (
-    SQLiteConnectionProvider,
-    SQLiteMessageLogStore,
+    SQLiteStores,
     Message,
     Response,
     Context,
     Config
 )
-from minette.datastore.sqldbstores import (
-    SQLDBConnectionProvider,
-    SQLDBMessageLogStore
-)
-from minette.datastore.azurestoragestores import (
-    AzureTableConnectionProvider,
-    AzureTableMessageLogStore,
-    AzureTableConnection
-)
-from minette.datastore.mysqlstores import (
-    MySQLConnection,
-    MySQLConnectionProvider,
-    MySQLMessageLogStore
-)
-from minette.datastore.sqlalchemystores import (
-    SQLAlchemyConnection,
-    SQLAlchemyConnectionProvider,
-    SQLAlchemyMessageLogStore,
-    SQLAlchemyMessageLog
-)
+
+SQLDBStores = None
+try:
+    from minette.datastore.sqldbstores import SQLDBStores
+except Exception:
+    pass
+
+AzureTableStores = None
+AzureTableConnection = None
+try:
+    from minette.datastore.azurestoragestores import (
+        AzureTableStores,
+        AzureTableConnection,
+    )
+except Exception:
+    pass
+
+MySQLStores = None
+MySQLConnection = None
+try:
+    from minette.datastore.mysqlstores import (
+        MySQLStores,
+        MySQLConnection,
+    )
+except Exception:
+    pass
+
+SQLAlchemyStores = None
+SQLAlchemyConnection = None
+SQLAlchemyMessageLog = None
+SQLAlchemyMessageLogStore = None
+try:
+    from minette.datastore.sqlalchemystores import (
+        SQLAlchemyStores,
+        SQLAlchemyConnection,
+        SQLAlchemyMessageLog,
+        SQLAlchemyMessageLogStore
+    )
+except Exception:
+    pass
+
 from minette.utils import date_to_unixtime, date_to_str
 
 now = datetime.now()
@@ -44,62 +64,74 @@ dbconfig = Config("config/test_config_datastores.ini")
 
 datastore_params = [
     (
-        SQLiteConnectionProvider,
+        SQLiteStores,
         "test.db",
-        SQLiteMessageLogStore
     ),
     (
-        SQLDBConnectionProvider,
+        SQLDBStores,
         dbconfig.get("sqldb_connection_str"),
-        SQLDBMessageLogStore
     ),
     (
-        AzureTableConnectionProvider,
+        AzureTableStores,
         dbconfig.get("table_connection_str"),
-        AzureTableMessageLogStore
     ),
     (
-        MySQLConnectionProvider,
+        MySQLStores,
         dbconfig.get("mysql_connection_str"),
-        MySQLMessageLogStore
     ),
     (
-        SQLAlchemyConnectionProvider,
+        SQLAlchemyStores,
         dbconfig.get("sqlalchemy_sqlite_connection_str"),
-        SQLAlchemyMessageLogStore
     ),
     (
-        SQLAlchemyConnectionProvider,
+        SQLAlchemyStores,
         dbconfig.get("sqlalchemy_sqldb_connection_str"),
-        SQLAlchemyMessageLogStore
     ),
     (
-        SQLAlchemyConnectionProvider,
+        SQLAlchemyStores,
         dbconfig.get("sqlalchemy_mysql_connection_str"),
-        SQLAlchemyMessageLogStore
     ),
 ]
 
 
-@pytest.mark.parametrize("connection_provider_class,connection_str,messagelog_store_class", datastore_params)
-def test_prepare(connection_provider_class, connection_str, messagelog_store_class):
-    ms = messagelog_store_class(table_name=table_name, timezone=timezone("Asia/Tokyo"))
-    cp = connection_provider_class(connection_str)
+@pytest.mark.parametrize("datastore_class, connection_str", datastore_params)
+def test_prepare(datastore_class, connection_str):
+    if not datastore_class:
+        pytest.skip("Unable to import DataStoreSet")
+    if not connection_str:
+        pytest.skip(
+            "Connection string for {} is not provided"
+            .format(datastore_class.connection_provider.__name__))
+
+    ms = datastore_class.messagelog_store(
+        table_name=table_name, timezone=timezone("Asia/Tokyo"))
+    cp = datastore_class.connection_provider(connection_str)
     with cp.get_connection() as connection:
         prepare_params = cp.get_prepare_params()
-        if not isinstance(ms, SQLAlchemyMessageLogStore):
-            assert ms.prepare_table(connection, prepare_params) is True
-        else:
+        if SQLAlchemyMessageLogStore and isinstance(ms, SQLAlchemyMessageLogStore):
             assert ms.prepare_table(connection, prepare_params) is False
+        else:
+            assert ms.prepare_table(connection, prepare_params) is True
         assert ms.prepare_table(connection, prepare_params) is False
 
 
-@pytest.mark.parametrize("connection_provider_class,connection_str,messagelog_store_class", datastore_params)
-def test_save(connection_provider_class, connection_str, messagelog_store_class):
-    ms = messagelog_store_class(table_name=table_name, timezone=timezone("Asia/Tokyo"))
-    with connection_provider_class(connection_str).get_connection() as connection:
+@pytest.mark.parametrize("datastore_class, connection_str", datastore_params)
+def test_save(datastore_class, connection_str):
+    if not datastore_class:
+        pytest.skip("Unable to import DataStoreSet")
+    if not connection_str:
+        pytest.skip(
+            "Connection string for {} is not provided"
+            .format(datastore_class.connection_provider.__name__))
+
+    ms = datastore_class.messagelog_store(
+        table_name=table_name, timezone=timezone("Asia/Tokyo"))
+    with datastore_class.connection_provider(connection_str).get_connection() as connection:
         # request
-        request = Message(id=str(date_to_unixtime(now)), channel="TEST", channel_user_id=user_id, text="request message {}".format(str(date_to_unixtime(now))))
+        request = Message(
+            id=str(date_to_unixtime(now)),
+            channel="TEST", channel_user_id=user_id,
+            text="request message {}".format(str(date_to_unixtime(now))))
         # response
         response = Response(messages=[Message(channel="TEST", channel_user_id=user_id, text="response message {}".format(str(date_to_unixtime(now))))])
         # context
@@ -118,14 +150,16 @@ def test_save(connection_provider_class, connection_str, messagelog_store_class)
         save_res = ms.save(request, response, context, connection)
 
         # check
-        if isinstance(connection, AzureTableConnection):
+        if AzureTableConnection and isinstance(connection, AzureTableConnection):
             record = connection.get_entity(table_name, user_id, save_res)
-        elif isinstance(connection, SQLAlchemyConnection):
-            record = connection.query(SQLAlchemyMessageLog).filter(SQLAlchemyMessageLog.request_id==str(date_to_unixtime(now))).first()
+        elif SQLAlchemyConnection and isinstance(connection, SQLAlchemyConnection):
+            record = connection.query(SQLAlchemyMessageLog).filter(
+                SQLAlchemyMessageLog.request_id == str(date_to_unixtime(now))
+            ).first()
             record = objson.dumpd(record)
         else:
             cursor = connection.cursor()
-            if isinstance(connection, MySQLConnection):
+            if MySQLConnection and isinstance(connection, MySQLConnection):
                 sql = "select * from {} where request_id = %s"
             else:
                 sql = "select * from {} where request_id = ?"
