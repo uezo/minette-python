@@ -3,7 +3,7 @@
 
 Minette is a minimal and extensible chatbot framework. It is extremely easy to develop and the architecture preventing to be spaghetti code enables you to scale up to complex chatbot.
 
-[🇯🇵日本語のREADMEはこちら](./README.ja.md)
+[🇯🇵日本語のREADMEはこちら](https://github.com/uezo/minette-python/blob/master/README.ja.md)
 
 # 🎉 version 0.4.2 is available
 
@@ -545,6 +545,10 @@ def test_payload(bot):
     )).text == "payload:" + str({"key1": "value1"})
 ```
 
+# Contribution
+
+See the [Contribution Guideline](https://github.com/uezo/minette-python/blob/master/CONTRIBUTING.md)
+
 
 # License
 This software is licensed under the Apache v2 License.
@@ -588,9 +592,9 @@ $ brew install mecab mecab-ipadic git curl xz
 
 ### Installing python binding
 ```
-$ pip install mecab-python3==0.7
+$ pip install mecab-python3==1.0.1
 ```
-Version 0.996.1 has a bug(?) so we strongly recommend to use version 0.7.
+~~Version 0.996.1 has a bug(?) so we strongly recommend to use version 0.7.~~ Fixed at current version
 
 
 ### Usase
