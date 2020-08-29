@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from objson import Serializable
+from ..serializer import Serializable
 
 
 class WordNode(ABC, Serializable):

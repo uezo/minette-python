@@ -1,7 +1,6 @@
 """ Utilities functions for minette """
 from datetime import datetime
 import calendar
-import objson
 
 
 def date_to_str(dt, with_timezone=False):
@@ -20,7 +19,11 @@ def date_to_str(dt, with_timezone=False):
     datetime_str : str
         Datetime string
     """
-    return objson.date_to_str(dt, with_timezone)
+    if with_timezone and dt.tzinfo:
+        dtstr = dt.strftime("%Y-%m-%dT%H:%M:%S.%f%z")
+        return dtstr[:-2] + ":" + dtstr[-2:]
+    else:
+        return dt.strftime("%Y-%m-%dT%H:%M:%S.%f")
 
 
 def str_to_date(dtstr):
@@ -37,7 +40,14 @@ def str_to_date(dtstr):
     datetime : datetime
         datetime
     """
-    return objson.str_to_date(dtstr)
+    if len(dtstr) > 19 and dtstr[-3:-2] == ":":
+        dtstr = dtstr[:-3] + dtstr[-2:]
+    fmt = "%Y-%m-%dT%H:%M:%S"
+    if "." in dtstr:
+        fmt += ".%f"
+    if dtstr[-5] == "+" or dtstr[-5] == "-":
+        fmt += "%z"
+    return datetime.strptime(dtstr, fmt)
 
 
 def date_to_unixtime(dt):
@@ -74,11 +84,3 @@ def unixtime_to_date(unixtime, tz=None):
         datetime
     """
     return datetime.fromtimestamp(unixtime, tz=tz)
-
-
-def encode_json(obj, **kwargs):
-    return objson.dumps(obj, **kwargs)
-
-
-def decode_json(json_string, **kwargs):
-    return objson.loads(json_string, **kwargs)

@@ -1,5 +1,5 @@
 from time import time
-from objson import Serializable
+from ..serializer import Serializable
 
 
 class PerformanceInfo(Serializable):

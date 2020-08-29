@@ -1,5 +1,4 @@
-from objson import Serializable
-
+from ..serializer import Serializable
 from .priority import Priority
 
 

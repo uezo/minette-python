@@ -1,5 +1,5 @@
 import requests
-from objson import Serializable
+from ..serializer import Serializable
 
 
 class Payload(Serializable):

@@ -8,5 +8,3 @@ from .message import Message
 from .performance import PerformanceInfo
 from .response import Response
 from .wordnode import WordNode
-
-from .base import JsonSerializable

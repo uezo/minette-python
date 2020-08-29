@@ -1,7 +1,6 @@
 import traceback
 from datetime import datetime
 from copy import deepcopy
-import objson
 
 from sqlalchemy import (
     create_engine,
@@ -21,6 +20,7 @@ from .userstore import UserStore
 from .messagelogstore import MessageLogStore
 from .storeset import StoreSet
 
+from ..serializer import dumps, loads, Serializable
 from ..models import (
     Context,
     Topic,
@@ -57,7 +57,7 @@ class SQLAlchemyUser(User, Base):
     data = Column("data", TEXT)
 
 
-class SQLAlchemyMessageLog(objson.Serializable, Base):
+class SQLAlchemyMessageLog(Serializable, Base):
     __tablename__ = "messagelog"
     id = Column("id", Integer, primary_key=True, autoincrement=True)
     channel = Column("channel", String(length=20))
@@ -209,7 +209,7 @@ class SQLAlchemyContextStore(ContextStore):
                     context.topic.previous = Topic.from_json(
                         stored_context.topic_previous) \
                         if stored_context.topic_previous else None
-                    context.data = objson.loads(stored_context.data) \
+                    context.data = loads(stored_context.data) \
                         if stored_context.data else {}
                     context.is_new = False
 
@@ -238,9 +238,9 @@ class SQLAlchemyContextStore(ContextStore):
         context_to_store = deepcopy(context)
         context_to_store.topic_name = context_to_store.topic.name
         context_to_store.topic_status = context_to_store.topic.status
-        context_to_store.topic_previous = objson.dumps(context_to_store.topic.previous)
+        context_to_store.topic_previous = dumps(context_to_store.topic.previous)
         context_to_store.topic_priority = context_to_store.topic.priority
-        context_to_store.data = objson.dumps(context_to_store.data)
+        context_to_store.data = dumps(context_to_store.data)
 
         # save
         connection.merge(instance=context_to_store)
@@ -319,7 +319,7 @@ class SQLAlchemyUserStore(UserStore):
                 user.name = stored_user.name
                 user.nickname = stored_user.nickname
                 user.profile_image_url = stored_user.profile_image_url
-                user.data = objson.loads(stored_user.data) if stored_user.data else {}
+                user.data = loads(stored_user.data) if stored_user.data else {}
 
             else:
                 self.save(user, connection)
@@ -345,7 +345,7 @@ class SQLAlchemyUserStore(UserStore):
         # copy and serialize values to store
         user_to_store = deepcopy(user)
         user_to_store.timestamp = datetime.now(self.timezone)
-        user_to_store.data = objson.dumps(user_to_store.data)
+        user_to_store.data = dumps(user_to_store.data)
 
         # save
         connection.merge(instance=user_to_store)

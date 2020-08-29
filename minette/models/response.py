@@ -1,5 +1,4 @@
-from objson import Serializable
-
+from ..serializer import Serializable
 from .performance import PerformanceInfo
 from .message import Message
 

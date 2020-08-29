@@ -5,8 +5,7 @@ from logging import getLogger
 from datetime import datetime
 from pytz import timezone as tz
 
-import objson
-
+from ..serializer import dumps, loads
 from ..models import Context, Topic
 
 
@@ -120,8 +119,8 @@ class ContextStore(ABC):
                         zip([column[0] for column in cursor.description], row))
                 # convert type
                 record["topic_previous"] = \
-                    objson.loads(record["topic_previous"])
-                record["data"] = objson.loads(record["data"])
+                    loads(record["topic_previous"])
+                record["data"] = loads(record["data"])
                 # check context timeout
                 if record["timestamp"].tzinfo:
                     last_access = record["timestamp"].astimezone(self.timezone)
@@ -160,8 +159,8 @@ class ContextStore(ABC):
         # serialize some elements
         context_dict = context.to_dict()
         serialized_previous_topic = \
-            objson.dumps(context_dict["topic"]["previous"])
-        serialized_data = objson.dumps(context_dict["data"])
+            dumps(context_dict["topic"]["previous"])
+        serialized_data = dumps(context_dict["data"])
         # save
         cursor = connection.cursor()
         cursor.execute(self.sqls["save_context"], (

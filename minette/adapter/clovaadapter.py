@@ -7,8 +7,7 @@ from cek import (
     IntentRequest
 )
 
-import objson
-
+from ..serializer import dumps
 from .base import Adapter
 from ..models import Message
 
@@ -102,10 +101,10 @@ class ClovaAdapter(Adapter):
         end_session = channel_messages[-1]["end_session"]
         reprompt = channel_messages[-1]["reprompt"]
         if len(speech_values) == 1:
-            return objson.dumps(self.clova.response(
+            return dumps(self.clova.response(
                 speech_values[0], end_session=end_session, reprompt=reprompt))
         else:
-            return objson.dumps(self.clova.response(
+            return dumps(self.clova.response(
                 speech_values, end_session=end_session, reprompt=reprompt))
 
     @staticmethod
