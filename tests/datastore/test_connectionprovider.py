@@ -11,7 +11,8 @@ from minette import (
 SQLDBConnection = None
 SQLDBConnectionProvider = None
 try:
-    import pyodbc as SQLDBConnection
+    import pyodbc
+    SQLDBConnection = pyodbc.Connection
     from minette.datastore.sqldbstores import SQLDBConnectionProvider
 except Exception:
     pass
