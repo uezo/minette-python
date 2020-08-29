@@ -7,9 +7,7 @@ from datetime import datetime
 from minette import (
     Minette, DialogService, SQLiteConnectionProvider,
     SQLiteContextStore, SQLiteUserStore, SQLiteMessageLogStore,
-    Tagger,
-    Config, DialogRouter, StoreSet, MeCabServiceTagger,
-    Message, User, Group
+    Tagger, Config, DialogRouter, StoreSet, Message, User, Group
 )
 
 from minette.utils import date_to_unixtime
@@ -17,6 +15,10 @@ from minette.utils import date_to_unixtime
 now = datetime.now()
 user_id = "user_id" + str(date_to_unixtime(now))
 print("user_id: {}".format(user_id))
+
+
+class CustomTagger(Tagger):
+    pass
 
 
 class CustomConnectionProvider(SQLiteConnectionProvider):
@@ -107,7 +109,7 @@ def test_init_args():
     data_stores = CustomDataStores
     default_dialog_service = MyDialog
     dialog_router = MyDialogRouter
-    tagger = MeCabServiceTagger
+    tagger = CustomTagger
     custom_router_arg = "router_value"
 
     # create bot
@@ -130,7 +132,7 @@ def test_init_args():
     assert bot.default_dialog_service is MyDialog
     assert isinstance(bot.dialog_router, MyDialogRouter)
     assert bot.dialog_router.custom_attr == "router_value"
-    assert isinstance(bot.tagger, MeCabServiceTagger)
+    assert isinstance(bot.tagger, CustomTagger)
 
     # create bot with data_stores
     bot = Minette(
@@ -151,7 +153,7 @@ def test_init_args():
     assert bot.default_dialog_service is MyDialog
     assert isinstance(bot.dialog_router, MyDialogRouter)
     assert bot.dialog_router.custom_attr == "router_value"
-    assert isinstance(bot.tagger, MeCabServiceTagger)
+    assert isinstance(bot.tagger, CustomTagger)
 
 
 def test_get_user():
