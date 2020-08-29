@@ -21,10 +21,6 @@ from .dialog import (
     DialogRouter
 )
 from .models import *
-from .tagger import (
-    Tagger,
-    MeCabServiceTagger,
-    MeCabServiceNode
-)
+from .tagger import Tagger
 from .adapter import Adapter
 from .scheduler import Task, Scheduler
