@@ -1,4 +1,4 @@
-from objson import Serializable
+from ..serializer import Serializable
 
 
 class Group(Serializable):

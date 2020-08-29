@@ -2,11 +2,11 @@ import pytest
 from pytz import timezone
 from datetime import datetime
 
-from minette.models.base import JsonSerializable
+from minette.serializer import Serializable
 from minette.utils import date_to_str
 
 
-class CustomClass(JsonSerializable):
+class CustomClass(Serializable):
     def __init__(self, strvalue=None, intvalue=None, dtvalue=None, listvalue=None, dictvalue=None, objvalue=None):
         super().__init__()
         self.strvalue = strvalue

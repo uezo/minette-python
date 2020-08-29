@@ -1,8 +1,8 @@
 from datetime import datetime
 from pytz import timezone as tz
 from copy import copy
-from objson import Serializable
 
+from ..serializer import Serializable
 from .payload import Payload
 from .priority import Priority
 from .user import User

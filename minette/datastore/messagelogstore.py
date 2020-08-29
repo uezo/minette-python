@@ -3,7 +3,7 @@ from abc import ABC, abstractmethod
 from logging import getLogger
 from pytz import timezone as tz
 
-import objson
+from ..serializer import dumps
 
 
 class MessageLogStore(ABC):
@@ -79,14 +79,14 @@ class MessageLogStore(ABC):
             "request_id": request.id,
             "request_type": request.type,
             "request_text": request.text,
-            "request_payloads": objson.dumps(
+            "request_payloads": dumps(
                 [p.to_dict() for p in request.payloads]),
             "request_intent": request.intent,
             "request_is_adhoc": request.is_adhoc,
             # response
             "response_type": response.messages[0].type if response.messages else "",
             "response_text": response.messages[0].text if response.messages else "",
-            "response_payloads": objson.dumps([p.to_dict() for p in response.messages[0].payloads]) if response.messages else "",
+            "response_payloads": dumps([p.to_dict() for p in response.messages[0].payloads]) if response.messages else "",
             "response_milliseconds": response.performance.milliseconds,
             # context
             "context_is_new": context.is_new,
@@ -95,7 +95,7 @@ class MessageLogStore(ABC):
             "context_topic_is_new": context.topic.is_new,
             "context_topic_keep_on": context.topic.keep_on,
             "context_topic_priority": context.topic.priority,
-            "context_error": objson.dumps(context.error),
+            "context_error": dumps(context.error),
         }
 
     def save(self, request, response, context, connection):

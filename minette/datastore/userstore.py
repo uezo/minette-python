@@ -5,8 +5,7 @@ from logging import getLogger
 from datetime import datetime
 from pytz import timezone as tz
 
-import objson
-
+from ..serializer import dumps, loads
 from ..models import User
 
 
@@ -107,7 +106,7 @@ class UserStore(ABC):
                     record = dict(
                         zip([column[0] for column in cursor.description], row))
                 # convert type
-                record["data"] = objson.loads(record["data"])
+                record["data"] = loads(record["data"])
                 # restore user
                 user.id = record["user_id"]
                 user.name = record["name"]
@@ -139,7 +138,7 @@ class UserStore(ABC):
             Connection
         """
         user_dict = user.to_dict()
-        serialized_data = objson.dumps(user_dict["data"])
+        serialized_data = dumps(user_dict["data"])
         cursor = connection.cursor()
         cursor.execute(self.sqls["save_user"], (
             datetime.now(self.timezone), user.name, user.nickname,

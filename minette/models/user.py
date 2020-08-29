@@ -1,5 +1,5 @@
 from uuid import uuid4
-from objson import Serializable
+from ..serializer import Serializable
 
 
 class User(Serializable):

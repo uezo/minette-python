@@ -11,13 +11,12 @@ except Exception:
     # Skip if import dependencies not found
     pytestmark = pytest.mark.skip
 
-import objson
-
 from minette import (
     DialogService,
     Message,
     Config
 )
+from minette.serializer import loads
 
 clovaconfig = Config("config/test_config_adapter.ini")
 application_id = clovaconfig.get("application_id", section="clova_cek")
@@ -86,26 +85,26 @@ def test_handle_intent_request():
     }
 
     # launch request
-    response = objson.loads(adapter.handle_http_request(rs.LAUNCH_REQUEST_BODY, request_headers))
+    response = loads(adapter.handle_http_request(rs.LAUNCH_REQUEST_BODY, request_headers))
     assert response["response"]["outputSpeech"]["values"]["value"] == "Handled LaunchRequest"
 
     # intent request
-    response = objson.loads(adapter.handle_http_request(rs.INTENT_REQUEST_BODY, request_headers))
+    response = loads(adapter.handle_http_request(rs.INTENT_REQUEST_BODY, request_headers))
     assert response["response"]["outputSpeech"]["values"]["value"] == "Handled IntentRequest"
 
     # intent request (multiple response message)
-    response = objson.loads(adapter.handle_http_request(rs.INTENT_REQUEST_TURN_OFF, request_headers))
+    response = loads(adapter.handle_http_request(rs.INTENT_REQUEST_TURN_OFF, request_headers))
     assert response["response"]["outputSpeech"]["values"][0]["value"] == "Handled IntentRequest"
     assert response["response"]["outputSpeech"]["values"][1]["value"] == "Finish turning off"
 
     # end request
-    response = objson.loads(adapter.handle_http_request(rs.END_REQUEST_BODY, request_headers))
+    response = loads(adapter.handle_http_request(rs.END_REQUEST_BODY, request_headers))
     assert response["response"]["outputSpeech"]["values"]["value"] == "Handled SessionEndedRequest"
 
     # event request
-    response = objson.loads(adapter.handle_http_request(rs.EVENT_REQUEST_BODY, request_headers))
+    response = loads(adapter.handle_http_request(rs.EVENT_REQUEST_BODY, request_headers))
     assert response["response"]["outputSpeech"]["values"]["value"] == "Handled EventRequest"
 
     # EventFromSkillStore request
-    response = objson.loads(adapter.handle_http_request(rs.EVENT_REQUEST_BODY_FROM_SKILL_STORE, request_headers))
+    response = loads(adapter.handle_http_request(rs.EVENT_REQUEST_BODY_FROM_SKILL_STORE, request_headers))
     assert response["response"]["outputSpeech"]["values"]["value"] == "Handled EventRequest"

@@ -2,8 +2,6 @@ import pytest
 from datetime import datetime
 from pytz import timezone
 
-import objson
-
 from minette import (
     SQLiteStores,
     Message,
@@ -11,6 +9,7 @@ from minette import (
     Context,
     Config
 )
+from minette.serializer import dumpd
 
 SQLDBStores = None
 try:
@@ -156,7 +155,7 @@ def test_save(datastore_class, connection_str):
             record = connection.query(SQLAlchemyMessageLog).filter(
                 SQLAlchemyMessageLog.request_id == str(date_to_unixtime(now))
             ).first()
-            record = objson.dumpd(record)
+            record = dumpd(record)
         else:
             cursor = connection.cursor()
             if MySQLConnection and isinstance(connection, MySQLConnection):

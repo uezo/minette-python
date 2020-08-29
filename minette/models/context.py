@@ -1,7 +1,7 @@
 import traceback
 from copy import deepcopy
-from objson import Serializable
 
+from ..serializer import Serializable
 from .priority import Priority
 from .topic import Topic
 
