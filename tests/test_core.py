@@ -1,6 +1,5 @@
 import pytest
 import os
-from types import GeneratorType
 from pytz import timezone
 from logging import Logger, FileHandler, getLogger
 from datetime import datetime
@@ -8,12 +7,7 @@ from datetime import datetime
 from minette import (
     Minette, DialogService, SQLiteConnectionProvider,
     SQLiteContextStore, SQLiteUserStore, SQLiteMessageLogStore,
-    Tagger, Config, DialogRouter, StoreSet, Message, User, Group, Payload
-)
-
-from minette.tagger.janometagger import (
-    JanomeTagger,
-    JanomeNode
+    Tagger, Config, DialogRouter, StoreSet, Message, User, Group
 )
 
 from minette.utils import date_to_unixtime
@@ -61,31 +55,6 @@ class ErrorDialog(DialogService):
         return "res:" + request.text
 
 
-class TaggerDialog(DialogService):
-    def compose_response(self, request, context, connection):
-        return request.to_reply(
-            text=request.text,
-            payloads=[Payload(content_type="data", content=request.words)])
-
-
-class TaggerManuallyParseDialog(DialogService):
-    def compose_response(self, request, context, connection):
-        assert request.words == []
-        request.words = self.tagger.parse(request.text)
-        return request.to_reply(
-            text=request.text,
-            payloads=[Payload(content_type="data", content=request.words)])
-
-
-class TaggerManuallyParseGeneratorDialog(DialogService):
-    def compose_response(self, request, context, connection):
-        assert request.words == []
-        request.words = self.tagger.parse_as_generator(request.text)
-        return request.to_reply(
-            text=request.text,
-            payloads=[Payload(content_type="data", content=request.words)])
-
-
 class MyDialogRouter(DialogRouter):
     def __init__(self, custom_router_arg=None, **kwargs):
         super().__init__(**kwargs)
@@ -99,12 +68,12 @@ def test_init():
     assert bot.timezone == timezone("UTC")
     assert isinstance(bot.logger, Logger)
     assert bot.logger.name == "minette"
-    assert isinstance(bot.tagger, Tagger)
     assert isinstance(bot.connection_provider, SQLiteConnectionProvider)
     assert isinstance(bot.context_store, SQLiteContextStore)
     assert isinstance(bot.user_store, SQLiteUserStore)
     assert isinstance(bot.messagelog_store, SQLiteMessageLogStore)
     assert bot.default_dialog_service is None
+    assert isinstance(bot.tagger, Tagger)
 
 
 def test_init_config():
@@ -156,7 +125,6 @@ def test_init_args():
     assert bot.config.get("test_key", section="test_section") == "test_value"
     assert bot.timezone == timezone("Asia/Tokyo")
     assert bot.logger.name == "test_core_logger"
-    assert isinstance(bot.tagger, CustomTagger)
     assert isinstance(bot.connection_provider, CustomConnectionProvider)
     assert isinstance(bot.context_store, CustomContextStore)
     assert isinstance(bot.user_store, CustomUserStore)
@@ -164,6 +132,7 @@ def test_init_args():
     assert bot.default_dialog_service is MyDialog
     assert isinstance(bot.dialog_router, MyDialogRouter)
     assert bot.dialog_router.custom_attr == "router_value"
+    assert isinstance(bot.tagger, CustomTagger)
 
     # create bot with data_stores
     bot = Minette(
@@ -317,59 +286,6 @@ def test_chat():
     bot = Minette(default_dialog_service=MyDialog)
     res = bot.chat("hello")
     assert res.messages[0].text == "res:hello"
-
-
-def test_chat_with_tagger():
-    bot = Minette(
-        default_dialog_service=TaggerDialog,
-        tagger=JanomeTagger)
-    res = bot.chat("今日はいい天気です。")
-    assert res.messages[0].text == "今日はいい天気です。"
-    words = res.messages[0].payloads[0].content
-    assert words[0].surface == "今日"
-    assert words[1].surface == "は"
-    assert words[2].surface == "いい"
-    assert words[3].surface == "天気"
-    assert words[4].surface == "です"
-
-
-def test_chat_with_tagger_no_parse():
-    bot = Minette(
-        default_dialog_service=TaggerDialog,
-        tagger=JanomeTagger, parse_morph=False)
-    res = bot.chat("今日はいい天気です。")
-    assert res.messages[0].text == "今日はいい天気です。"
-    words = res.messages[0].payloads[0].content
-    assert words == []
-
-
-def test_chat_parse_morph_manually():
-    bot = Minette(
-        default_dialog_service=TaggerManuallyParseDialog,
-        tagger=JanomeTagger, parse_morph=False)
-    res = bot.chat("今日はいい天気です。")
-    assert res.messages[0].text == "今日はいい天気です。"
-    words = res.messages[0].payloads[0].content
-    assert words[0].surface == "今日"
-    assert words[1].surface == "は"
-    assert words[2].surface == "いい"
-    assert words[3].surface == "天気"
-    assert words[4].surface == "です"
-
-
-def test_chat_parse_morph_manually_generator():
-    bot = Minette(
-        default_dialog_service=TaggerManuallyParseGeneratorDialog,
-        tagger=JanomeTagger, parse_morph=False)
-    res = bot.chat("今日はいい天気です。")
-    assert res.messages[0].text == "今日はいい天気です。"
-    assert isinstance(res.messages[0].payloads[0].content, GeneratorType)
-    words = [w for w in res.messages[0].payloads[0].content]
-    assert words[0].surface == "今日"
-    assert words[1].surface == "は"
-    assert words[2].surface == "いい"
-    assert words[3].surface == "天気"
-    assert words[4].surface == "です"
 
 
 def test_chat_error():
