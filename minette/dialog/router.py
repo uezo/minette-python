@@ -4,6 +4,7 @@ import traceback
 from logging import Logger, getLogger
 
 from ..models import Message, Priority
+from ..tagger import Tagger
 from .service import DialogService, ErrorDialogService
 
 
@@ -27,7 +28,7 @@ class DialogRouter:
         Resolver for topic to dialog for successive chatting
     """
 
-    def __init__(self, config=None, timezone=None, logger=None,
+    def __init__(self, config=None, timezone=None, logger=None, tagger=None,
                  default_dialog_service=None, intent_resolver=None, **kwargs):
         """
         Parameters
@@ -38,12 +39,17 @@ class DialogRouter:
             Timezone
         logger : logging.Logger, default None
             Logger
+        tagger : minette.tagger.Tagger, default None
+            Tagger
         default_dialog_service : minette.DialogService or type, default None
             Dialog service used when intent is not clear.
+        intent_resolver : dict, default None
         """
         self.config = config
         self.timezone = timezone
         self.logger = logger or getLogger(__name__)
+        self.tagger = tagger or \
+            Tagger(config=config, timezone=timezone, logger=logger)
         self.default_dialog_service = default_dialog_service or DialogService
         # set up intent_resolver
         self.intent_resolver = intent_resolver or {}
@@ -105,7 +111,7 @@ class DialogRouter:
             if issubclass(dialog_service, DialogService):
                 dialog_service = dialog_service(
                     config=self.config, timezone=self.timezone,
-                    logger=self.logger
+                    logger=self.logger, tagger=self.tagger
                 )
             performance.append("dialog_router.route")
         except Exception as ex:

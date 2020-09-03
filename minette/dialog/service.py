@@ -8,6 +8,7 @@ from ..models import (
     Context,
     PerformanceInfo
 )
+from ..tagger import Tagger
 
 
 class DialogService:
@@ -41,7 +42,7 @@ class DialogService:
             cls_name = cls_name[:-6]
         return cls_name
 
-    def __init__(self, config=None, timezone=None, logger=None):
+    def __init__(self, config=None, timezone=None, logger=None, tagger=None):
         """
         Parameters
         ----------
@@ -51,10 +52,14 @@ class DialogService:
             Timezone
         logger : logging.Logger, default None
             Logger
+        tagger : minette.tagger.Tagger, default None
+            Tagger
         """
         self.config = config
         self.timezone = timezone
         self.logger = logger or getLogger(__name__)
+        self.tagger = tagger or \
+            Tagger(config=config, timezone=timezone, logger=logger)
 
     def execute(self, request, context, connection, performance):
         """

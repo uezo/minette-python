@@ -63,7 +63,7 @@ class Minette:
                  user_store=None, user_table=None,
                  messagelog_store=None, messagelog_table=None,
                  default_dialog_service=None, dialog_router=None,
-                 tagger=None, prepare_table=True, **kwargs):
+                 tagger=None, parse_morph=True, prepare_table=True, **kwargs):
         """
         Parameters
         ----------
@@ -122,6 +122,8 @@ class Minette:
             and return proper DialogService for intent
         tagger: minette.Tagger or type, default None
             Morphological analysis engine
+        parse_morph: bool, default True
+            Parse morph of request message automatically or not
         prepare_table: bool, default True
             Create tables for data stores if they don't exist.
         """
@@ -133,6 +135,9 @@ class Minette:
         self.timezone = timezone or tz(self.config.get("timezone") or "UTC")
         self.logger = self._get_logger(
             logger, log_file=log_file, logger_name=logger_name)
+        self.tagger = self._get_tagger(
+            tagger, logger=self.logger,
+            config=self.config, timezone=self.timezone, **kwargs)
         self.connection_provider = self._get_connection_provider(
             connection_provider or (
                 data_stores.connection_provider if data_stores else None),
@@ -143,6 +148,7 @@ class Minette:
             "config": self.config,
             "timezone": self.timezone,
             "logger": self.logger,
+            "tagger": self.tagger,
             "connection_provider": self.connection_provider,
             "context_store": context_store or (
                 data_stores.context_store if data_stores else None),
@@ -156,7 +162,6 @@ class Minette:
             "messagelog_table": messagelog_table,
             "dialog_router": dialog_router,
             "default_dialog_service": default_dialog_service,
-            "tagger": tagger,
         }
         setter_args.update({k: v for k, v in kwargs.items() if k not in setter_args})
 
@@ -166,7 +171,6 @@ class Minette:
         self.messagelog_store = self._get_messagelog_store(**setter_args)
         self.default_dialog_service = default_dialog_service
         self.dialog_router = self._get_dialog_router(**setter_args)
-        self.tagger = self._get_tagger(**setter_args)
 
         # prepare tables
         if prepare_table is True:
@@ -177,6 +181,9 @@ class Minette:
             self.messagelog_store.prepare_table(connection, prepare_params)
             if hasattr(connection, "close"):
                 connection.close()
+
+        # other runtime members
+        self.parse_morph = parse_morph
 
     def _get_logger(self, logger, log_file=None, logger_name=None):
         lg = logger
@@ -206,6 +213,12 @@ class Minette:
         file_handler.setFormatter(formatter)
         lg.addHandler(file_handler)
         return lg
+
+    def _get_tagger(self, tagger, config, logger, timezone, **kwargs):
+        tg = tagger or Tagger
+        if issubclass(tg, Tagger):
+            tg = tg(config, logger, timezone, **kwargs)
+        return tg
 
     def _get_connection_provider(self, connection_provider,
                                  connection_str=None, **kwargs):
@@ -259,12 +272,6 @@ class Minette:
             dr = dr(default_dialog_service=default_dialog_service, **kwargs)
         return dr
 
-    def _get_tagger(self, tagger, **kwargs):
-        tg = tagger or Tagger
-        if issubclass(tg, Tagger):
-            tg = tg(**kwargs)
-        return tg
-
     def chat(self, request):
         """
         Get response from chatbot
@@ -296,7 +303,8 @@ class Minette:
             connection = self.connection_provider.get_connection()
             performance.append("connection_provider.get_connection")
             # tagger
-            request.words = self.tagger.parse(request.text)
+            if self.parse_morph:
+                request.words = self.tagger.parse(request.text)
             performance.append("tagger.parse")
             # user
             request.user = self._get_user(request, connection)
