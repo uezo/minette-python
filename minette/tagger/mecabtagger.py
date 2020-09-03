@@ -74,9 +74,9 @@ class MeCabTagger(Tagger):
         Logger
     """
 
-    def parse(self, text):
+    def parse_as_generator(self, text):
         """
-        Analyze and parse text
+        Analyze and parse text using MeCab, returns Generator
 
         Parameters
         ----------
@@ -99,10 +99,26 @@ class MeCabTagger(Tagger):
             while node:
                 features = node.feature.split(",")
                 if features[0] != "BOS/EOS":
-                    ret.append(MeCabNode.create(node.surface, features))
+                    # ret.append(MeCabNode.create(node.surface, features))
+                    yield MeCabNode.create(node.surface, features)
                 node = node.next
         except Exception as ex:
             self.logger.error(
                 "MeCab parsing error: "
                 + str(ex) + "\n" + traceback.format_exc())
-        return ret
+
+    def parse(self, text):
+        """
+        Analyze and parse text
+
+        Parameters
+        ----------
+        text : str
+            Text to analyze
+
+        Returns
+        -------
+        words : list of minette.tagger.mecabtagger.MeCabNode
+            MeCab word nodes
+        """
+        return [mn for mn in self.parse_as_generator(text)]

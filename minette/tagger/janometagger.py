@@ -96,6 +96,30 @@ class JanomeTagger(Tagger):
         else:
             self.tokenizer = Tokenizer()
 
+    def parse_as_generator(self, text):
+        """
+        Parse and annotate using Janome, returns Generator
+
+        Parameters
+        ----------
+        text : str
+            Text to analyze
+
+        Returns
+        -------
+        words : Generator of minette.minette.tagger.janometagger.JanomeNode
+            Janome nodes
+        """
+        if not text:
+            return
+        try:
+            for token in self.tokenizer.tokenize(text):
+                yield JanomeNode.create(token.surface, token)
+        except Exception as ex:
+            self.logger.error(
+                "Janome parsing error: "
+                + str(ex) + "\n" + traceback.format_exc())
+
     def parse(self, text):
         """
         Parse and annotate using Janome
@@ -107,17 +131,7 @@ class JanomeTagger(Tagger):
 
         Returns
         -------
-        words : list of minette.minette.tagger.janometagger.JanomeNode
+        words : Generator of minette.minette.tagger.janometagger.JanomeNode
             Janome nodes
         """
-        ret = []
-        if not text:
-            return ret
-        try:
-            for token in self.tokenizer.tokenize(text):
-                ret.append(JanomeNode.create(token.surface, token))
-        except Exception as ex:
-            self.logger.error(
-                "Janome parsing error: "
-                + str(ex) + "\n" + traceback.format_exc())
-        return ret
+        return [jn for jn in self.parse_as_generator(text)]
