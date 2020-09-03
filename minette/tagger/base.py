@@ -42,7 +42,23 @@ class Tagger:
 
         Returns
         -------
-        words : list of minette.WordNode
+        words : list of minette.WordNode (empty)
             Word nodes
         """
         return []
+
+    def parse_as_generator(self, text):
+        """
+        Analyze and parse text, returns Generator
+
+        Parameters
+        ----------
+        text : str
+            Text to analyze
+
+        Returns
+        -------
+        words : Generator of minette.WordNode (empty)
+            Word nodes
+        """
+        yield from ()
