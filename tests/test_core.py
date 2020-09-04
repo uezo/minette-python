@@ -5,14 +5,16 @@ import pytest
 from pytz import timezone
 from logging import Logger, FileHandler, getLogger
 from datetime import datetime
+from types import GeneratorType
 
 from minette import (
     Minette, DialogService, SQLiteConnectionProvider,
     SQLiteContextStore, SQLiteUserStore, SQLiteMessageLogStore,
     Tagger, Config, DialogRouter, StoreSet, Message, User, Group,
-    DependencyContainer
+    DependencyContainer, Payload
 )
 from minette.utils import date_to_unixtime
+from minette.tagger.janometagger import JanomeTagger
 
 now = datetime.now()
 user_id = "user_id" + str(date_to_unixtime(now))
@@ -61,6 +63,31 @@ class MyDialogRouter(DialogRouter):
     def __init__(self, custom_router_arg=None, **kwargs):
         super().__init__(**kwargs)
         self.custom_attr = custom_router_arg
+
+
+class TaggerDialog(DialogService):
+    def compose_response(self, request, context, connection):
+        return request.to_reply(
+            text=request.text,
+            payloads=[Payload(content_type="data", content=request.words)])
+
+
+class TaggerManuallyParseDialog(DialogService):
+    def compose_response(self, request, context, connection):
+        assert request.words == []
+        request.words = self.dependencies.tagger.parse(request.text, max_length=10)
+        return request.to_reply(
+            text=request.text,
+            payloads=[Payload(content_type="data", content=request.words)])
+
+
+class TaggerManuallyParseGeneratorDialog(DialogService):
+    def compose_response(self, request, context, connection):
+        assert request.words == []
+        request.words = self.dependencies.tagger.parse_as_generator(request.text, max_length=10)
+        return request.to_reply(
+            text=request.text,
+            payloads=[Payload(content_type="data", content=request.words)])
 
 
 def test_init():
@@ -315,6 +342,62 @@ def test_chat_timezone():
     res = bot.chat("hello")
     # bot.timezone itself is +9:19
     assert res.messages[0].timestamp.tzinfo == datetime.now(tz=bot.timezone).tzinfo
+
+
+def test_chat_with_tagger():
+    bot = Minette(
+        default_dialog_service=TaggerDialog,
+        tagger=JanomeTagger)
+    res = bot.chat("今日はいい天気です。")
+    assert res.messages[0].text == "今日はいい天気です。"
+    words = res.messages[0].payloads[0].content
+    assert words[0].surface == "今日"
+    assert words[1].surface == "は"
+    assert words[2].surface == "いい"
+    assert words[3].surface == "天気"
+    assert words[4].surface == "です"
+
+
+def test_chat_with_tagger_no_parse():
+    bot = Minette(
+        default_dialog_service=TaggerDialog,
+        tagger=JanomeTagger, tagger_max_length=0)
+    assert bot.tagger.max_length == 0
+    res = bot.chat("今日はいい天気です。")
+    assert res.messages[0].text == "今日はいい天気です。"
+    words = res.messages[0].payloads[0].content
+    assert words == []
+
+
+def test_chat_parse_morph_manually():
+    bot = Minette(
+        default_dialog_service=TaggerManuallyParseDialog,
+        tagger=JanomeTagger, tagger_max_length=0)
+    bot.dialog_uses(tagger=bot.tagger)
+    res = bot.chat("今日はいい天気です。")
+    assert res.messages[0].text == "今日はいい天気です。"
+    words = res.messages[0].payloads[0].content
+    assert words[0].surface == "今日"
+    assert words[1].surface == "は"
+    assert words[2].surface == "いい"
+    assert words[3].surface == "天気"
+    assert words[4].surface == "です"
+
+
+def test_chat_parse_morph_manually_generator():
+    bot = Minette(
+        default_dialog_service=TaggerManuallyParseGeneratorDialog,
+        tagger=JanomeTagger, tagger_max_length=0)
+    bot.dialog_uses(tagger=bot.tagger)
+    res = bot.chat("今日はいい天気です。")
+    assert res.messages[0].text == "今日はいい天気です。"
+    assert isinstance(res.messages[0].payloads[0].content, GeneratorType)
+    words = [w for w in res.messages[0].payloads[0].content]
+    assert words[0].surface == "今日"
+    assert words[1].surface == "は"
+    assert words[2].surface == "いい"
+    assert words[3].surface == "天気"
+    assert words[4].surface == "です"
 
 
 def test_dialog_uses():
