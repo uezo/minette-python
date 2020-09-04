@@ -22,6 +22,8 @@ class DialogService:
         Timezone
     logger : logging.Logger
         Logger
+    dependencies : DependencyContainer
+        Container to attach objects DialogRouter depends
     """
 
     @classmethod
@@ -55,6 +57,7 @@ class DialogService:
         self.config = config
         self.timezone = timezone
         self.logger = logger or getLogger(__name__)
+        self.dependencies = None
 
     def execute(self, request, context, connection, performance):
         """

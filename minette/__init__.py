@@ -18,7 +18,8 @@ from .dialog import (
     DialogService,
     EchoDialogService,
     ErrorDialogService,
-    DialogRouter
+    DialogRouter,
+    DependencyContainer
 )
 from .models import *
 from .tagger import Tagger
