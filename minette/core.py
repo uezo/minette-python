@@ -67,7 +67,7 @@ class Minette:
                  user_store=None, user_table=None,
                  messagelog_store=None, messagelog_table=None,
                  default_dialog_service=None, dialog_router=None,
-                 tagger=None, prepare_table=True, **kwargs):
+                 tagger=None, tagger_max_length=None, prepare_table=True, **kwargs):
         """
         Parameters
         ----------
@@ -126,6 +126,8 @@ class Minette:
             and return proper DialogService for intent
         tagger: minette.Tagger or type, default None
             Morphological analysis engine
+        tagger_max_length: Max length of the text to parse morph, default None
+            Morphological analysis engine
         prepare_table: bool, default True
             Create tables for data stores if they don't exist.
         """
@@ -161,6 +163,7 @@ class Minette:
             "dialog_router": dialog_router,
             "default_dialog_service": default_dialog_service,
             "tagger": tagger,
+            "tagger_max_length": tagger_max_length,
         }
         setter_args.update({k: v for k, v in kwargs.items() if k not in setter_args})
 
@@ -263,10 +266,13 @@ class Minette:
             dr = dr(default_dialog_service=default_dialog_service, **kwargs)
         return dr
 
-    def _get_tagger(self, tagger, **kwargs):
+    def _get_tagger(self, tagger, tagger_max_length, **kwargs):
         tg = tagger or Tagger
         if issubclass(tg, Tagger):
-            tg = tg(**kwargs)
+            if tagger_max_length is not None:
+                tg = tg(max_length=tagger_max_length, **kwargs)
+            else:
+                tg = tg(**kwargs)
         return tg
 
     def chat(self, request):
