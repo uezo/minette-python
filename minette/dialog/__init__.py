@@ -4,3 +4,4 @@ from .service import (
     ErrorDialogService,
 )
 from .router import DialogRouter
+from .dependency import DependencyContainer
