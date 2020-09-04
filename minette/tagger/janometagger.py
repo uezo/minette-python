@@ -76,7 +76,7 @@ class JanomeTagger(Tagger):
     """
 
     def __init__(self, config=None, timezone=None, logger=None, *,
-                 user_dic=None, **kwargs):
+                 max_length=Tagger.MAX_LENGTH, user_dic=None, **kwargs):
         """
         Parameters
         ----------
@@ -86,17 +86,19 @@ class JanomeTagger(Tagger):
             Timezone
         logger : Logger, default None
             Logger
+        max_length : int, default 1000
+            Max length of the text to parse
         user_dic : str, default None
              Path to user dictionary (MeCab IPADIC format)
         """
-        super().__init__(logger=logger, config=config, timezone=timezone)
+        super().__init__(logger=logger, config=config, timezone=timezone, max_length=max_length)
         self.user_dic = user_dic or config.get("janome_userdic") if config else None
         if self.user_dic:
             self.tokenizer = Tokenizer(self.user_dic, udic_enc="utf8")
         else:
             self.tokenizer = Tokenizer()
 
-    def parse_as_generator(self, text):
+    def parse_as_generator(self, text, max_length=None):
         """
         Parse and annotate using Janome, returns Generator
 
@@ -104,14 +106,17 @@ class JanomeTagger(Tagger):
         ----------
         text : str
             Text to analyze
+        max_length : int, default 1000
+            Max length of the text to parse
 
         Returns
         -------
         words : Generator of minette.minette.tagger.janometagger.JanomeNode
             Janome nodes
         """
-        if not text:
+        if self.validate(text, max_length) is False:
             return
+
         try:
             for token in self.tokenizer.tokenize(text):
                 yield JanomeNode.create(token.surface, token)
@@ -119,19 +124,3 @@ class JanomeTagger(Tagger):
             self.logger.error(
                 "Janome parsing error: "
                 + str(ex) + "\n" + traceback.format_exc())
-
-    def parse(self, text):
-        """
-        Parse and annotate using Janome
-
-        Parameters
-        ----------
-        text : str
-            Text to analyze
-
-        Returns
-        -------
-        words : Generator of minette.minette.tagger.janometagger.JanomeNode
-            Janome nodes
-        """
-        return [jn for jn in self.parse_as_generator(text)]
