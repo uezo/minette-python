@@ -59,7 +59,7 @@ def handle_webhook():
 app.run(port=12345)
 ```
 
-See also [examples.md](https://github.com/uezo/minette-python/blob/master/examples.ja.md) to get more examples.
+See also [examples.md](https://github.com/uezo/minette-python/blob/master/examples.md) to get more examples.
 
 
 # 📦 Installation
