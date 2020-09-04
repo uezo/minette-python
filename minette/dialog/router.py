@@ -5,6 +5,7 @@ from logging import Logger, getLogger
 
 from ..models import Message, Priority
 from .service import DialogService, ErrorDialogService
+from .dependency import DependencyContainer
 
 
 class DialogRouter:
@@ -21,6 +22,12 @@ class DialogRouter:
         Logger
     default_dialog_service : DialogService
         Dialog service used when intent is not clear
+    dependency_rules : dict
+        Rules that defines on which components each DialogService/Router depends
+    default_dependencies : dict
+        Dependency components for all DialogServices/Router
+    dependencies : DependencyContainer
+        Container to attach objects DialogRouter depends
     intent_resolver : dict
         Resolver for intent to dialog
     topic_resolver : dict
@@ -45,6 +52,9 @@ class DialogRouter:
         self.timezone = timezone
         self.logger = logger or getLogger(__name__)
         self.default_dialog_service = default_dialog_service or DialogService
+        self.dependency_rules = None
+        self.default_dependencies = None or {}  # empty dict is required to unpack
+        self.dependencies = None
         # set up intent_resolver
         self.intent_resolver = intent_resolver or {}
         self.register_intents()
@@ -107,6 +117,10 @@ class DialogRouter:
                     config=self.config, timezone=self.timezone,
                     logger=self.logger
                 )
+            dialog_service.dependencies = DependencyContainer(
+                dialog_service,
+                self.dependency_rules,
+                **self.default_dependencies)
             performance.append("dialog_router.route")
         except Exception as ex:
             self.logger.error(

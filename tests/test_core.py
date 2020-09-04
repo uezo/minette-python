@@ -1,5 +1,7 @@
-import pytest
+import sys
 import os
+sys.path.append(os.pardir)
+import pytest
 from pytz import timezone
 from logging import Logger, FileHandler, getLogger
 from datetime import datetime
@@ -7,9 +9,9 @@ from datetime import datetime
 from minette import (
     Minette, DialogService, SQLiteConnectionProvider,
     SQLiteContextStore, SQLiteUserStore, SQLiteMessageLogStore,
-    Tagger, Config, DialogRouter, StoreSet, Message, User, Group
+    Tagger, Config, DialogRouter, StoreSet, Message, User, Group,
+    DependencyContainer
 )
-
 from minette.utils import date_to_unixtime
 
 now = datetime.now()
@@ -313,3 +315,39 @@ def test_chat_timezone():
     res = bot.chat("hello")
     # bot.timezone itself is +9:19
     assert res.messages[0].timestamp.tzinfo == datetime.now(tz=bot.timezone).tzinfo
+
+
+def test_dialog_uses():
+    class HighCostToCreate:
+        pass
+
+    class OnlyForFooDS:
+        pass
+
+    class FooFialog(DialogService):
+        pass
+
+    # run once when create bot
+    hctc = HighCostToCreate()
+    offds = OnlyForFooDS()
+
+    # create bot
+    bot = Minette()
+
+    # set dependencies to dialogs
+    bot.dialog_uses(
+        {
+            FooFialog: {"api": offds}
+        },
+        highcost=hctc
+    )
+
+    assert bot.dialog_router.dependencies.highcost == hctc
+    assert hasattr(bot.dialog_router.dependencies, "api") is False
+    assert bot.dialog_router.dependency_rules[FooFialog]["api"] == offds
+
+    # create bot and not set dialog dependencies
+    bot_no_dd = Minette()
+    assert bot_no_dd.dialog_router.dependencies is None
+    bot_no_dd.dialog_uses()
+    assert isinstance(bot_no_dd.dialog_router.dependencies, DependencyContainer)

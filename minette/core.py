@@ -22,7 +22,11 @@ from .datastore import (
     SQLiteMessageLogStore
 )
 from .config import Config
-from .dialog import DialogService, DialogRouter
+from .dialog import (
+    DialogService,
+    DialogRouter,
+    DependencyContainer
+)
 from .tagger import Tagger
 
 
@@ -369,3 +373,38 @@ class Minette:
         context.reset(self.config.get("keep_context_data", False))
         self.context_store.save(context, connection)
         return context_for_log
+
+    def dialog_uses(self, dependency_rules=None, **defaults):
+        """
+        Set dependency components for DialogServices/Router
+
+        Examples
+        --------
+        >>> bot = Minette(defautl_dialog_service=EchoDialogService)
+        >>> bot.dialog_uses(apiclient=apiclient, tagger=bot.tagger)
+
+        You can use `apiclient` and `tagger` like below in your code of DialogService/Router.
+
+        >>> self.dependencies.apiclient.get_profile(user.id)
+        >>> self.dependencies.tagger.parse(request.text)
+
+        Or, you can set dialog specific dependencies.
+
+        >>> bot = Minette(defautl_dialog_service=EchoDialogService)
+        >>> bot.dialog_uses({EchoDialogService: {"echo_engine": echo_engine}}, apiclient=apiclient, tagger=bot.tagger)
+
+        Then, `echo_engine` can be used only in `EchoDialogService`, `apiclient` and `tagger` can be used any dialogs/router.
+
+        Parameters
+        ----------
+        dependency_rules : dict
+            Rules that defines on which components each DialogService/Router depends.
+            Key is DialogService/Router class, value is dict of dependencies (name: value).
+
+        defaults : dict
+            Dependencies for all DialogServices/Router (name: value)
+        """
+        self.dialog_router.dependency_rules = dependency_rules
+        self.dialog_router.default_dependencies = defaults
+        self.dialog_router.dependencies = DependencyContainer(
+            self.dialog_router, dependency_rules, **defaults)
