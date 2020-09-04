@@ -1,3 +1,6 @@
+import sys
+import os
+sys.path.append(os.pardir)
 import pytest
 from pytz import timezone
 from types import GeneratorType
@@ -70,6 +73,33 @@ def test_parse_as_generator():
         i += 1
 
 
+def test_parse_with_max():
+    tagger = MeCabTagger(max_length=8)
+    # over instance max_length
+    words_9 = tagger.parse("今日は良い天気です")
+    assert words_9 == []
+    # over instance max_length but under inline
+    words_9_max10 = tagger.parse("今日は良い天気です", max_length=10)
+    assert words_9_max10[0].surface == "今日"
+    # under instance max_length but over inline
+    words_9_max7 = tagger.parse("今日は良い天気", max_length=6)
+    assert words_9_max7 == []
+
+
+def test_parse_gen_with_max():
+    tagger = MeCabTagger(max_length=8)
+    # over instance max_length
+    words_9 = [w for w in tagger.parse_as_generator("今日は良い天気です")]
+    assert words_9 == []
+    # over instance max_length but under inline
+    words_9_max10 = [w for w in tagger.parse_as_generator("今日は良い天気です", max_length=10)]
+    assert words_9_max10[0].surface == "今日"
+    # under instance max_length but over inline
+    words_9_max7 = [w for w in tagger.parse_as_generator("今日は良い天気", max_length=6)]
+    assert words_9_max7 == []
+
+
 def test_error():
     tagger = MeCabTagger()
-    assert tagger.parse(object()) == []
+    with pytest.raises(TypeError):
+        tagger.parse(object())
