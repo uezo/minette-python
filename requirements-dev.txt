@@ -1,5 +1,4 @@
 pytz==2020.1
-requests==2.24.0
 schedule==0.6.0
 pytest==6.0.1
 Janome==0.4.0
