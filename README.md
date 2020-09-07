@@ -1,14 +1,21 @@
 # Minette for Python
 [![Downloads](https://pepy.tech/badge/minette)](https://pepy.tech/project/minette)
 
-Minette is a minimal and extensible chatbot framework. It is extremely easy to develop and the architecture preventing to be spaghetti code enables you to scale up to complex chatbot.
+Minette is a minimal and extensible chatbot framework. It is extremely easy to create chatbot and also enables you to make your chatbot more sophisticated and multi-skills, with preventing to be spaghetti code.
+
 
 [🇯🇵日本語のREADMEはこちら](https://github.com/uezo/minette-python/blob/master/README.ja.md)
 
-# 🎉 version 0.4.2 is available
+# 🎉 version 0.4.3 is available
+
+- 0.4.3 Sep 5, 2020
+    - Enable to give shared objects to dialogs from main logic 👉 [PR #38](https://github.com/uezo/minette-python/pull/38)
+    - Add argument `tagger_max_length` to constructor of Minette 👉 [PR #42](https://github.com/uezo/minette-python/pull/42)
+    - Support returning generator from Tagger 👉 [PR #35](https://github.com/uezo/minette-python/pull/35)
 
 - 0.4.2 Aug 26, 2020
     - Support [Janome 0.4](https://mocobeta.github.io/janome/en/)
+
 - 0.4.1 Aug 7, 2020
     - SQLAlchemy is supported (experimental). See also [examples/todo.py](https://github.com/uezo/minette-python/blob/master/examples/todo.py)
 
@@ -102,7 +109,6 @@ To setup and use MeCab and Janome Tagger, see the Appendix at the bottom of this
 # 📚 Dependencies
 
 (Required)
-- requests >= 2.21.0
 - pytz >= 2018.9
 - schedule >= 0.6.0
 
@@ -153,24 +159,32 @@ request.user.data["horoscope"] = "cancer"
 ```
 
 ## Natural language analyzing
-Taggers are the components for analyzing the text of request and the result will be automatically set to request object. Minette has 3 built-in taggers for Japanese - MeCabTagger, MeCabServiceTagger and JanomeTagger.
+Taggers are the components for analyzing the text of request and the result will be automatically set to request object. Minette has 2 built-in taggers for Japanese - MeCabTagger and JanomeTagger.
+
+To use JanomeTagger, at first install Janome: a pure python Japanese morphological analyzer.
+
+```bash
+$ pip install janome
+```
+
+Check tagger like below.
 
 ```python
->>> from minette import *
->>> tagger = MeCabServiceTagger()
-Do not use default API URL for the production environment. This is for trial use only. Install MeCab and use MeCabTagger instead.
+>>> from minette.tagger.janometagger import JanomeTagger
+>>> tagger = JanomeTagger()
 >>> words = tagger.parse("今日は良い天気です")
 >>> words[0].to_dict()
 {'surface': '今日', 'part': '名詞', 'part_detail1': '副詞可能', 'part_detail2': '', 'part_detail3': '', 'stem_type': '', 'stem_form': '', 'word': '今日', 'kana': 'キョウ', 'pronunciation': 'キョー'}
 ```
 
-Sample use case in `DialogService` is here.
+Sample usage in `DialogService` is here.
+
 ```python
+# bot = Minette(tagger=JanomeTagger) <- Note: create bot with JanomeTagger
+
 def process_request(self, request, context, connection):
-    # extract nouns from request.text == "今日は良い天気です"
+    # result of parsing morph is set in `request.words` automatically
     nouns = [w.surface for w in request.words if w.part == "名詞"]
-    # set ["今日", "天気"] to context data
-    context.data["nouns"] = nouns
 ```
 
 ## Task scheduler
@@ -264,54 +278,35 @@ See the [Contribution Guideline](https://github.com/uezo/minette-python/blob/mas
 # ⚖️ License
 This software is licensed under the Apache v2 License.
 
-# Appendix
+# Appendix1. Setup MeCab Tagger
 
-## Setup Janome Tagger
+## Installing MeCab
 
-### Install dependency
-```
-$ pip install janome
-```
-
-### Usage
-
-```python
-from minette.tagger.janometagger import JanomeTagger
-bot = Minette.create(
-    tagger=JanomeTagger
-)
-```
-
-If you have a user dictionary in MeCab IPADIC format, configure like below in minette.ini.
-
-```ini
-janome_userdic = /path/to/userdic.csv
-```
-
-## Setup MeCab Tagger
-
-### Installing MeCab
 - Ubuntu 16.04
+
 ```
 $ sudo apt-get install mecab libmecab-dev mecab-ipadic
 $ sudo apt-get install mecab-ipadic-utf8
 ```
+
 - Mac OSX
+
 ```
 $ brew install mecab mecab-ipadic git curl xz
 ```
 
-### Installing python binding
+## Installing python binding
+
 ```
 $ pip install mecab-python3==1.0.1
 ```
 ~~Version 0.996.1 has a bug(?) so we strongly recommend to use version 0.7.~~ Fixed at current version
 
 
-### Usase
+## Usase
 ```python
-from minette.tagger.mecab import MeCabTagger
-bot = Minette.create(
+from minette.tagger.mecabtagger import MeCabTagger
+bot = Minette(
     tagger=MeCabTagger
 )
 ```

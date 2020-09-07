@@ -5,10 +5,16 @@ Minette はチャットボットを開発するための軽量で拡張可能な
 
 [🇬🇧README in English](https://github.com/uezo/minette-python/blob/master/README.md)
 
-# 🎉 version 0.4.2 is available
+# 🎉 version 0.4.3 is available
+
+- 0.4.3 Sep 5, 2020
+    - 共有オブジェクトのサポート: 生成コストの高いオブジェクトなどをDialogService/DialogRouterに共有できるようになりました 👉 [PR #38](https://github.com/uezo/minette-python/pull/38)
+    - 形態素解析のスキップ: リクエスト文字列が最大長（設定可能、デフォルト1000文字）を超過した場合に形態素解析処理を行わないようにしました。0に設定することで常にスキップし、必要に応じてDialog内で手動で実行することもできます 👉 [PR #42](https://github.com/uezo/minette-python/pull/42)
+    - 形態素解析結果のジェネレーターのサポート: Taggerの戻り値を従来のlistではなくgeneratorでも受け取れるようになりました 👉 [PR #35](https://github.com/uezo/minette-python/pull/35)
 
 - 0.4.2 Aug 26, 2020
     - [Janome 0.4](https://mocobeta.github.io/janome/)に対応しました
+
 - 0.4.1 Aug 7, 2020
     - SQLAlchemyをサポートしました（試験的）。利用方法は [examples/todo.py](https://github.com/uezo/minette-python/blob/master/examples/todo.py) を参照ください。
 
@@ -101,7 +107,6 @@ MeCabやJanomeのインストール方法についてはページ下部にAppend
 # 📚 依存ライブラリ
 
 (必須)
-- requests >= 2.21.0
 - pytz >= 2018.9
 - schedule >= 0.6.0
 
@@ -154,24 +159,32 @@ request.user.data["horoscope"] = "cancer"
 
 ## 形態素解析
 `Tagger`は形態素解析のための部品で、解析結果はリクエスト情報に自動的に格納され各`DialogService`（アプリケーション）で利用することができます。
-Minetteには`MeCabTagger`、`MeCabServiceTagger`、`JanomeTagger`の3つのTaggerが最初から組み込まれています。
+Minetteには`MeCabTagger`、`JanomeTagger`の2つのTaggerが最初から組み込まれています。
+
+JanomeTaggerを利用するには、まずはJanome（ピュアパイソンな形態素解析エンジン）をインストールします。
+
+```bash
+$ pip install janome
+```
+
+続いて動作確認をしてみましょう。以下の通り1つめの単語についての解析結果を表示してみます。
 
 ```python
->>> from minette import *
->>> tagger = MeCabServiceTagger()
-Do not use default API URL for the production environment. This is for trial use only. Install MeCab and use MeCabTagger instead.
+>>> from minette.tagger.janometagger import JanomeTagger
+>>> tagger = JanomeTagger()
 >>> words = tagger.parse("今日は良い天気です")
 >>> words[0].to_dict()
 {'surface': '今日', 'part': '名詞', 'part_detail1': '副詞可能', 'part_detail2': '', 'part_detail3': '', 'stem_type': '', 'stem_form': '', 'word': '今日', 'kana': 'キョウ', 'pronunciation': 'キョー'}
 ```
 
-`DialogService`での利用例は以下の通り。
+DialogServiceでの利用例は以下の通り。Minetteオブジェクトを生成するときに`tagger`として`JanomeTagger`クラスを指定すれば、自動的にリクエスト本文の形態素解析が行われます。
+
 ```python
+# bot = Minette(tagger=JanomeTagger) <- Note: create bot with JanomeTagger
+
 def process_request(self, request, context, connection):
-    # request.text == "今日は良い天気です" から名詞を抽出。
+    # result of parsing morph is set in `request.words` automatically
     nouns = [w.surface for w in request.words if w.part == "名詞"]
-    # ["今日", "天気"]をコンテキストデータに格納
-    context.data["nouns"] = nouns
 ```
 
 
@@ -267,54 +280,37 @@ def test_payload(bot):
 # ⚖️ ライセンス
 Apache v2 License
 
-# Appendix
+# Appendix. MeCabTaggerのセットアップ
 
-## Janome Taggerのセットアップ
+## MeCabのインストール
 
-### 依存ライブラリのインストール
-```
-$ pip install janome
-```
-
-### 使い方
-
-```python
-from minette.tagger.janometagger import JanomeTagger
-bot = Minette.create(
-    tagger=JanomeTagger
-)
-```
-
-MeCab IPADICフォーマットのユーザー辞書がある場合、設定ファイル（minette.ini）に以下の通り定義することで利用することができます。
-
-```ini
-janome_userdic = /path/to/userdic.csv
-```
-
-## MeCab Taggerのセットアップ
-
-### MeCabのインストール
 - Ubuntu 16.04
+
 ```
 $ sudo apt-get install mecab libmecab-dev mecab-ipadic
 $ sudo apt-get install mecab-ipadic-utf8
 ```
+
 - Mac OSX
+
 ```
 $ brew install mecab mecab-ipadic git curl xz
 ```
 
-### Pythonバインディングのインストール
+## Pythonバインディングのインストール
+
 ```
 $ pip install mecab-python3==1.0.1
 ```
+
 ~~0.996.1時点では`surface`が想定通りにならないバグ？があるため、0.7のインストールをお勧めします。~~ 解決済み
 
 
-### 使い方
+## 使い方
+
 ```python
-from minette.tagger.mecab import MeCabTagger
-bot = Minette.create(
+from minette.tagger.mecabtagger import MeCabTagger
+bot = Minette(
     tagger=MeCabTagger
 )
 ```
