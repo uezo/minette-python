@@ -95,9 +95,8 @@ class MeCabServiceTagger(Tagger):
         if not api_url:
             self.api_url = "https://api.uezo.net/mecab/parse"
             self.logger.warning(
-                "Do not use default API URL for the production environment. "
-                "This is for trial use only. "
-                "Install MeCab and use MeCabTagger instead.")
+                "This tagger is deprecated."
+                "Use MeCabTagger or JanomeTagger instead.")
         else:
             self.api_url = api_url
 
